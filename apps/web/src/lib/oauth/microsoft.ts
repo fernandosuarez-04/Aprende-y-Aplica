@@ -23,7 +23,7 @@ export function getMicrosoftRedirectUri(): string {
     // Esto salva el error si la variable de entorno se configuró mal (ej. falta https)
     if (process.env.NODE_ENV === 'production') {
       console.warn(`[Microsoft OAuth] MICROSOFT_OAUTH_REDIRECT_URI inválida o faltante: "${redirectRaw}". Usando fallback de producción.`);
-      return 'https://sofialia.ai/auth/oauth/microsoft/callback';
+      return 'https://soflia.ai/auth/oauth/microsoft/callback';
     }
 
     throw new Error(

@@ -135,7 +135,7 @@ export function ROIImpactSection() {
           </h2>
 
           <p className="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto">
-            {t('landing.roi.subtitle', 'Resultados reales de organizaciones que transformaron su capacitación con SOFIA')}
+            {t('landing.roi.subtitle', 'Resultados reales de organizaciones que transformaron su capacitación con SOFLIA')}
           </p>
         </motion.div>
 

@@ -7,12 +7,12 @@ export const LEGAL_DOCUMENTS = {
         number: 1,
         title: 'Aceptación de los Términos',
         content:
-          'Estos Términos y Condiciones de Uso ("Términos") constituyen un acuerdo legal entre usted ("Usuario", "usted" o "su") y SOFIA ("nosotros", "nuestro" o "la Plataforma"). Al acceder, utilizar, registrarse o interactuar de cualquier manera con nuestra plataforma de capacitación en inteligencia artificial ubicada en nuestro sitio web (la "Plataforma"), usted acepta estar legalmente vinculado por estos Términos. Si no está de acuerdo con alguno de estos términos, no debe acceder ni utilizar nuestros servicios.',
+          'Estos Términos y Condiciones de Uso ("Términos") constituyen un acuerdo legal entre usted ("Usuario", "usted" o "su") y SOFLIA ("nosotros", "nuestro" o "la Plataforma"). Al acceder, utilizar, registrarse o interactuar de cualquier manera con nuestra plataforma de capacitación en inteligencia artificial ubicada en nuestro sitio web (la "Plataforma"), usted acepta estar legalmente vinculado por estos Términos. Si no está de acuerdo con alguno de estos términos, no debe acceder ni utilizar nuestros servicios.',
       },
       {
         number: 2,
         title: 'Descripción del Servicio',
-        content: 'SOFIA es una plataforma educativa B2B que ofrece servicios de capacitación empresarial en inteligencia artificial, incluyendo pero no limitado a:',
+        content: 'SOFLIA es una plataforma educativa B2B que ofrece servicios de capacitación empresarial en inteligencia artificial, incluyendo pero no limitado a:',
         list: [
           'Cursos en línea de inteligencia artificial, machine learning y tecnologías relacionadas',
           'Contenido educativo interactivo, incluyendo videos, lecciones, materiales de estudio y recursos multimedia',
@@ -55,7 +55,7 @@ export const LEGAL_DOCUMENTS = {
       {
         number: 6,
         title: 'Propiedad Intelectual',
-        content: 'Todos los derechos de propiedad intelectual sobre la Plataforma, incluyendo pero no limitado a textos, gráficos, logos, iconos, imágenes, clips de audio y video, software, compilaciones de datos, diseño, estructura y organización de la Plataforma, son propiedad de SOFIA o de nuestros licenciantes y están protegidos por leyes de derechos de autor, marcas registradas, secretos comerciales y otras leyes de propiedad intelectual. No se otorgan licencias implícitas. Usted no puede reproducir, distribuir, modificar, crear trabajos derivados, mostrar públicamente, realizar públicamente, republicar, descargar, almacenar o transmitir ningún material de la Plataforma sin nuestro permiso previo por escrito.',
+        content: 'Todos los derechos de propiedad intelectual sobre la Plataforma, incluyendo pero no limitado a textos, gráficos, logos, iconos, imágenes, clips de audio y video, software, compilaciones de datos, diseño, estructura y organización de la Plataforma, son propiedad de SOFLIA o de nuestros licenciantes y están protegidos por leyes de derechos de autor, marcas registradas, secretos comerciales y otras leyes de propiedad intelectual. No se otorgan licencias implícitas. Usted no puede reproducir, distribuir, modificar, crear trabajos derivados, mostrar públicamente, realizar públicamente, republicar, descargar, almacenar o transmitir ningún material de la Plataforma sin nuestro permiso previo por escrito.',
       },
       {
         number: 7,
@@ -65,7 +65,7 @@ export const LEGAL_DOCUMENTS = {
       {
         number: 8,
         title: 'Integraciones con Calendarios y Servicios de Terceros',
-        content: 'La Plataforma ofrece integración opcional con Google Calendar y Microsoft Outlook exclusivamente para optimizar su experiencia de planificación de estudios. Al autorizar esta integración, usted entiende y acepta que: (a) ÚNICAMENTE accedemos a información de disponibilidad (horarios ocupados/libres) y NO al contenido, títulos o detalles de sus eventos personales o de trabajo; (b) Esta información se utiliza exclusivamente para diseñar un plan de estudios personalizado que se adapte a sus horarios disponibles; (c) Ni SOFIA ni Google/Microsoft recopilan información adicional más allá de lo estrictamente necesario para este propósito; (d) Puede revocar el acceso en cualquier momento desde la configuración de su cuenta.',
+        content: 'La Plataforma ofrece integración opcional con Google Calendar y Microsoft Outlook exclusivamente para optimizar su experiencia de planificación de estudios. Al autorizar esta integración, usted entiende y acepta que: (a) ÚNICAMENTE accedemos a información de disponibilidad (horarios ocupados/libres) y NO al contenido, títulos o detalles de sus eventos personales o de trabajo; (b) Esta información se utiliza exclusivamente para diseñar un plan de estudios personalizado que se adapte a sus horarios disponibles; (c) Ni SOFLIA ni Google/Microsoft recopilan información adicional más allá de lo estrictamente necesario para este propósito; (d) Puede revocar el acceso en cualquier momento desde la configuración de su cuenta.',
       },
       {
         number: 9,
@@ -95,7 +95,7 @@ export const LEGAL_DOCUMENTS = {
       {
         number: 14,
         title: 'Indemnización',
-        content: 'Usted acepta indemnizar, defender y mantener indemnes a SOFIA, sus afiliados, directores, empleados, agentes y licenciantes de y contra todas y cada una de las reclamaciones, daños, obligaciones, pérdidas, responsabilidades, costos o deudas, y gastos (incluidos pero no limitados a honorarios de abogados) que surjan de: (a) su uso e ingreso a la Plataforma, (b) su violación de cualquier término de estos Términos, (c) su violación de cualquier derecho de un tercero, incluidos sin limitación derechos de propiedad intelectual o privacidad, o (d) cualquier reclamación de que su Contenido del Usuario causó daño a un tercero.',
+        content: 'Usted acepta indemnizar, defender y mantener indemnes a SOFLIA, sus afiliados, directores, empleados, agentes y licenciantes de y contra todas y cada una de las reclamaciones, daños, obligaciones, pérdidas, responsabilidades, costos o deudas, y gastos (incluidos pero no limitados a honorarios de abogados) que surjan de: (a) su uso e ingreso a la Plataforma, (b) su violación de cualquier término de estos Términos, (c) su violación de cualquier derecho de un tercero, incluidos sin limitación derechos de propiedad intelectual o privacidad, o (d) cualquier reclamación de que su Contenido del Usuario causó daño a un tercero.',
       },
       {
         number: 15,
@@ -122,7 +122,7 @@ export const LEGAL_DOCUMENTS = {
         number: 1,
         title: 'Introducción y Alcance',
         content:
-          'Esta Política de Privacidad describe cómo SOFIA ("nosotros", "nuestro" o "la Plataforma") recopila, utiliza, almacena, comparte y protege su información personal cuando utiliza nuestra plataforma de capacitación en inteligencia artificial. Esta política se aplica a todos los usuarios de nuestra Plataforma, incluyendo usuarios individuales y organizaciones. Al utilizar nuestros servicios, usted acepta las prácticas descritas en esta política. Esta Política de Privacidad cumple con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) de México, el Reglamento General de Protección de Datos (GDPR) de la Unión Europea, y demás legislaciones aplicables en Latinoamérica.',
+          'Esta Política de Privacidad describe cómo SOFLIA ("nosotros", "nuestro" o "la Plataforma") recopila, utiliza, almacena, comparte y protege su información personal cuando utiliza nuestra plataforma de capacitación en inteligencia artificial. Esta política se aplica a todos los usuarios de nuestra Plataforma, incluyendo usuarios individuales y organizaciones. Al utilizar nuestros servicios, usted acepta las prácticas descritas en esta política. Esta Política de Privacidad cumple con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP) de México, el Reglamento General de Protección de Datos (GDPR) de la Unión Europea, y demás legislaciones aplicables en Latinoamérica.',
       },
       {
         number: 2,
@@ -146,7 +146,7 @@ export const LEGAL_DOCUMENTS = {
           'ÚNICAMENTE accedemos a información de disponibilidad (franjas horarias ocupadas/libres) para diseñar un plan de estudios personalizado que se adapte a sus horarios',
           'NO accedemos, leemos ni almacenamos el contenido, títulos, descripciones, asistentes o cualquier detalle de sus eventos personales o de trabajo',
           'NO almacenamos su información de calendario de forma permanente; solo consultamos disponibilidad en tiempo real cuando usted solicita crear o actualizar su plan de estudios',
-          'Ni SOFIA ni Google ni Microsoft recopilan información adicional de su calendario más allá de lo estrictamente necesario para verificar horarios disponibles',
+          'Ni SOFLIA ni Google ni Microsoft recopilan información adicional de su calendario más allá de lo estrictamente necesario para verificar horarios disponibles',
           'Puede revocar el acceso a su calendario en cualquier momento desde la configuración de su cuenta, sin que esto afecte el resto de funcionalidades de la plataforma',
           'Esta integración cumple con las políticas de uso de datos de Google y Microsoft, así como con la Ley Federal de Protección de Datos Personales en Posesión de los Particulares (LFPDPPP)',
         ],
@@ -169,7 +169,7 @@ export const LEGAL_DOCUMENTS = {
       {
         number: 5,
         title: 'Asistente Virtual LIA',
-        content: 'SOFIA incluye un asistente virtual de inteligencia artificial llamado LIA que utiliza tecnología de Google Gemini. Respecto a LIA:',
+        content: 'SOFLIA incluye un asistente virtual de inteligencia artificial llamado LIA que utiliza tecnología de Google Gemini. Respecto a LIA:',
         list: [
           'LIA procesa sus consultas para proporcionar asistencia educativa, recomendaciones de cursos y apoyo en su aprendizaje',
           'Las conversaciones con LIA pueden ser almacenadas para mejorar la calidad del servicio y personalizar futuras interacciones',

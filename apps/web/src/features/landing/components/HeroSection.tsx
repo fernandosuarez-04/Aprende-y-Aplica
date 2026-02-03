@@ -94,7 +94,7 @@ export function HeroSection({ content }: HeroSectionProps) {
                     style={{ fontFamily: 'Inter, sans-serif', fontWeight: 500 }}
                   >
                     <span className="relative z-10 flex items-center gap-2">
-                      Conoce a LIA
+                      Conoce al Tutor
                       <motion.div
                         animate={{ rotate: [0, 15, -15, 0] }}
                         transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
@@ -138,7 +138,7 @@ export function HeroSection({ content }: HeroSectionProps) {
               >
                 <Image
                   src="/Logo.png"
-                  alt="SOFIA Logo"
+                  alt="SOFLIA Logo"
                   fill
                   className="object-contain"
                   priority

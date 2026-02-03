@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Calendar, FileText, CheckCircle2, Bot, BarChart3, Rocket, LucideIcon } from 'lucide-react';
+import { ArrowRight, Calendar, FileText, CheckCircle2, Bot, BarChart3, Rocket, LucideIcon, GraduationCap, Sparkles } from 'lucide-react';
 
 interface Benefit {
   key: string;
@@ -13,10 +13,15 @@ interface Benefit {
 }
 
 const benefits: Benefit[] = [
-  { key: 'aiPowered', icon: Bot },
+  { key: 'aiPowered', icon: Sparkles },
   { key: 'measurable', icon: BarChart3 },
   { key: 'scalable', icon: Rocket },
 ];
+// ... (omitting lines for brevity in replace call if possible, but replace_file_content needs contiguous block)
+// I will split this into two calls or use a larger block. The imports are at the top, benefits list is next.
+// And the floating card is at the bottom.
+// I'll do imports and benefits first.
+
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -115,7 +120,7 @@ export function HeroSectionB2B() {
               variants={fadeInUp}
               className="text-lg lg:text-xl text-[#6C757D] dark:text-white/70 mb-8 leading-relaxed"
             >
-              {t('landing.hero.description', 'SOFIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.')}
+              {t('landing.hero.description', 'SOFLIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.')}
             </motion.p>
 
             {/* CTA Buttons */}
@@ -191,7 +196,7 @@ export function HeroSectionB2B() {
               >
                 <Image
                   src="/Logo.png"
-                  alt="SOFIA"
+                  alt="SOFLIA"
                   fill
                   className="object-contain drop-shadow-2xl"
                   priority
@@ -225,10 +230,10 @@ export function HeroSectionB2B() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#8B5CF6] to-[#6366F1] flex items-center justify-center">
-                  <Bot size={20} className="text-white" />
+                  <GraduationCap size={20} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-xs text-[#6C757D] dark:text-white/50">LIA Activo</p>
+                  <p className="text-xs text-[#6C757D] dark:text-white/50">Mentoría</p>
                   <p className="text-lg font-bold text-[#00D4B3]">24/7</p>
                 </div>
               </div>

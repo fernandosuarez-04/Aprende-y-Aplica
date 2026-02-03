@@ -107,7 +107,7 @@ export function PlatformOverview() {
             </h2>
 
             <p className="text-lg text-[#6C757D] dark:text-white/60 mb-10 leading-relaxed">
-              {t('landing.platform.description', 'SOFIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.')}
+              {t('landing.platform.description', 'SOFLIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.')}
             </p>
 
             {/* Features List */}
@@ -163,7 +163,7 @@ export function PlatformOverview() {
                 {/* Try to load actual dashboard image, fallback to gradient */}
                 <Image
                   src="/images/dashboard-header.png"
-                  alt="SOFIA Dashboard"
+                  alt="SOFLIA Dashboard"
                   fill
                   className="object-cover object-top"
                   onError={(e) => {
@@ -211,11 +211,11 @@ export function PlatformOverview() {
             >
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#00D4B3] to-[#10B981] flex items-center justify-center">
-                  <Bot size={24} className="text-white" />
+                  <GraduationCap size={24} className="text-white" />
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white">LIA</p>
-                  <p className="text-xs text-[#00D4B3]">Asistente IA 24/7</p>
+                  <p className="text-sm font-semibold text-[#0A2540] dark:text-white">Tutor IA</p>
+                  <p className="text-xs text-[#00D4B3]">Disponible 24/7</p>
                 </div>
               </div>
             </motion.div>

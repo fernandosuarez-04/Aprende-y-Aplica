@@ -65,7 +65,7 @@ export function LandingFooter() {
               <div className="relative w-40 h-40">
                 <Image
                   src="/SofiaLogo.png"
-                  alt="SOFIA"
+                  alt="SOFLIA"
                   fill
                   className="object-contain brightness-0 invert"
                 />
@@ -106,7 +106,7 @@ export function LandingFooter() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Copyright */}
             <div className="flex items-center gap-2 text-sm text-white/40">
-              <span>© {currentYear} SOFIA</span>
+              <span>© {currentYear} SOFLIA</span>
               <span className="hidden md:inline">·</span>
               <span className="hidden md:flex items-center gap-1">
                 <MapPin size={14} />
