@@ -216,7 +216,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                 <MoreHorizontal className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
               </button>
 
-              {/* Menú de opciones - SOFIA */}
+              {/* Menú de opciones - SOFLIA */}
               <AnimatePresence>
                 {showOptionsMenu && (
                   <motion.div
@@ -276,7 +276,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             </button>
           </div>
 
-          {/* Input de respuesta - SOFIA */}
+          {/* Input de respuesta - SOFLIA */}
           <AnimatePresence>
             {showReplyInput && (
               <motion.div
@@ -339,7 +339,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
         </div>
       </div>
 
-      {/* Respuestas - SOFIA */}
+      {/* Respuestas - SOFLIA */}
       <AnimatePresence>
         {showReplies && (
           <motion.div

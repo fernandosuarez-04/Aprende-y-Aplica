@@ -6,17 +6,13 @@ import { getBaseUrl } from '@/lib/env';
  *
  * IMPORTANTE: El nombre de la aplicación mostrado en la pantalla de consentimiento de Google OAuth
  * debe configurarse en Google Cloud Console como "soflia.ai" para que coincida con el dominio.
- *
+ * 
  * Configuración en Google Cloud Console:
  * - APIs & Services > OAuth consent screen
  * - App name: soflia.ai
  * - Application home page: https://soflia.ai
  * - Application privacy policy link: https://soflia.ai/privacy
  * - Application terms of service link: https://soflia.ai/terms
- *
- * IMPORTANTE para producción:
- * - Configurar NEXT_PUBLIC_APP_URL=https://soflia.ai en Vercel
- * - URI de redirección: https://soflia.ai/api/auth/callback/google
  */
 export const GOOGLE_OAUTH_CONFIG: GoogleOAuthConfig = {
   clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,

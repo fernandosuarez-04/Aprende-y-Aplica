@@ -25,17 +25,17 @@ export function LandingHeader() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isThemeDropdownOpen, setIsThemeDropdownOpen] = useState(false);
   const [isLanguageDropdownOpen, setIsLanguageDropdownOpen] = useState(false);
-  
+
   // Theme
   const { theme, setTheme, initializeTheme } = useThemeStore();
-  
+
   // Language
   const { language, setLanguage } = useLanguage();
-  
+
   const languageOptions: { value: SupportedLanguage; label: string; flag: string }[] = [
-    { value: 'es', label: 'Español', flag: '🇪🇸' },
-    { value: 'en', label: 'English', flag: '🇺🇸' },
-    { value: 'pt', label: 'Português', flag: '🇧🇷' },
+    { value: 'es', label: 'Español', flag: 'ðŸ‡ªðŸ‡¸' },
+    { value: 'en', label: 'English', flag: 'ðŸ‡ºðŸ‡¸' },
+    { value: 'pt', label: 'PortuguÃªs', flag: 'ðŸ‡§ðŸ‡·' },
   ];
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export function LandingHeader() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-  
+
   // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -68,11 +68,10 @@ export function LandingHeader() {
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
           ? "bg-white dark:bg-[#0F1419] shadow-lg shadow-black/5 dark:shadow-black/20"
           : "bg-white dark:bg-[#0F1419]"
-      }`}
+        }`}
     >
       <div className="container mx-auto px-4 lg:px-8">
         <nav className="flex items-center justify-between h-16 lg:h-20">
@@ -129,7 +128,7 @@ export function LandingHeader() {
               >
                 <Globe size={20} />
               </motion.button>
-              
+
               <AnimatePresence>
                 {isLanguageDropdownOpen && (
                   <motion.div
@@ -147,11 +146,10 @@ export function LandingHeader() {
                           setIsLanguageDropdownOpen(false);
                         }}
                         whileHover={{ x: 4 }}
-                        className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${
-                          language === option.value
+                        className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${language === option.value
                             ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
                             : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
-                        }`}
+                          }`}
                       >
                         <span className="text-lg">{option.flag}</span>
                         <span className="text-sm font-medium">{option.label}</span>
@@ -179,7 +177,7 @@ export function LandingHeader() {
               >
                 {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />}
               </motion.button>
-              
+
               <AnimatePresence>
                 {isThemeDropdownOpen && (
                   <motion.div
@@ -195,11 +193,10 @@ export function LandingHeader() {
                         setIsThemeDropdownOpen(false);
                       }}
                       whileHover={{ x: 4 }}
-                      className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${
-                        theme === 'light'
+                      className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${theme === 'light'
                           ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
                           : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       <Sun size={18} />
                       <span className="text-sm font-medium">Claro</span>
@@ -211,11 +208,10 @@ export function LandingHeader() {
                         setIsThemeDropdownOpen(false);
                       }}
                       whileHover={{ x: 4 }}
-                      className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${
-                        theme === 'dark'
+                      className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${theme === 'dark'
                           ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
                           : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
-                      }`}
+                        }`}
                     >
                       <Moon size={18} />
                       <span className="text-sm font-medium">Oscuro</span>
@@ -306,11 +302,10 @@ export function LandingHeader() {
                           onClick={() => setLanguage(option.value)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className={`px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all ${
-                            language === option.value
+                          className={`px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all ${language === option.value
                               ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
                               : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
-                          }`}
+                            }`}
                         >
                           {option.flag}
                         </motion.button>
@@ -326,11 +321,10 @@ export function LandingHeader() {
                       onClick={() => setTheme('light')}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`p-2 rounded-lg transition-all ${
-                        theme === 'light'
+                      className={`p-2 rounded-lg transition-all ${theme === 'light'
                           ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
                           : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
-                      }`}
+                        }`}
                     >
                       <Sun size={18} />
                     </motion.button>
@@ -338,11 +332,10 @@ export function LandingHeader() {
                       onClick={() => setTheme('dark')}
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
-                      className={`p-2 rounded-lg transition-all ${
-                        theme === 'dark'
+                      className={`p-2 rounded-lg transition-all ${theme === 'dark'
                           ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
                           : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
-                      }`}
+                        }`}
                     >
                       <Moon size={18} />
                     </motion.button>

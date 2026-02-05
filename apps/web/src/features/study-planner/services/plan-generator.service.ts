@@ -8,6 +8,7 @@ import { AvailabilityEstimate } from './availability-calculator.service';
 import { LearningRoute, LearningRouteItem } from './learning-route.service';
 import { SessionValidatorService, BreakSchedule } from './session-validator.service';
 import { LessonTimeService } from './lesson-time.service';
+import { StudyStrategyService, StudyMode, SessionBreakdown, BreakInterval } from './study-strategy.service';
 
 // Tipos para el plan de estudio
 export interface StudyPlanConfig {
@@ -39,6 +40,11 @@ export interface StudyPlanConfig {
 
   // B2B
   assignments?: B2BAssignment[];
+
+  // Estrategias de estudio (Pomodoro, límites de burnout)
+  studyMode?: StudyMode;
+  maxConsecutiveHours?: number;
+  enableSpacedRepetition?: boolean;
 }
 
 export interface TimeBlock {
@@ -70,6 +76,11 @@ export interface PlannedSession {
   lessonTitle?: string;
   breaks: SessionBreak[];
   status: 'planned';
+  // Campos de estrategia de estudio
+  pomodoroCount?: number;
+  hasIntegratedBreaks?: boolean;
+  integratedBreakMinutes?: number;
+  studyMode?: StudyMode;
 }
 
 export interface SessionBreak {
@@ -174,6 +185,14 @@ export class PlanGeneratorService {
     let courseIndex = 0;
     let lessonIndex = 0;
 
+    // Modo de estudio (por defecto balanced para compatibilidad)
+    const studyMode: StudyMode = config.studyMode || 'balanced';
+    const maxConsecutiveHours = config.maxConsecutiveHours || 2;
+
+    // Tracking para prevención de burnout
+    let dailyStudyMinutes = 0;
+    let lastSessionDate: string | null = null;
+
     // Máximo de sesiones para evitar loops infinitos (1 año de sesiones)
     const maxSessions = 365 * config.selectedDays.length;
 
@@ -190,6 +209,13 @@ export class PlanGeneratorService {
 
       // Verificar si el día actual es un día de estudio
       const dayName = this.getDayName(currentDate.getDay());
+      const currentDateStr = currentDate.toDateString();
+
+      // Resetear contador diario si cambiamos de día
+      if (lastSessionDate !== currentDateStr) {
+        dailyStudyMinutes = 0;
+        lastSessionDate = currentDateStr;
+      }
 
       if (config.selectedDays.includes(dayName)) {
         // Encontrar el bloque de tiempo para este día
@@ -205,14 +231,26 @@ export class PlanGeneratorService {
             config.maxSessionMinutes
           );
 
-          // Calcular descansos
-          const breaks = SessionValidatorService.calculateBreakSchedule(sessionDuration)
-            .map(b => ({
-              afterMinutes: b.breakAfterMinutes,
-              durationMinutes: b.breakDurationMinutes
-            }));
+          // Verificar límite de horas consecutivas (prevención burnout)
+          const maxDailyMinutes = maxConsecutiveHours * 60;
+          if (dailyStudyMinutes + sessionDuration > maxDailyMinutes) {
+            // Ya alcanzamos el límite para hoy, pasar al siguiente día
+            currentDate.setDate(currentDate.getDate() + 1);
+            continue;
+          }
 
-          // Crear sesión
+          // Calcular descansos usando StudyStrategyService según el modo
+          const breakdownResult = StudyStrategyService.calculateBreaks(sessionDuration, studyMode);
+
+          const breaks: SessionBreak[] = breakdownResult.breaks.map(b => ({
+            afterMinutes: b.afterMinutes,
+            durationMinutes: b.durationMinutes
+          }));
+
+          // Calcular hora fin incluyendo descansos integrados
+          const totalSessionTime = breakdownResult.totalMinutes;
+
+          // Crear sesión con información de estrategia
           const session: PlannedSession = {
             id: `session-${sessionCount + 1}`,
             date: new Date(currentDate),
@@ -221,7 +259,7 @@ export class PlanGeneratorService {
             endTime: this.calculateEndTime(
               timeBlock.startHour,
               timeBlock.startMinute || 0,
-              sessionDuration
+              totalSessionTime
             ),
             durationMinutes: sessionDuration,
             courseId: currentCourse.courseId,
@@ -229,12 +267,18 @@ export class PlanGeneratorService {
             lessonId: currentLesson.lessonId,
             lessonTitle: currentLesson.lessonTitle,
             breaks,
-            status: 'planned'
+            status: 'planned',
+            // Información de estrategia Pomodoro
+            studyMode,
+            pomodoroCount: breakdownResult.pomodoroCount || 0,
+            hasIntegratedBreaks: breaks.length > 0,
+            integratedBreakMinutes: breakdownResult.breakMinutes
           };
 
           sessions.push(session);
           sessionCount++;
           lessonIndex++;
+          dailyStudyMinutes += sessionDuration;
         }
       }
 
@@ -370,9 +414,27 @@ export class PlanGeneratorService {
       preferredSessionType: 'short' | 'medium' | 'long';
       startDate?: Date;
       targetEndDate?: Date;
+      // Estrategias de estudio
+      studyMode?: StudyMode;
+      maxConsecutiveHours?: number;
+      enableSpacedRepetition?: boolean;
     }
   ): StudyPlanConfig {
     const breakSchedule = SessionValidatorService.calculateBreakSchedule(preferences.maxSessionMinutes);
+
+    // Si no se especifica modo, sugerir automáticamente basado en contexto
+    let studyMode = preferences.studyMode;
+    if (!studyMode) {
+      // Convertir horas semanales a minutos mensuales aproximados
+      const totalMinutes = (availability.weeklyHoursMax * 60) * 4; // Aproximado mensual
+      const hasDeadline = userContext.userType === 'b2b' && userContext.assignments?.some((a: B2BAssignment) => a.due_date);
+      const daysAvailable = preferences.targetEndDate
+        ? Math.ceil((preferences.targetEndDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+        : 30;
+
+      const suggestion = StudyStrategyService.suggestStudyMode(totalMinutes, daysAvailable, hasDeadline || false);
+      studyMode = suggestion.mode;
+    }
 
     return {
       userId: userContext.userId,
@@ -389,7 +451,11 @@ export class PlanGeneratorService {
       breakSchedule,
       startDate: preferences.startDate || new Date(),
       targetEndDate: preferences.targetEndDate,
-      assignments: userContext.assignments
+      assignments: userContext.assignments,
+      // Estrategias de estudio
+      studyMode,
+      maxConsecutiveHours: preferences.maxConsecutiveHours || 2,
+      enableSpacedRepetition: preferences.enableSpacedRepetition || false
     };
   }
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
-  title: 'Autenticación - SOFIA',
-  description: 'Inicia sesión o crea una cuenta en SOFIA',
+  title: 'Autenticación - SOFLIA',
+  description: 'Inicia sesión o crea una cuenta en SOFLIA',
 };
 
 export default function AuthLayout({

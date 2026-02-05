@@ -7,11 +7,11 @@ import { logger } from '@/lib/logger';
 
 /**
  * Redirige al usuario al dashboard apropiado según su cargo_rol y rol en la organización
- * - Administrador → /admin/dashboard
- * - Instructor → /instructor/dashboard (Panel de Instructor)
- * - Business (owner/admin en org) → /{orgSlug}/business-panel/dashboard (Panel Admin Empresas)
- * - Business User (member en org) → /{orgSlug}/business-user/dashboard (Dashboard Usuario Business)
- * - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
+ * - Administrador â†’ /admin/dashboard
+ * - Instructor â†’ /instructor/dashboard (Panel de Instructor)
+ * - Business (owner/admin en org) â†’ /{orgSlug}/business-panel/dashboard (Panel Admin Empresas)
+ * - Business User (member en org) â†’ /{orgSlug}/business-user/dashboard (Dashboard Usuario Business)
+ * - Usuario (o cualquier otro) â†’ /dashboard (Tour SOFLIA + Planes)
  */
 export async function redirectToDashboard() {
   try {
@@ -76,7 +76,7 @@ export async function redirectToDashboard() {
         }
       }
     } else {
-      // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → Tour de SOFIA + Planes
+      // Usuario normal (cargo_rol === 'usuario' o cualquier otro) â†’ Tour de SOFLIA + Planes
       redirect('/dashboard');
     }
   } catch (error) {

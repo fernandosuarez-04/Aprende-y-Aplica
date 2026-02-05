@@ -13,7 +13,7 @@ const logger = {
 
 
 export async function middleware(request: NextRequest) {
-  logger.log('🔍 Middleware ejecutándose para:', request.nextUrl.pathname)
+  logger.log('ðŸ” Middleware ejecutándose para:', request.nextUrl.pathname)
 
   // Verificar si es una ruta de auth y si el usuario tiene sesión activa
   // Redirigir usuarios autenticados al dashboard apropiado según cargo_rol
@@ -61,7 +61,7 @@ export async function middleware(request: NextRequest) {
             if (normalizedRole === 'administrador') {
               return NextResponse.redirect(new URL('/admin/dashboard', request.url))
             } else if (normalizedRole === 'instructor') {
-              // Instructor → Panel de instructor
+              // Instructor â†’ Panel de instructor
               return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
             } else if (normalizedRole === 'business') {
               // Para usuarios Business, verificar que pertenezca a una organización
@@ -86,14 +86,14 @@ export async function middleware(request: NextRequest) {
               const userOrg = userOrgs[0]
               const orgRole = userOrg.role as string
 
-              // ✅ Redirección basada en organization_users.role (owner/admin → panel, member → user dashboard)
+              // ✅ Redirección basada en organization_users.role (owner/admin â†’ panel, member â†’ user dashboard)
               if (orgRole === 'owner' || orgRole === 'admin') {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-panel/dashboard`, request.url))
               } else {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-user/dashboard`, request.url))
               }
             } else {
-              // Usuario normal (cargo_rol === 'usuario' o cualquier otro) → Tour SOFIA + Planes
+              // Usuario normal (cargo_rol === 'usuario' o cualquier otro) â†’ Tour SOFLIA + Planes
               return NextResponse.redirect(new URL('/dashboard', request.url))
             }
           }
@@ -176,18 +176,18 @@ export async function middleware(request: NextRequest) {
   const hasLegacySession = !!sessionCookie
   const hasRefreshTokenSession = !!(accessTokenCookie && refreshTokenCookie)
 
-  logger.log('🍪 Cookies de sesión:', {
+  logger.log('ðŸª Cookies de sesión:', {
     legacy: hasLegacySession,
     refreshToken: hasRefreshTokenSession
   })
 
   if (!hasLegacySession && !hasRefreshTokenSession) {
-    logger.log('❌ No hay sesión (ni legacy ni refresh token), redirigiendo a /auth')
+    logger.log('âŒ No hay sesión (ni legacy ni refresh token), redirigiendo a /auth')
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
   // Validar que la sesión sea válida en la base de datos
-  logger.log('🔍 Validando sesión en base de datos...')
+  logger.log('ðŸ” Validando sesión en base de datos...')
   let userId: string | null = null;
 
   try {
@@ -230,7 +230,7 @@ export async function middleware(request: NextRequest) {
     }
 
     if (!userId) {
-      logger.log('❌ Sesión inválida o expirada, redirigiendo a /auth')
+      logger.log('âŒ Sesión inválida o expirada, redirigiendo a /auth')
       // Eliminar cookies inválidas
       const redirectResponse = NextResponse.redirect(new URL('/auth', request.url));
       if (hasLegacySession) {
@@ -242,7 +242,7 @@ export async function middleware(request: NextRequest) {
     logger.log('✅ Sesión válida para usuario:', userId)
 
   } catch (error) {
-    logger.error('❌ Error validando sesión:', error)
+    logger.error('âŒ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
@@ -263,13 +263,13 @@ export async function middleware(request: NextRequest) {
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
 
       if (!userData || userRole !== 'administrador') {
-        logger.log('❌ No es administrador, redirigiendo a /dashboard')
+        logger.log('âŒ No es administrador, redirigiendo a /dashboard')
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
       logger.log('✅ Acceso de administrador autorizado')
     } catch (error) {
-      logger.error('❌ Error checking admin role:', error)
+      logger.error('âŒ Error checking admin role:', error)
       return NextResponse.redirect(new URL('/dashboard', request.url))
     }
   }

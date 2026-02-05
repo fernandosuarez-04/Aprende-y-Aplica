@@ -154,7 +154,7 @@ function LiaSidePanelContent() {
     borderColor: isLightTheme ? '#E2E8F0' : (effectiveStyles?.border_color || '#1e2a35'),
     messageBubbleAssistant: isLightTheme ? '#F1F5F9' : (effectiveStyles?.card_background || '#1e2a35'),
     messageBubbleUser: effectiveStyles?.primary_button_color || '#0A2540',
-    // Forzar texto oscuro en modo claro, ignorando el tema de la organización si este es 'sofia-predeterminado' (oscuro)
+    // Forzar texto oscuro en modo claro, ignorando el tema de la organización si este es 'SOFLIA-predeterminado' (oscuro)
     textPrimary: isLightTheme ? '#1E293B' : (effectiveStyles?.text_color || '#e5e7eb'),
     textSecondary: isLightTheme ? '#64748B' : '#6b7280',
     inputBg: isLightTheme ? '#F1F5F9' : 'rgba(255, 255, 255, 0.05)',
@@ -164,20 +164,20 @@ function LiaSidePanelContent() {
   
   const { messages, isLoading, sendMessage, clearHistory, loadConversation, currentConversationId } = useLiaGeneralChat();
   
-  // 🎙️ Configuración de personalización de LIA para voz
+  // ðŸŽ™ï¸ Configuración de personalización de LIA para voz
   const { settings: liaSettings } = useLiaPersonalization();
   const isVoiceEnabled = liaSettings?.voice_enabled ?? true; // Por defecto activado
   const isDictationEnabled = liaSettings?.dictation_enabled ?? false; // Por defecto desactivado
   const { language } = useLanguage();
   
-  // 🎙️ Estados y refs para síntesis de voz
+  // ðŸŽ™ï¸ Estados y refs para síntesis de voz
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
   const lastReadMessageIdRef = useRef<string | null>(null);
   
-  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  // ðŸŽ™ï¸ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
     'en': 'en-US',
@@ -189,7 +189,7 @@ function LiaSidePanelContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
-  // 🎙️ Estados para dictado
+  // ðŸŽ™ï¸ Estados para dictado
   const [isDictating, setIsDictating] = useState(false);
   const [isProcessingDictation, setIsProcessingDictation] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState(''); // Texto temporal mientras se habla
@@ -467,7 +467,7 @@ function LiaSidePanelContent() {
     }
   }, [isOpen]);
 
-  // 🎙️ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
+  // ðŸŽ™ï¸ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
   const cleanTextForTTS = useCallback((text: string): string => {
     if (!text) return text;
 
@@ -512,7 +512,7 @@ function LiaSidePanelContent() {
     return cleaned;
   }, []);
 
-  // 🎙️ Función para detener todo audio/voz en reproducción
+  // ðŸŽ™ï¸ Función para detener todo audio/voz en reproducción
   const stopAllAudio = useCallback(() => {
     try {
       // Abort any in-flight TTS fetch
@@ -537,10 +537,10 @@ function LiaSidePanelContent() {
     }
   }, []);
 
-  // 🎙️ Función para síntesis de voz con ElevenLabs
+  // ðŸŽ™ï¸ Función para síntesis de voz con ElevenLabs
   const speakText = useCallback(async (text: string) => {
     if (!isVoiceEnabled || typeof window === 'undefined') {
-      console.log('🔇 [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+      console.log('ðŸ”‡ [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
       return;
     }
 
@@ -548,11 +548,11 @@ function LiaSidePanelContent() {
     const cleanedText = cleanTextForTTS(text);
     
     if (!cleanedText || cleanedText.trim().length === 0) {
-      console.log('🔇 [TTS] Texto vacío después de limpiar');
+      console.log('ðŸ”‡ [TTS] Texto vacío después de limpiar');
       return;
     }
 
-    console.log('🔊 [TTS] Iniciando lectura de texto:', { 
+    console.log('ðŸ”Š [TTS] Iniciando lectura de texto:', { 
       originalLength: text.length, 
       cleanedLength: cleanedText.length,
       preview: cleanedText.substring(0, 100) + '...'
@@ -569,7 +569,7 @@ function LiaSidePanelContent() {
       const modelId = 'eleven_turbo_v2_5';
 
       if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
         
         // Fallback a Web Speech API
         const utterance = new SpeechSynthesisUtterance(cleanedText);
@@ -657,7 +657,7 @@ function LiaSidePanelContent() {
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
         // Autoplay bloqueado por el navegador - esto es normal y esperado
-        console.warn('⚠️ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+        console.warn('âš ï¸ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {
@@ -671,7 +671,7 @@ function LiaSidePanelContent() {
     }
   }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS]);
 
-  // 🎙️ Detectar cuando llega un nuevo mensaje del asistente y leerlo
+  // ðŸŽ™ï¸ Detectar cuando llega un nuevo mensaje del asistente y leerlo
   useEffect(() => {
     if (!isVoiceEnabled || messages.length === 0 || isLoading) return;
 
@@ -683,7 +683,7 @@ function LiaSidePanelContent() {
     if (lastAssistantMessage) {
       // Esperar un poco para que el mensaje termine de renderizarse (especialmente si es streaming)
       const timer = setTimeout(() => {
-        console.log('🔊 [TTS] Nuevo mensaje del asistente detectado, leyendo...', {
+        console.log('ðŸ”Š [TTS] Nuevo mensaje del asistente detectado, leyendo...', {
           messageId: lastAssistantMessage.id,
           contentLength: lastAssistantMessage.content.length,
           preview: lastAssistantMessage.content.substring(0, 50) + '...'
@@ -707,7 +707,7 @@ function LiaSidePanelContent() {
     };
   }, [isOpen, stopAllAudio]);
 
-  // 🎙️ Función para detener dictado y limpiar recursos
+  // ðŸŽ™ï¸ Función para detener dictado y limpiar recursos
   const stopDictation = useCallback(() => {
     // IMPORTANTE: Capturar el texto ANTES de cambiar isDictating y limpiar estados
     // Esto evita que el input muestre el texto duplicado
@@ -778,7 +778,7 @@ function LiaSidePanelContent() {
     lastTranscriptTimeRef.current = 0;
   }, []);
 
-  // 🎙️ Función para aplicar el texto transcrito al input
+  // ðŸŽ™ï¸ Función para aplicar el texto transcrito al input
   const applyTranscribedText = useCallback(() => {
     const fullText = (finalTranscript + ' ' + interimTranscript).trim();
     if (fullText) {
@@ -803,7 +803,7 @@ function LiaSidePanelContent() {
     setFinalTranscript('');
   }, [finalTranscript, interimTranscript]);
 
-  // 🎙️ Función para iniciar/detener dictado usando Web Speech API
+  // ðŸŽ™ï¸ Función para iniciar/detener dictado usando Web Speech API
   const toggleDictation = useCallback(async () => {
     if (!isDictationEnabled) {
       console.warn('Dictado no está habilitado en la configuración');
@@ -868,7 +868,7 @@ function LiaSidePanelContent() {
 
         // Crear nuevo timeout
         silenceTimeoutRef.current = setTimeout(() => {
-          console.log('🔇 No se detectaron nuevas palabras por 3 segundos, deteniendo dictado...');
+          console.log('ðŸ”‡ No se detectaron nuevas palabras por 3 segundos, deteniendo dictado...');
           
           // Detener reconocimiento
           if (recognitionRef.current) {
@@ -908,7 +908,7 @@ function LiaSidePanelContent() {
         if (hasNewText) {
           lastTranscriptTimeRef.current = Date.now();
           resetSilenceTimeout();
-          console.log('🔊 Nuevo texto detectado, reiniciando timeout de silencio');
+          console.log('ðŸ”Š Nuevo texto detectado, reiniciando timeout de silencio');
         }
 
         // Actualizar estados
@@ -932,7 +932,7 @@ function LiaSidePanelContent() {
 
       // Evento: cuando termina el reconocimiento (silencio detectado automáticamente)
       recognition.onend = () => {
-        console.log('🎙️ Reconocimiento de voz finalizado');
+        console.log('ðŸŽ™ï¸ Reconocimiento de voz finalizado');
         
         // Limpiar timeout si existe
         if (silenceTimeoutRef.current) {
@@ -969,7 +969,7 @@ function LiaSidePanelContent() {
 
       // Evento: cuando comienza el reconocimiento
       recognition.onstart = () => {
-        console.log('🎙️ Reconocimiento de voz iniciado');
+        console.log('ðŸŽ™ï¸ Reconocimiento de voz iniciado');
         setIsDictating(true);
         isDictatingRef.current = true;
         lastTranscriptTimeRef.current = Date.now();
@@ -980,7 +980,7 @@ function LiaSidePanelContent() {
 
       // Iniciar reconocimiento
       recognition.start();
-      console.log('🎙️ Dictado iniciado con transcripción en tiempo real');
+      console.log('ðŸŽ™ï¸ Dictado iniciado con transcripción en tiempo real');
     } catch (error: any) {
       console.error('Error iniciando dictado:', error);
       setIsDictating(false);
@@ -1551,7 +1551,7 @@ function LiaSidePanelContent() {
                 )}
               </div>
               
-              {/* 🎙️ Botón de dictado (solo si está habilitado) */}
+              {/* ðŸŽ™ï¸ Botón de dictado (solo si está habilitado) */}
               {isDictationEnabled && (
                 <button
                   onClick={toggleDictation}

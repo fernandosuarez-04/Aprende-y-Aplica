@@ -41,6 +41,8 @@ const navigation = [
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
   { name: 'Revisiones', href: '/admin/courses/pending', icon: DocumentTextIcon }, // TODO: Cambiar icono por ClipboardDocumentCheckIcon si está disponible
+  // TODO: [PENDING] Implementar sección de Gestión de Skills e Insignias (ver migración 20260204120000_create_skills_tables.sql)
+  // { name: 'Skills & Badges', href: '/admin/skills', icon: AcademicCapIcon },
 ]
 
 export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin, onHoverChange }: AdminSidebarProps) {
@@ -226,14 +228,14 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                     <Image
                       src="/Logo.png"
-                      alt="Sofia Logo"
+                      alt="SOFLIA Logo"
                       width={32}
                       height={32}
                       className="object-contain"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>Sofia</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>SOFLIA</p>
                   </div>
                 </motion.div>
               ) : (
@@ -248,7 +250,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   <div className="h-8 w-8 rounded-lg flex items-center justify-center relative overflow-hidden">
                     <Image
                       src="/Logo.png"
-                      alt="Sofia Logo"
+                      alt="SOFLIA Logo"
                       width={32}
                       height={32}
                       className="object-contain"

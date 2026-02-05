@@ -11,6 +11,7 @@ interface MemberAssignmentModalProps {
   nodeId: string
   nodeName: string
   onSuccess: () => void
+  initialRole?: 'member' | 'leader'
 }
 
 export function MemberAssignmentModal({
@@ -18,14 +19,15 @@ export function MemberAssignmentModal({
   onClose,
   nodeId,
   nodeName,
-  onSuccess
+  onSuccess,
+  initialRole
 }: MemberAssignmentModalProps) {
   const [loading, setLoading] = useState(false)
   const [searching, setSearching] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [users, setUsers] = useState<UserWithHierarchy['user'][]>([])
   const [selectedUser, setSelectedUser] = useState<string | null>(null)
-  const [role, setRole] = useState<'member' | 'leader'>('member')
+  const [role, setRole] = useState<'member' | 'leader'>(initialRole || 'member')
   const [error, setError] = useState<string | null>(null)
 
   // Fetch users when search query changes
@@ -35,6 +37,7 @@ export function MemberAssignmentModal({
       setSearchQuery('');
       setSelectedUser(null);
       setError(null);
+      setRole(initialRole || 'member');
       return;
     }
 
@@ -128,6 +131,28 @@ export function MemberAssignmentModal({
                   />
                 </div>
 
+                {/* Role Selector */}
+                <div className="flex bg-gray-50 dark:bg-[#2A3038] p-1 rounded-lg border border-gray-100 dark:border-white/5">
+                  <button
+                    onClick={() => setRole('member')}
+                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${role === 'member'
+                      ? 'bg-white dark:bg-[#1E2329] text-gray-900 dark:text-white shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    Miembro
+                  </button>
+                  <button
+                    onClick={() => setRole('leader')}
+                    className={`flex-1 py-1.5 px-3 rounded-md text-sm font-medium transition-all ${role === 'leader'
+                      ? 'bg-white dark:bg-[#1E2329] text-purple-600 dark:text-purple-400 shadow-sm'
+                      : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                  >
+                    Líder
+                  </button>
+                </div>
+
                 {/* Users List */}
                 <div className="flex-1 min-h-[200px] max-h-[300px] overflow-y-auto space-y-2 pr-1 custom-scrollbar">
                   {searching ? (
@@ -142,10 +167,10 @@ export function MemberAssignmentModal({
                     users.map(user => (
                       <div
                         key={user.id}
-                        onClick={() => setSelectedUser(user.user_id || user.id)}
-                        className={`flex items - center gap - 3 p - 3 rounded - xl border cursor - pointer transition - all ${selectedUser === (user.user_id || user.id)
-                            ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10'
-                            : 'border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/20 hover:bg-gray-50 dark:hover:bg-white/5'
+                        onClick={() => setSelectedUser(user.id)}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${selectedUser === user.id
+                          ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-500/10'
+                          : 'border-gray-100 dark:border-white/5 hover:border-gray-200 dark:hover:border-white/20 hover:bg-gray-50 dark:hover:bg-white/5'
                           } `}
                       >
                         {/* Avatar */}
@@ -170,7 +195,7 @@ export function MemberAssignmentModal({
                         </div>
 
                         {/* Selection Indicator */}
-                        {selectedUser === (user.user_id || user.id) && (
+                        {selectedUser === user.id && (
                           <div className="text-blue-500">
                             <CheckCircle className="w-5 h-5 fill-current" />
                           </div>

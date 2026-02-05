@@ -123,19 +123,19 @@ export function ModernNavbar({
     }
   }, [userDropdownOpen, mobileMenuOpen, hasStudyPlan])
 
-  // Colores SOFIA por defecto con soporte para colores personalizados
-  // Colores SOFIA por defecto con soporte para colores personalizados
+
+  // Colores SOFLIA por defecto con soporte para colores personalizados
   const colors = useMemo(() => {
     const isLight = resolvedTheme === 'light'
 
     const primaryColor = styles?.primary_button_color || '#0A2540'
     const accentColor = styles?.accent_color || '#00D4B3'
-    
+
     // Adaptar colores según el tema
     const textColor = isLight ? '#0F172A' : (styles?.text_color || '#FFFFFF')
     const cardBg = isLight ? '#FFFFFF' : (styles?.card_background || '#1E2329')
     const sidebarBg = isLight ? '#FFFFFF' : (styles?.sidebar_background || '#0F1419')
-    
+
     const sidebarOpacity = styles?.sidebar_opacity !== undefined ? styles.sidebar_opacity : 0.95
 
     let navBgColor: string
@@ -315,7 +315,7 @@ export function ModernNavbar({
               </div>
             </motion.button>
 
-             {/* Editar Perfil */}
+            {/* Editar Perfil */}
             <motion.button
               onClick={() => {
                 onProfileClick()
@@ -371,62 +371,62 @@ export function ModernNavbar({
             {/* Language Selector */}
             <div className="px-3 py-2">
               <div className="flex items-center gap-2 mb-2 px-1">
-                 <Globe className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
-                 <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>{t('header.language')}</span>
+                <Globe className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
+                <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>{t('header.language')}</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                 {(['es', 'en', 'pt'] as const).map((lang) => (
-                   <motion.button
-                     key={lang}
-                     onClick={() => setLanguage(lang)}
-                     className="relative overflow-hidden rounded-xl py-2 text-sm font-medium transition-colors border"
-                     style={{
-                       backgroundColor: language === lang ? `${colors.accent}15` : 'transparent',
-                       borderColor: language === lang ? `${colors.accent}30` : colors.border,
-                       color: language === lang ? colors.accent : `${colors.text}60`
-                     }}
-                     whileTap={{ scale: 0.95 }}
-                   >
-                     {lang.toUpperCase()}
-                   </motion.button>
-                 ))}
+                {(['es', 'en', 'pt'] as const).map((lang) => (
+                  <motion.button
+                    key={lang}
+                    onClick={() => setLanguage(lang)}
+                    className="relative overflow-hidden rounded-xl py-2 text-sm font-medium transition-colors border"
+                    style={{
+                      backgroundColor: language === lang ? `${colors.accent}15` : 'transparent',
+                      borderColor: language === lang ? `${colors.accent}30` : colors.border,
+                      color: language === lang ? colors.accent : `${colors.text}60`
+                    }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    {lang.toUpperCase()}
+                  </motion.button>
+                ))}
               </div>
             </div>
 
             {/* Theme Selector */}
             <div className="px-3 py-2">
               <div className="flex items-center gap-2 mb-2 px-1">
-                 {resolvedTheme === 'dark' ? (
-                   <Moon className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
-                 ) : (
-                   <Sun className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
-                 )}
-                 <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>Tema</span>
+                {resolvedTheme === 'dark' ? (
+                  <Moon className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
+                ) : (
+                  <Sun className="w-3.5 h-3.5 opacity-70" style={{ color: colors.text }} />
+                )}
+                <span className="text-xs font-medium opacity-70" style={{ color: colors.text }}>Tema</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
-                 {([
-                   { value: 'light' as Theme, label: 'Claro', icon: Sun },
-                   { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
-                   { value: 'system' as Theme, label: 'Auto', icon: Monitor },
-                 ]).map((option) => {
-                   const ThemeIcon = option.icon
-                   return (
-                     <motion.button
-                       key={option.value}
-                       onClick={() => setTheme(option.value)}
-                       className="relative overflow-hidden rounded-xl py-2 text-sm font-medium transition-colors border flex items-center justify-center gap-1.5"
-                       style={{
-                         backgroundColor: theme === option.value ? `${colors.accent}15` : 'transparent',
-                         borderColor: theme === option.value ? `${colors.accent}30` : colors.border,
-                         color: theme === option.value ? colors.accent : `${colors.text}60`
-                       }}
-                       whileTap={{ scale: 0.95 }}
-                     >
-                       <ThemeIcon className="w-3 h-3" />
-                       {option.label}
-                     </motion.button>
-                   )
-                 })}
+                {([
+                  { value: 'light' as Theme, label: 'Claro', icon: Sun },
+                  { value: 'dark' as Theme, label: 'Oscuro', icon: Moon },
+                  { value: 'system' as Theme, label: 'Auto', icon: Monitor },
+                ]).map((option) => {
+                  const ThemeIcon = option.icon
+                  return (
+                    <motion.button
+                      key={option.value}
+                      onClick={() => setTheme(option.value)}
+                      className="relative overflow-hidden rounded-xl py-2 text-sm font-medium transition-colors border flex items-center justify-center gap-1.5"
+                      style={{
+                        backgroundColor: theme === option.value ? `${colors.accent}15` : 'transparent',
+                        borderColor: theme === option.value ? `${colors.accent}30` : colors.border,
+                        color: theme === option.value ? colors.accent : `${colors.text}60`
+                      }}
+                      whileTap={{ scale: 0.95 }}
+                    >
+                      <ThemeIcon className="w-3 h-3" />
+                      {option.label}
+                    </motion.button>
+                  )
+                })}
               </div>
             </div>
 
@@ -536,26 +536,26 @@ export function ModernNavbar({
 
                 {/* Nombre y subtítulo */}
                 {organization?.show_navbar_name !== false && (
-                <div className="hidden sm:block">
-                  <h1
-                    className="text-lg font-bold leading-tight tracking-tight"
-                    style={{ color: colors.text }}
-                  >
-                    {organization?.name || t('header.myOrganization')}
-                  </h1>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <Sparkles
-                      className="w-3 h-3"
-                      style={{ color: colors.accent }}
-                    />
-                    <p
-                      className="text-xs font-medium"
-                      style={{ color: `${colors.accent}CC` }}
+                  <div className="hidden sm:block">
+                    <h1
+                      className="text-lg font-bold leading-tight tracking-tight"
+                      style={{ color: colors.text }}
                     >
-                      {t('header.learningPanel')}
-                    </p>
+                      {organization?.name || t('header.myOrganization')}
+                    </h1>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <Sparkles
+                        className="w-3 h-3"
+                        style={{ color: colors.accent }}
+                      />
+                      <p
+                        className="text-xs font-medium"
+                        style={{ color: `${colors.accent}CC` }}
+                      >
+                        {t('header.learningPanel')}
+                      </p>
+                    </div>
                   </div>
-                </div>
                 )}
               </motion.div>
             </div>
@@ -642,13 +642,13 @@ export function ModernNavbar({
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p 
+                              <p
                                 className="text-sm font-semibold truncate"
                                 style={{ color: colors.text }}
                               >
                                 {getDisplayName()}
                               </p>
-                              <p 
+                              <p
                                 className="text-xs truncate"
                                 style={{ color: colors.isLightMode ? '#64748B' : 'rgba(255, 255, 255, 0.7)' }}
                               >
@@ -759,7 +759,7 @@ export function ModernNavbar({
                                 <span className="text-xs opacity-70">
                                   {language.toUpperCase()}
                                 </span>
-                                <ChevronRight 
+                                <ChevronRight
                                   className={`h-3.5 w-3.5 opacity-70 transition-transform ${activeSubmenu === 'language' ? 'rotate-90' : ''}`}
                                 />
                               </div>
@@ -782,7 +782,7 @@ export function ModernNavbar({
                                         setActiveSubmenu(null)
                                       }}
                                       className="w-full flex items-center gap-3 px-10 py-2 text-xs transition-colors"
-                                      style={{ 
+                                      style={{
                                         color: language === lang ? colors.accent : colors.text,
                                       }}
                                       onMouseEnter={(e) => e.currentTarget.style.backgroundColor = colors.isLightMode ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.05)'}
@@ -819,7 +819,7 @@ export function ModernNavbar({
                                 <span className="text-xs opacity-70">
                                   {theme === 'light' ? 'Claro' : theme === 'dark' ? 'Oscuro' : 'Auto'}
                                 </span>
-                                <ChevronRight 
+                                <ChevronRight
                                   className={`h-3.5 w-3.5 opacity-70 transition-transform ${activeSubmenu === 'theme' ? 'rotate-90' : ''}`}
                                 />
                               </div>
@@ -864,7 +864,7 @@ export function ModernNavbar({
                           </div>
 
                           <div className="my-1 border-t" style={{ borderColor: colors.border }} />
-                          
+
                           <motion.button
                             onClick={() => {
                               onLogout()

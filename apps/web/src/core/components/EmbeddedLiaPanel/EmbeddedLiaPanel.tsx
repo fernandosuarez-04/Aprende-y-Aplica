@@ -93,7 +93,7 @@ export function EmbeddedLiaPanel({
   const { styles } = useOrganizationStylesContext();
   const themeStyles = styles?.panel;
 
-  // Colores con prioridad: Tema Global > Props > Defaults SOFIA
+  // Colores con prioridad: Tema Global > Props > Defaults SOFLIA
   const colors = {
     primary: themeStyles?.accent_color || organizationColors?.primary || '#00D4B3', // Lia = Aqua
     accent: themeStyles?.secondary_button_color || organizationColors?.accent || '#6C757D', // User = Neutral
@@ -563,7 +563,7 @@ export function EmbeddedLiaPanel({
                 backgroundColor: colors.cardBg
               }}
             >
-              {/* Área de mensajes de LIA */}
+              {/* Ãrea de mensajes de LIA */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative">
                 {/* Fondo informativo del modo cuando no hay mensajes */}
                 {messages.length === 0 && (

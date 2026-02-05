@@ -59,7 +59,7 @@ export default function ConocerLiaPage() {
     {
       icon: Cpu,
       title: 'Sistema Operativo de Aprendizaje',
-      description: 'LIA es la capa que organiza, coordina y conecta todas las aplicaciones de formación, contenidos y experiencias. SOFIA piensa, LIA te acompaña.',
+      description: 'LIA es la capa que organiza, coordina y conecta todas las aplicaciones de formación, contenidos y experiencias. SOFLIA piensa, LIA te acompaña.',
       color: '#00D4B3',
       gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
     },
@@ -289,7 +289,7 @@ export default function ConocerLiaPage() {
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5, duration: 0.6 }}
             >
-              "SOFIA piensa, LIA te acompaña"
+              "SOFLIA piensa, LIA te acompaña"
             </motion.p>
           </motion.div>
 
@@ -372,7 +372,7 @@ export default function ConocerLiaPage() {
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA es más que un asistente. Es la interfaz humana que traduce la inteligencia de SOFIA en conversaciones, acciones y decisiones cotidianas.
+              LIA es más que un asistente. Es la interfaz humana que traduce la inteligencia de SOFLIA en conversaciones, acciones y decisiones cotidianas.
             </p>
           </motion.div>
 

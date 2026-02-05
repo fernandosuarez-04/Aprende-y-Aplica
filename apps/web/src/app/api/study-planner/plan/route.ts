@@ -86,10 +86,10 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteP
     // Eliminar eventos del calendario externo (Google/Microsoft) si existen
     let deletedCalendarEventsCount = 0;
     if (sessions && sessions.length > 0) {
-      // Obtener integración de calendario del usuario
+      // Obtener integración de calendario del usuario (incluyendo metadata con secondary_calendar_id)
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, refresh_token, provider, expires_at')
+        .select('access_token, refresh_token, provider, expires_at, metadata')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(1)
@@ -106,13 +106,18 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteP
             accessToken = refreshResult.accessToken;
           }
         }
-        
+
+        // Obtener el ID del calendario secundario de Google (donde se crean los eventos)
+        const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+        const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
         // Eliminar eventos del calendario externo
         for (const session of sessions) {
           if (session.external_event_id && session.calendar_provider) {
             try {
               if (session.calendar_provider === 'google') {
-                await deleteGoogleCalendarEvent(accessToken, session.external_event_id);
+                // Usar el calendario secundario si existe, si no, usar primary como fallback
+                await deleteGoogleCalendarEvent(accessToken, session.external_event_id, secondaryCalendarId);
                 deletedCalendarEventsCount++;
               } else if (session.calendar_provider === 'microsoft') {
                 await deleteMicrosoftCalendarEvent(accessToken, session.external_event_id);
@@ -267,13 +272,22 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
 /**
  * Elimina un evento de Google Calendar
+ * @param accessToken - Token de acceso de Google
+ * @param googleEventId - ID del evento a eliminar
+ * @param calendarId - ID del calendario (si no se proporciona, usa 'primary')
  */
-async function deleteGoogleCalendarEvent(accessToken: string, googleEventId: string): Promise<void> {
+async function deleteGoogleCalendarEvent(
+  accessToken: string,
+  googleEventId: string,
+  calendarId?: string | null
+): Promise<void> {
   // Limpiar el ID del evento (puede venir con formato de recurrencia)
   const cleanEventId = googleEventId.split('_')[0];
-  
+  // Usar el calendario secundario si se proporciona, si no usar 'primary'
+  const targetCalendarId = calendarId || 'primary';
+
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(cleanEventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${encodeURIComponent(cleanEventId)}`,
     {
       method: 'DELETE',
       headers: {

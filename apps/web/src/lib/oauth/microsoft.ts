@@ -41,7 +41,7 @@ export function getMicrosoftAuthUrl(state: string) {
 
   // Scopes v2: lista en texto plano; URLSearchParams se encarga de codificar.
   // No usar encodeURIComponent aquí para evitar doble codificación (%2520).
-  const scope = 'openid profile offline_access https://graph.microsoft.com/User.Read';
+  const scope = 'openid profile offline_access https://graph.microsoft.com/User.Read https://graph.microsoft.com/Calendars.ReadWrite';
 
   const params = new URLSearchParams({
     client_id: clientId,

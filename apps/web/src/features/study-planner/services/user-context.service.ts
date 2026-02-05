@@ -367,7 +367,27 @@ export class UserContextService {
       return [];
     }
 
-    return data.map((item) => {
+    // ✅ FIX: Filtrar asignaciones cuya fecha límite ya pasó
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const validData = data.filter((item) => {
+      // Si no tiene due_date, incluir (sin fecha límite)
+      if (!item.due_date) return true;
+
+      const dueDate = new Date(item.due_date);
+      dueDate.setHours(0, 0, 0, 0);
+
+      const isValid = dueDate >= today;
+      if (!isValid) {
+        console.log(`⚠️ [B2B] Curso ${item.course_id} expirado (due_date: ${item.due_date}) - omitido`);
+      }
+      return isValid;
+    });
+
+    console.log(`📦 [B2B] ${validData.length} de ${data.length} asignaciones válidas (después de filtrar expiradas)`);
+
+    return validData.map((item) => {
       const course = item.courses as unknown as {
         id: string;
         title: string;
@@ -467,7 +487,7 @@ export class UserContextService {
 
     // Obtener IDs de asignaciones para la entidad del usuario
     let assignmentIds: string[] = [];
-    
+
     if (entityType === 'team') {
       const { data: teamAssignments } = await supabase
         .from('team_course_assignments')

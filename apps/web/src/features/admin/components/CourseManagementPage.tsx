@@ -27,7 +27,8 @@ interface CourseManagementPageProps {
 
 export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>('modules')
+  const isNewCourse = courseId === 'new'
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>(isNewCourse ? 'config' : 'modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
 
@@ -71,6 +72,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
     price: 0,
     thumbnail_url: '',
     slug: '',
+    instructor_id: ''
   })
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useAdminModules()
@@ -79,7 +81,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const { activities, getActivitiesByLesson, fetchActivities, createActivity, updateActivity, deleteActivity } = useAdminActivities()
 
   useEffect(() => {
-    fetchModules(courseId)
+    if (!isNewCourse) {
+      fetchModules(courseId)
+    }
     // Obtener instructores
     fetch('/api/admin/instructors')
       .then(res => res.json())
@@ -92,6 +96,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
     // Cargar datos para vista previa
     const loadPreview = async () => {
+      if (isNewCourse) return
       try {
         setPreviewLoading(true)
         const res = await fetch(`/api/admin/workshops/${courseId}`)
@@ -134,6 +139,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         price: workshopPreview.price || 0,
         thumbnail_url: workshopPreview.thumbnail_url || '',
         slug: workshopPreview.slug || '',
+        instructor_id: workshopPreview.instructor_id || '',
       })
     }
   }, [workshopPreview])
@@ -159,6 +165,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       ; (async () => {
         try {
           setStatsLoading(true)
+          if (isNewCourse) {
+            setStatsLoading(false)
+            return
+          }
           const res = await fetch(`/api/instructor/workshops/${courseId}/stats`)
           const data = await res.json()
           if (res.ok && data?.stats) {
@@ -185,11 +195,21 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
     e.preventDefault()
     try {
       setSavingConfig(true)
-      const res = await fetch(`/api/admin/workshops/${courseId}`, {
-        method: 'PUT',
+
+      const url = isNewCourse ? '/api/admin/workshops/create' : `/api/admin/workshops/${courseId}`
+      const method = isNewCourse ? 'POST' : 'PUT'
+
+      // Validación básica para instructor_id
+      if (!configData.instructor_id && isNewCourse) {
+        throw new Error('Debes seleccionar un instructor')
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configData),
       })
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         // Mostrar errores de validación si existen
@@ -199,6 +219,17 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         }
         throw new Error(data?.error || data?.message || 'Error al guardar la configuración')
       }
+
+      if (isNewCourse) {
+        const data = await res.json()
+        if (data.workshop && data.workshop.id) {
+          showFeedbackMessage('success', 'Curso creado correctamente. Redirigiendo...')
+          // Redirigir al curso creado
+          router.replace(`/admin/workshops/${data.workshop.id}`)
+          return
+        }
+      }
+
       await handleSaveSkills()
       const refreshed = await fetch(`/api/admin/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
@@ -407,7 +438,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       </AnimatePresence>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header Rediseñado con Paleta SOFIA */}
+        {/* Header Rediseñado con Paleta SOFLIA */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -427,7 +458,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-2">
-                Gestión de Curso
+                {isNewCourse ? 'Crear Nuevo Curso' : 'Gestión de Curso'}
               </h1>
               <p className="text-[#6C757D] dark:text-white/60 text-sm">
                 Administra módulos, lecciones, materiales y actividades
@@ -436,7 +467,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           </div>
         </motion.div>
 
-        {/* Tabs Rediseñados con Paleta SOFIA */}
+        {/* Tabs Rediseñados con Paleta SOFLIA */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -452,12 +483,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
             ].map((tab) => (
               <motion.button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                onClick={() => !isNewCourse && setActiveTab(tab.key as any)}
+                disabled={isNewCourse && tab.key !== 'config'}
+                whileHover={{ scale: (isNewCourse && tab.key !== 'config') ? 1 : 1.02 }}
+                whileTap={{ scale: (isNewCourse && tab.key !== 'config') ? 1 : 0.98 }}
                 className={`relative flex-1 py-2.5 px-4 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 ${activeTab === tab.key
                   ? 'text-white'
-                  : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white'
+                  : (isNewCourse && tab.key !== 'config')
+                    ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-50'
+                    : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white'
                   }`}
               >
                 {activeTab === tab.key && (
@@ -1243,6 +1277,34 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
+                  {/* Instructor Selector */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.48 }}
+                    className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
+                  >
+                    <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                      Instructor *
+                    </label>
+                    <div className="relative">
+                      <Users2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
+                      <select
+                        name="instructor_id"
+                        value={configData.instructor_id}
+                        onChange={handleConfigChange}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecciona un instructor</option>
+                        {instructors.map((instructor) => (
+                          <option key={instructor.id} value={instructor.id}>
+                            {instructor.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </motion.div>
+
                   {/* Skills */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -1361,7 +1423,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               transition={{ duration: 4, repeat: Infinity }}
                               className="text-[#00D4B3]/30 text-9xl"
                             >
-                              📚
+                              ðŸ“š
                             </motion.div>
                           </div>
                         )}
@@ -1440,7 +1502,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       <div className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 shadow-sm hover:shadow-lg transition-all duration-300">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
-                            <span className="text-2xl">📖</span>
+                            <span className="text-2xl">ðŸ“–</span>
                           </div>
                           <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Sobre este curso</h2>
                         </div>
@@ -2110,7 +2172,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                       year: 'numeric',
                                       month: 'short',
                                       day: 'numeric'
-                                    }) : '—'}
+                                    }) : 'â€”'}
                                   </td>
                                   <td className="px-6 py-4 text-sm text-[#6C757D] dark:text-white/70">
                                     {user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleDateString('es-ES', {
@@ -2840,7 +2902,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             <div className="flex justify-between">
                               <span className="text-[#6C757D] dark:text-white/60">Inscrito:</span>
                               <span className="font-semibold text-[#0A2540] dark:text-white">
-                                {selectedStudent.enrolled_at ? new Date(selectedStudent.enrolled_at).toLocaleDateString('es-ES') : '—'}
+                                {selectedStudent.enrolled_at ? new Date(selectedStudent.enrolled_at).toLocaleDateString('es-ES') : 'â€”'}
                               </span>
                             </div>
                             <div className="flex justify-between">

@@ -21,12 +21,12 @@ export function CTASection() {
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [0.9, 1, 1.1]);
 
   return (
-    <section 
+    <section
       ref={sectionRef}
       className="pt-16 lg:pt-20 pb-4 lg:pb-6 relative bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419]"
     >
       {/* Animated Background Effects */}
-      <motion.div 
+      <motion.div
         className="absolute inset-0"
         style={{ opacity: opacity as any }}
       >
@@ -60,9 +60,9 @@ export function CTASection() {
             delay: 1
           }}
         />
-        
+
         {/* Grid Pattern */}
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03]"
           style={{
             backgroundImage: `linear-gradient(#0A2540 1px, transparent 1px), linear-gradient(90deg, #0A2540 1px, transparent 1px)`,
@@ -80,7 +80,7 @@ export function CTASection() {
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           style={{ scale }}
         >
-          {/* Logo SOFIA */}
+          {/* Logo SOFLIA */}
           <motion.div
             className="flex justify-center mb-8"
             initial={{ opacity: 0, scale: 0 }}
@@ -117,7 +117,7 @@ export function CTASection() {
             initial={{ opacity: 0, scale: 0.5, y: 50 }}
             whileInView={{ opacity: 1, scale: 1, y: 0 }}
             viewport={{ once: true }}
-            transition={{ 
+            transition={{
               duration: 0.8,
               type: 'spring',
               stiffness: 100
@@ -175,7 +175,7 @@ export function CTASection() {
               <motion.button
                 className="group relative px-12 py-5 lg:px-16 lg:py-6 bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#00D4B3] text-white rounded-2xl font-bold text-lg lg:text-xl overflow-hidden shadow-2xl shadow-[#00D4B3]/30"
                 style={{ fontFamily: 'Inter, sans-serif', fontWeight: 700 }}
-                whileHover={{ 
+                whileHover={{
                   scale: 1.05,
                   boxShadow: '0 20px 60px rgba(0, 212, 179, 0.4)'
                 }}
@@ -233,9 +233,9 @@ export function CTASection() {
                         <motion.div
                           key={i}
                           className="absolute w-1 h-1 bg-white rounded-full"
-                          initial={{ 
-                            x: '50%', 
-                            y: '50%', 
+                          initial={{
+                            x: '50%',
+                            y: '50%',
                             opacity: 0,
                             scale: 0
                           }}
@@ -337,7 +337,7 @@ export function CTASection() {
               >
                 Política de Privacidad
               </Link>
-              <span className="text-[#6C757D] dark:text-white/40">•</span>
+              <span className="text-[#6C757D] dark:text-white/40">â€¢</span>
               <Link
                 href="/terms"
                 className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"

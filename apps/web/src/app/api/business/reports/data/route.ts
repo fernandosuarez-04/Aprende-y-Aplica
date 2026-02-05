@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       generated_at: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('💥 Error in /api/business/reports/data:', error)
+    logger.error('ðŸ’¥ Error in /api/business/reports/data:', error)
     return NextResponse.json({
       success: false,
       error: 'Error al generar el reporte'
@@ -166,7 +166,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   const model = genAI.getGenerativeModel({ model: modelName })
 
   const prompt = `
-    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFIA.
+    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFLIA.
     
     Tu tarea es generar un "Reporte Ejecutivo de Análisis Predictivo y Rendimiento" para el administrador de la organización.
     Debes analizar los datos proporcionados y generar un informe profesional, detallado y útil para la toma de decisiones.
@@ -183,7 +183,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
     - Cursos Asignados a Equipos: ${teamAssignmentsCount}
     *Nota: Un alto número de asignaciones a equipos indica una gestión eficiente. Si es 0, sugiere subutilización de esta función.*
 
-    PLANIFICACIÓN Y HÁBITOS DE ESTUDIO:
+    PLANIFICACIÓN Y HÃBITOS DE ESTUDIO:
     - Planes de Estudio Activos: ${totalStudyPlans}
     - Tasa de Adherencia al Plan (Cumplimiento): ${adherenceRate.toFixed(1)}%
     - Sesiones de Estudio Completadas: ${completedSessions}
@@ -229,7 +229,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
         <span style="color: #64748b; font-size: 14px;">Sistema Operativo de Formación de Inteligencia Aplicada</span>
       </div>
 
-    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
+    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFLIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
   `
 
   try {

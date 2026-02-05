@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
-import { 
+import {
   Mail,
   MapPin
 } from 'lucide-react';
@@ -71,7 +71,7 @@ export function LandingFooter() {
                 />
               </div>
             </Link>
-            
+
             <p className="text-white/60 text-sm leading-relaxed max-w-sm">
               {t('landing.footer.description', 'Plataforma de capacitación corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificación inteligente y certificaciones verificables.')}
             </p>

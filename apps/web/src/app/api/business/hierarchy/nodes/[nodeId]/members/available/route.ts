@@ -21,68 +21,62 @@ export async function GET(
 
         const supabase = await createClient();
 
-        // 1. Get IDs of current members to exclude
-        const { data: currentMembers, error: membersError } = await supabase
+        // 1. Get IDs of current members of THIS NODE to exclude
+        const { data: currentMembers } = await supabase
             .from('organization_node_users')
             .select('user_id')
             .eq('node_id', nodeId);
 
-        if (membersError) {
-            return NextResponse.json({ success: false, error: 'Error fetching current members' }, { status: 500 });
-        }
+        const excludedUserIds = (currentMembers || []).map(m => m.user_id);
 
-        const excludedUserIds = currentMembers.map(m => m.user_id);
-
-        // 2. Fetch available users from organization_users
-        let dbQuery = supabase
+        // 2. Get all active user IDs in the ORGANIZATION
+        const { data: orgMembers, error: orgError } = await supabase
             .from('organization_users')
-            .select(`
-        id,
-        user_id,
-        role,
-        job_title,
-        status,
-        users!inner (
-          id,
-          first_name,
-          last_name,
-          email,
-          profile_picture_url,
-          username
-        )
-      `)
+            .select('user_id')
             .eq('organization_id', auth.organizationId)
             .eq('status', 'active');
 
+        if (orgError) {
+            logger.error('Error fetching org members:', orgError);
+            return NextResponse.json({ success: false, error: 'Failed to fetch organization members' }, { status: 500 });
+        }
+
+        const orgUserIds = orgMembers.map(m => m.user_id);
+
+        if (orgUserIds.length === 0) {
+            return NextResponse.json({ success: true, users: [] });
+        }
+
+        // 3. Fetch User details for these IDs
+        let dbQuery = supabase
+            .from('users')
+            .select('id, first_name, last_name, email, profile_picture_url, username')
+            .in('id', orgUserIds);
+
         // Filter by query (text search) if provided
         if (query) {
-            // We can't easily ILIKE on a joined relation in standard postgrest-js without specialized syntax or RPC.
-            // But assuming the 'users!inner' works, we can filter on the columns directly?
-            // Supabase/PostgREST syntax for nested filter is `users.first_name.ilike.%query%`
-            dbQuery = dbQuery.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%`, { foreignTable: 'users' });
+            dbQuery = dbQuery.or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,username.ilike.%${query}%`);
         }
 
         const { data: users, error: usersError } = await dbQuery;
 
         if (usersError) {
-            logger.error('Error fetching available users:', usersError);
-            return NextResponse.json({ success: false, error: 'Failed to fetch users' }, { status: 500 });
+            logger.error('Error fetching user details:', usersError);
+            return NextResponse.json({ success: false, error: `Failed to fetch user details: ${usersError.message}` }, { status: 500 });
         }
 
-        // 3. Filter out excluded IDs strictly in JS (simpler than NOT IN with large arrays in API)
-        // Or if array is small we could use .not('user_id', 'in', `(${excludedUserIds.join(',')})`)
-        // JS filtering is fine for typical team sizes.
-        const availableUsers = users.filter(u => !excludedUserIds.includes(u.user_id));
+        // 4. Filter out node members (excluded IDs)
+        const availableUsers = users.filter(u => !excludedUserIds.includes(u.id));
 
         return NextResponse.json({
             success: true,
             users: availableUsers
         });
 
-    } catch (error) {
+    } catch (error: any) {
         logger.error('Error in GET /api/business/hierarchy/nodes/[nodeId]/members/available:', error);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            { success: false, error: `Internal server error: ${error.message}` },
             { status: 500 }
         );
     }

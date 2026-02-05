@@ -149,9 +149,9 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   // Obtener asignaciones de cursos a equipos (depende de los equipos obtenidos)
   const teamIds = workTeamsData.data?.map((t: any) => t.team_id) || []
   const { data: teamAssignmentsData } = await supabase
-        .from('work_team_course_assignments')
-        .select('id, course_id')
-        .in('team_id', teamIds)
+    .from('work_team_course_assignments')
+    .select('id, course_id')
+    .in('team_id', teamIds)
 
   // Procesar métricas adicionales
   const teamsCount = workTeamsData.data?.length || 0
@@ -173,7 +173,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   const model = genAI.getGenerativeModel({ model: modelName })
 
   const prompt = `
-    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFIA.
+    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFLIA.
 
     Tu tarea es generar un "Reporte Ejecutivo de Análisis Predictivo y Rendimiento" para el administrador de la organización.
     Debes analizar los datos proporcionados y generar un informe profesional, detallado y útil para la toma de decisiones.
@@ -202,13 +202,13 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
 
     DETALLE DE USUARIOS (Muestra representativa):
     ${JSON.stringify(usersReport.users.slice(0, 15).map((u: any) => ({
-      nombre: u.display_name,
-      cargo: u.job_title,
-      progreso_promedio: u.progress.average_progress,
-      cursos_asignados: u.progress.total_courses,
-      cursos_completados: u.progress.completed_courses,
-      ultimo_acceso: u.last_login_at
-    })))}
+    nombre: u.display_name,
+    cargo: u.job_title,
+    progreso_promedio: u.progress.average_progress,
+    cursos_asignados: u.progress.total_courses,
+    cursos_completados: u.progress.completed_courses,
+    ultimo_acceso: u.last_login_at
+  })))}
 
     INSTRUCCIONES PARA EL REPORTE:
     1. **Resumen Ejecutivo**: Breve visión general del estado de la capacitación y la salud digital de la organización.
@@ -236,7 +236,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
         <span style="color: #64748b; font-size: 14px;">Sistema Operativo de Formación de Inteligencia Aplicada</span>
       </div>
 
-    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
+    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFLIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
   `
 
   try {

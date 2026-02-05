@@ -17,7 +17,7 @@ import {
 import { AdminCommunity } from '../services/adminCommunities.service'
 
 // ============================================
-// SOFIA DESIGN SYSTEM COLORS
+// SOFLIA DESIGN SYSTEM COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',

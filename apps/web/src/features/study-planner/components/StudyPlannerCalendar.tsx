@@ -91,12 +91,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     onCancel: () => {},
   });
 
-  // Colores predefinidos para eventos (usando paleta SOFIA)
+  // Colores predefinidos para eventos (usando paleta SOFLIA)
   const eventColors = [
     { name: 'Azul Profundo', value: '#0A2540' },
     { name: 'Aqua', value: '#00D4B3' },
     { name: 'Verde Suave', value: '#10B981' },
-    { name: 'Ámbar', value: '#F59E0B' },
+    { name: 'Ãmbar', value: '#F59E0B' },
     { name: 'Azul Claro', value: '#0066CC' },
     { name: 'Verde', value: '#0B8043' },
     { name: 'Lavanda', value: '#8E24AA' },
@@ -318,7 +318,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         
         // Mostrar advertencia si PostgREST aún no reconoce la tabla
         if (customData.warning) {
-          console.warn('⚠️', customData.warning);
+          console.warn('âš ï¸', customData.warning);
         }
         
         customEvents = (customData.events || []).map((event: any) => ({
@@ -338,7 +338,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       } else if (customEventsResponse.status === 503) {
         // Si el servicio no está disponible (tabla no reconocida por PostgREST)
         const errorData = await customEventsResponse.json().catch(() => ({}));
-        console.warn('⚠️ Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
+        console.warn('âš ï¸ Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
         customEvents = []; // Continuar con array vacío
       }
       

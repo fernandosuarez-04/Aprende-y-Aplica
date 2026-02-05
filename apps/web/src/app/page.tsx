@@ -31,13 +31,13 @@ export default function HomePage() {
       {/* Señales de Confianza - Enterprise-ready */}
       <TrustSection />
       
-      {/* Qué es SOFIA - Explicación ejecutiva */}
+      {/* Qué es SOFLIA - Explicación ejecutiva */}
       <PlatformOverview />
       
-      {/* Capacidades Clave - Feature → Beneficio → Resultado */}
+      {/* Capacidades Clave - Feature â†’ Beneficio â†’ Resultado */}
       <CapabilitiesGrid />
       
-      {/* Casos de Uso - Dolor → Solución → Resultado */}
+      {/* Casos de Uso - Dolor â†’ Solución â†’ Resultado */}
       <UseCasesSection />
       
       {/* Impacto ROI - Métricas para CFO */}

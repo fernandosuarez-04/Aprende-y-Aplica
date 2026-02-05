@@ -19,7 +19,7 @@ import {
 import { AdminCompany } from '../services/adminCompanies.service'
 
 // ============================================
-// DESIGN SYSTEM - SOFIA COLORS
+// DESIGN SYSTEM - SOFLIA COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',
@@ -50,12 +50,12 @@ const PLAN_OPTIONS = [
 ]
 
 const THEME_PRESETS = [
-  { id: 'sofia', name: 'SOFIA Default', primary: '#0A2540', secondary: '#1E2329', accent: '#00D4B3', description: 'Tema profesional' },
+  { id: 'SOFLIA', name: 'SOFLIA Default', primary: '#0A2540', secondary: '#1E2329', accent: '#00D4B3', description: 'Tema profesional' },
   { id: 'modern-blue', name: 'Moderno Azul', primary: '#1E40AF', secondary: '#1E3A8A', accent: '#3B82F6', description: 'Azul corporativo' },
   { id: 'emerald', name: 'Esmeralda', primary: '#065F46', secondary: '#064E3B', accent: '#10B981', description: 'Verde empresarial' },
   { id: 'purple', name: 'Violeta', primary: '#4C1D95', secondary: '#5B21B6', accent: '#8B5CF6', description: 'Morado elegante' },
   { id: 'rose', name: 'Rosa', primary: '#9F1239', secondary: '#881337', accent: '#F43F5E', description: 'Rosa vibrante' },
-  { id: 'amber', name: 'Ámbar', primary: '#92400E', secondary: '#78350F', accent: '#F59E0B', description: 'Naranja cálido' }
+  { id: 'amber', name: 'Ãmbar', primary: '#92400E', secondary: '#78350F', accent: '#F59E0B', description: 'Naranja cálido' }
 ]
 
 type EditTab = 'general' | 'members' | 'branding' | 'themes'
@@ -345,7 +345,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                  <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">Slug (URL)</label>
                                     <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3 transition-colors focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/20">
-                                       <span className="text-gray-500 text-sm select-none mr-1">app.sofia.com/</span>
+                                       <span className="text-gray-500 text-sm select-none mr-1">app.SOFLIA.com/</span>
                                        <input 
                                          type="text" 
                                          value={formData.slug} 

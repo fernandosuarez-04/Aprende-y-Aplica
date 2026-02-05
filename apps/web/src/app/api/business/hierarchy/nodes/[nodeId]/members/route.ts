@@ -178,6 +178,19 @@ export async function POST(
             );
         }
 
+        // 4. If Role is Leader, update Node Manager
+        if (role === 'leader') {
+            const { error: updateNodeError } = await supabase
+                .from('organization_nodes')
+                .update({ manager_id: userId })
+                .eq('id', nodeId);
+
+            if (updateNodeError) {
+                logger.error('Error updating node manager from member assignment:', updateNodeError);
+                // We keep the member assignment but log the error
+            }
+        }
+
         return NextResponse.json({
             success: true,
             member: newAssignment

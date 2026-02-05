@@ -84,10 +84,10 @@ const STUDY_PLANNER_STEPS: StudyPlannerStep[] = [
 function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
   switch (errorType) {
     case 'email_mismatch':
-      return '⚠️ El calendario conectado pertenece a otra cuenta.\n\nEl email con el que iniciaste sesión en Google/Microsoft no coincide con tu cuenta en la aplicación.\n\nPara solucionarlo:\n1. Cierra sesión en Google/Microsoft en tu navegador\n2. Inicia sesión con el mismo email que usas aquí\n3. Vuelve a intentar conectar tu calendario';
+      return 'âš ï¸ El calendario conectado pertenece a otra cuenta.\n\nEl email con el que iniciaste sesión en Google/Microsoft no coincide con tu cuenta en la aplicación.\n\nPara solucionarlo:\n1. Cierra sesión en Google/Microsoft en tu navegador\n2. Inicia sesión con el mismo email que usas aquí\n3. Vuelve a intentar conectar tu calendario';
 
     case 'test_mode_user_not_added':
-      return 'Tu email no está agregado como usuario de prueba.\n\n⚠️ IMPORTANTE: El email debe coincidir EXACTAMENTE con el que usas para iniciar sesión en Google.\n\nPara solucionarlo:\n1. Ve a Google Cloud Console (console.cloud.google.com)\n2. Ve a "APIs & Services" > "OAuth consent screen"\n3. En "Test users", haz clic en "+ ADD USERS"\n4. Agrega tu email EXACTO (el mismo que usas para Google) y guarda\n5. Espera 1-2 minutos para que se apliquen los cambios\n6. Intenta conectar de nuevo';
+      return 'Tu email no está agregado como usuario de prueba.\n\nâš ï¸ IMPORTANTE: El email debe coincidir EXACTAMENTE con el que usas para iniciar sesión en Google.\n\nPara solucionarlo:\n1. Ve a Google Cloud Console (console.cloud.google.com)\n2. Ve a "APIs & Services" > "OAuth consent screen"\n3. En "Test users", haz clic en "+ ADD USERS"\n4. Agrega tu email EXACTO (el mismo que usas para Google) y guarda\n5. Espera 1-2 minutos para que se apliquen los cambios\n6. Intenta conectar de nuevo';
 
     case 'app_not_verified':
       return 'La aplicación requiere configuración en Google Cloud Console.\n\nPara solucionarlo:\n1. Ve a Google Cloud Console\n2. Ve a "APIs & Services" > "OAuth consent screen"\n3. Cambia el estado a "Testing" (modo de prueba)\n4. Agrega tu email como usuario de prueba\n5. Intenta conectar de nuevo';
@@ -124,10 +124,10 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 export function StudyPlannerLIA() {
   const router = useRouter();
   const params = useParams();
-  
+
   // Joyride integration protected (commented out due to webpack error)
   // const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
-  const joyrideProps = {}; const restartTour = () => {}; const isRunning = false;
+  const joyrideProps = {}; const restartTour = () => { }; const isRunning = false;
   const [isMounted, setIsMounted] = useState(false);
   useEffect(() => {
     setIsMounted(true);
@@ -180,6 +180,130 @@ export function StudyPlannerLIA() {
   const [connectedCalendar, setConnectedCalendar] = useState<'google' | 'microsoft' | null>(null);
   const [calendarSkipped, setCalendarSkipped] = useState(false); // Indica si el usuario rechazó explícitamente conectar calendario
 
+  // Manejar conexión de calendario (Google/Microsoft)
+  const handleCalendarConnect = async (provider: 'google' | 'microsoft') => {
+    try {
+      setIsConnectingCalendar(true);
+      // Llamar a la API para obtener URL de autorización
+      const response = await fetch('/api/study-planner/calendar/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Error al iniciar la conexión');
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.data?.authUrl) {
+        // Redirigir a URL de autorización
+        window.location.href = data.data.authUrl;
+      }
+    } catch (err) {
+      console.error('Error conectando calendario:', err);
+      setIsConnectingCalendar(false);
+    }
+  };
+
+  // ✅ Handler para insertar eventos de estudio en el calendario
+  const handleInsertEventsToCalendar = async () => {
+    if (!savedLessonDistribution || savedLessonDistribution.length === 0) {
+      console.error('No hay distribución de lecciones para insertar');
+      return;
+    }
+
+    setIsInsertingEvents(true);
+    setInsertProgress({ current: 0, total: savedLessonDistribution.length });
+    setInsertResult(null);
+
+    try {
+      // Convertir distribución guardada al formato del API
+      const lessonDistributionForApi = savedLessonDistribution.map(item => {
+        // Parsear fecha y horarios
+        const dateParts = item.dateStr.split('/');
+        const baseDate = new Date(
+          parseInt(dateParts[2]),
+          parseInt(dateParts[1]) - 1,
+          parseInt(dateParts[0])
+        );
+
+        // Parsear horarios (formato "HH:MM")
+        const [startHour, startMin] = item.startTime.split(':').map(Number);
+        const [endHour, endMin] = item.endTime.split(':').map(Number);
+
+        const startDate = new Date(baseDate);
+        startDate.setHours(startHour, startMin, 0, 0);
+
+        const endDate = new Date(baseDate);
+        endDate.setHours(endHour, endMin, 0, 0);
+
+        return {
+          slot: {
+            date: baseDate.toISOString(),
+            start: startDate.toISOString(),
+            end: endDate.toISOString(),
+            dayName: item.dayName,
+            durationMinutes: Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+          },
+          lessons: item.lessons.map(l => ({
+            courseTitle: l.courseTitle,
+            lessonTitle: l.lessonTitle,
+            lessonOrderIndex: l.lessonOrderIndex,
+            durationMinutes: l.durationMinutes || 15
+          }))
+        };
+      });
+
+      console.log(`ðŸ“¤ [Insert Events] Enviando ${lessonDistributionForApi.length} sesiones al calendario`);
+
+      const response = await fetch('/api/study-planner/calendar/insert-events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          lessonDistribution: lessonDistributionForApi,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          planName: 'Plan de Estudios SOFLIA'
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Error insertando eventos');
+      }
+
+      setInsertResult({
+        success: result.success,
+        message: result.message,
+        insertedCount: result.insertedCount
+      });
+
+      console.log(`✅ [Insert Events] Resultado: ${result.message}`);
+
+      // Agregar mensaje al chat confirmando la inserción
+      if (result.success && result.insertedCount > 0) {
+        const successMessage = `✅ **¡Listo!** He insertado ${result.insertedCount} eventos en tu calendario de Google.\n\nPuedes verlos en el calendario secundario "SOFLIA - Sesiones de Estudio". Cada evento incluye recordatorios 15 minutos antes.\n\nðŸ“… [Abrir Google Calendar](https://calendar.google.com)`;
+
+        setConversationHistory(prev => [...prev, {
+          role: 'assistant',
+          content: successMessage
+        }]);
+      }
+
+    } catch (error: any) {
+      console.error('âŒ [Insert Events] Error:', error);
+      setInsertResult({
+        success: false,
+        message: error.message || 'Error al insertar eventos en el calendario'
+      });
+    } finally {
+      setIsInsertingEvents(false);
+      setShowInsertConfirmModal(false);
+    }
+  };
+
   // Estados para configuración de estudio
   // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
   // La velocidad de finalización determina cuántas lecciones por día se asignan
@@ -215,6 +339,12 @@ export function StudyPlannerLIA() {
 
   // Estado para rastrear si ya se mostró el resumen final
   const [hasShownFinalSummary, setHasShownFinalSummary] = useState<boolean>(false);
+
+  // ✅ Estados para inserción de eventos en calendario
+  const [showInsertConfirmModal, setShowInsertConfirmModal] = useState<boolean>(false);
+  const [isInsertingEvents, setIsInsertingEvents] = useState<boolean>(false);
+  const [insertProgress, setInsertProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
+  const [insertResult, setInsertResult] = useState<{ success: boolean; message: string; insertedCount?: number } | null>(null);
 
   // Estado para guardar los datos del calendario analizado (para validar conflictos)
   const [savedCalendarData, setSavedCalendarData] = useState<Record<string, {
@@ -284,23 +414,23 @@ export function StudyPlannerLIA() {
       try {
         const key = getStorageKey(currentUserId);
         const savedData = localStorage.getItem(key);
-        
+
         if (savedData) {
           const session = JSON.parse(savedData);
           // Verificar si la sesión tiene contenido relevante y es reciente (menos de 24h)
           const sessionTime = new Date(session.timestamp).getTime();
           const now = Date.now();
           const isRecent = (now - sessionTime) < 24 * 60 * 60 * 1000;
-          
+
           if (isRecent && (session.conversationHistory?.length > 0 || session.savedLessonDistribution?.length > 0)) {
-            console.log('📦 Sesión guardada detectada:', new Date(session.timestamp).toLocaleString());
-            setSavedSessionDate(new Date(session.timestamp).toLocaleString('es-ES', { 
-              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' 
+            console.log('ðŸ“¦ Sesión guardada detectada:', new Date(session.timestamp).toLocaleString());
+            setSavedSessionDate(new Date(session.timestamp).toLocaleString('es-ES', {
+              day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit'
             }));
-            
+
             // Si el modal principal ya se mostró (showConversation=true), mostrar el prompt
             if (showConversation) {
-               setShowResumePrompt(true);
+              setShowResumePrompt(true);
             }
           }
         }
@@ -338,7 +468,7 @@ export function StudyPlannerLIA() {
         const savedData = localStorage.getItem(key);
         if (savedData) {
           const session = JSON.parse(savedData);
-          
+
           // Restaurar estados
           if (session.conversationHistory) setConversationHistory(session.conversationHistory);
           if (session.savedLessonDistribution) setSavedLessonDistribution(session.savedLessonDistribution);
@@ -346,13 +476,13 @@ export function StudyPlannerLIA() {
           if (session.studyApproach) setStudyApproach(session.studyApproach);
           if (session.targetDate) setTargetDate(session.targetDate);
           if (session.hasShownFinalSummary) setHasShownFinalSummary(session.hasShownFinalSummary);
-          
+
           // Añadir mensaje de sistema indicando restauración
-          setConversationHistory(prev => [...prev, { 
-            role: 'system', 
-            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.' 
+          setConversationHistory(prev => [...prev, {
+            role: 'system',
+            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.'
           }]);
-          
+
           console.log('✅ Sesión restaurada');
         }
       } catch (e) {
@@ -366,7 +496,7 @@ export function StudyPlannerLIA() {
     if (currentUserId) {
       const key = getStorageKey(currentUserId);
       localStorage.removeItem(key);
-      console.log('🗑️ Sesión anterior descartada');
+      console.log('ðŸ—‘ï¸ Sesión anterior descartada');
     }
     setShowResumePrompt(false);
     // El flujo normal continúa (mensaje de bienvenida, etc.)
@@ -405,43 +535,43 @@ export function StudyPlannerLIA() {
 
     // Limpiar emojis específicos adicionales
     cleaned = cleaned
-      .replace(/🎯/g, '')
-      .replace(/📈/g, '')
-      .replace(/📚/g, '')
+      .replace(/ðŸŽ¯/g, '')
+      .replace(/ðŸ“ˆ/g, '')
+      .replace(/ðŸ“š/g, '')
       .replace(/💡/g, '')
-      .replace(/🗓️/g, '')
-      .replace(/⏰/g, '')
-      .replace(/📋/g, '')
+      .replace(/ðŸ—“ï¸/g, '')
+      .replace(/â°/g, '')
+      .replace(/ðŸ“‹/g, '')
       .replace(/✅/g, '')
-      .replace(/❌/g, '')
-      .replace(/⚠️/g, '')
-      .replace(/🔥/g, '')
+      .replace(/âŒ/g, '')
+      .replace(/âš ï¸/g, '')
+      .replace(/ðŸ”¥/g, '')
       .replace(/✨/g, '')
-      .replace(/🎉/g, '')
+      .replace(/ðŸŽ‰/g, '')
       .replace(/🚀/g, '')
-      .replace(/💪/g, '')
-      .replace(/⭐/g, '')
-      .replace(/🎓/g, '')
-      .replace(/📖/g, '')
-      .replace(/📝/g, '')
-      .replace(/🎯/g, '')
-      .replace(/🏆/g, '')
-      .replace(/💼/g, '')
-      .replace(/🌐/g, '')
-      .replace(/🔔/g, '')
-      .replace(/📊/g, '')
-      .replace(/🎨/g, '')
-      .replace(/⚡/g, '')
-      .replace(/🌟/g, '')
-      .replace(/🎁/g, '')
+      .replace(/ðŸ’ª/g, '')
+      .replace(/â­/g, '')
+      .replace(/ðŸŽ“/g, '')
+      .replace(/ðŸ“–/g, '')
+      .replace(/ðŸ“/g, '')
+      .replace(/ðŸŽ¯/g, '')
+      .replace(/ðŸ†/g, '')
+      .replace(/ðŸ’¼/g, '')
+      .replace(/ðŸŒ/g, '')
+      .replace(/ðŸ””/g, '')
+      .replace(/ðŸ“Š/g, '')
+      .replace(/ðŸŽ¨/g, '')
+      .replace(/âš¡/g, '')
+      .replace(/ðŸŒŸ/g, '')
+      .replace(/ðŸŽ/g, '')
       .replace(/🔒/g, '')
-      .replace(/🔓/g, '')
+      .replace(/ðŸ”“/g, '')
       .replace(/📱/g, '')
-      .replace(/💻/g, '')
-      .replace(/⌨️/g, '')
-      .replace(/🖥️/g, '')
-      .replace(/🖱️/g, '')
-      .replace(/⌨️/g, '')
+      .replace(/ðŸ’»/g, '')
+      .replace(/âŒ¨ï¸/g, '')
+      .replace(/ðŸ–¥ï¸/g, '')
+      .replace(/ðŸ–±ï¸/g, '')
+      .replace(/âŒ¨ï¸/g, '')
       .trim();
 
     // Dividir en líneas
@@ -544,7 +674,7 @@ export function StudyPlannerLIA() {
         if (elements.length > 0) {
           addSeparator();
         }
-        const title = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        const title = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“š💡ðŸ—“ï¸â°ðŸ“‹✅âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
         let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/30 dark:border-purple-500/40 tracking-tight';
         if (trimmed.includes('METAS SEMANALES')) {
           titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#0A2540] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#0A2540] bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-[#0A2540]/40 tracking-tight'; /* Azul Profundo */
@@ -563,7 +693,7 @@ export function StudyPlannerLIA() {
       if (trimmed.match(/^(Por curso|Esta semana aprenderás sobre|ESTIMACIÓN BASADA EN TU PERFIL):/i)) {
         flushList();
         flushParagraph();
-        const subtitle = trimmed.replace(/^[🎯📈📚💡🗓️⏰📋✅❌⚠️]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        const subtitle = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“š💡ðŸ—“ï¸â°ðŸ“‹✅âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
         let subtitleClass = 'font-body font-semibold text-[17px] text-purple-600 dark:text-purple-200 mt-8 mb-5 tracking-wide';
         if (trimmed.includes('Esta semana aprenderás')) {
           subtitleClass = 'font-body font-semibold text-[17px] text-blue-600 dark:text-blue-200 mt-8 mb-5 tracking-wide';
@@ -593,16 +723,16 @@ export function StudyPlannerLIA() {
       }
 
       // Detectar listas
-      if (trimmed.startsWith('•') || trimmed.startsWith('-')) {
+      if (trimmed.startsWith('â€¢') || trimmed.startsWith('-')) {
         flushParagraph();
         if (!inList) {
           inList = true;
         }
-        const itemText = trimmed.replace(/^[•\-]\s+/, '').trim();
+        const itemText = trimmed.replace(/^[â€¢\-]\s+/, '').trim();
         if (itemText) {
           listItems.push(
             <li key={`li-${index}`} className="flex items-start gap-3.5 font-body text-[15px] text-gray-800 dark:text-slate-50 leading-[1.75] tracking-wide dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
-              <span className="text-purple-600 dark:text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg dark:[text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
+              <span className="text-purple-600 dark:text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg dark:[text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">â€¢</span>
               <span className="flex-1">{formatInlineStyles(itemText)}</span>
             </li>
           );
@@ -641,7 +771,7 @@ export function StudyPlannerLIA() {
 
   // Detener todo audio/voz en reproducción
   const stopAllAudio = () => {
-    console.log('🛑 [stopAllAudio] Deteniendo todo el audio...');
+    console.log('ðŸ›‘ [stopAllAudio] Deteniendo todo el audio...');
     try {
       if (ttsAbortRef.current) {
         try { ttsAbortRef.current.abort(); } catch (e) { /* ignore */ }
@@ -811,8 +941,8 @@ export function StudyPlannerLIA() {
     const calendarError = params.get('calendar_error');
 
     if (calendarConnected === 'true') {
-      console.log('🔗 [OAuth Return] Calendario conectado detectado en URL');
-      
+      console.log('ðŸ”— [OAuth Return] Calendario conectado detectado en URL');
+
       // Limpiar URL para no re-ejecutar
       window.history.replaceState({}, '', window.location.pathname);
 
@@ -826,40 +956,40 @@ export function StudyPlannerLIA() {
             if (data.isConnected && data.provider) {
               console.log('✅ [OAuth Return] Estado verificado:', data.provider);
               setConnectedCalendar(data.provider);
-              
+
               // 2. Dar feedback al usuario
               const msg = `¡Excelente! He confirmado que tu calendario de ${data.provider === 'google' ? 'Google' : 'Microsoft'} está conectado. Voy a analizar tu disponibilidad ahora mismo.`;
               setConversationHistory(prev => [...prev, { role: 'assistant', content: msg }]);
-              
+
               // 3. Reanudar análisis (usando valores por defecto seguros ya que el estado se perdió)
               // B2B suele usar 'normal' como default seguro
               setTimeout(() => {
                 analyzeCalendarAndSuggest(
                   data.provider,
-                  undefined, 
+                  undefined,
                   'normal'
                 );
               }, 1000);
             }
           }
         } catch (error) {
-          console.error('❌ [OAuth Return] Error reanudando flujo:', error);
+          console.error('âŒ [OAuth Return] Error reanudando flujo:', error);
         }
       };
 
       resumeFlow();
     } else if (calendarError) {
-       console.error('❌ [OAuth Return] Error en conexión:', calendarError);
-       // Limpiar URL
-       window.history.replaceState({}, '', window.location.pathname);
-       setConversationHistory(prev => [...prev, { 
-           role: 'assistant', 
-           content: `Hubo un problema al conectar tu calendario: ${decodeURIComponent(calendarError)}. ¿Quieres intentarlo de nuevo o continuar sin calendario?` 
-       }]);
+      console.error('âŒ [OAuth Return] Error en conexión:', calendarError);
+      // Limpiar URL
+      window.history.replaceState({}, '', window.location.pathname);
+      setConversationHistory(prev => [...prev, {
+        role: 'assistant',
+        content: `Hubo un problema al conectar tu calendario: ${decodeURIComponent(calendarError)}. ¿Quieres intentarlo de nuevo o continuar sin calendario?`
+      }]);
     }
   }, []); // Solo al montar
 
-  // ✅ CRÍTICO: Cargar lecciones pendientes cuando hay cursos asignados
+  // ✅ CRÃTICO: Cargar lecciones pendientes cuando hay cursos asignados
   // Usa el hook useLIAData que consulta directamente la BD para obtener nombres EXACTOS
   // Esto evita alucinaciones de la IA (patrón Bridge de IRIS)
   useEffect(() => {
@@ -877,7 +1007,7 @@ export function StudyPlannerLIA() {
         courseId: lesson.courseId,
         courseTitle: lesson.courseTitle,
         lessonId: lesson.lessonId,
-        lessonTitle: lesson.lessonTitle, // ⚠️ NOMBRE EXACTO DE LA BD - NO ALUCINAR
+        lessonTitle: lesson.lessonTitle, // âš ï¸ NOMBRE EXACTO DE LA BD - NO ALUCINAR
         moduleTitle: lesson.moduleTitle,
         moduleOrderIndex: lesson.moduleOrderIndex,
         lessonOrderIndex: lesson.lessonOrderIndex,
@@ -888,12 +1018,12 @@ export function StudyPlannerLIA() {
       if (pendingLessonsRef.current.length !== formattedLessons.length) {
         pendingLessonsRef.current = formattedLessons;
         setPendingLessonsWithNames(formattedLessons);
-        
+
         console.log(`✅ [Sync] ${formattedLessons.length} lecciones sincronizadas desde useLIAData`);
-        
+
         // Log de verificación
         if (formattedLessons.length > 0) {
-          console.log('   📋 Primeras 3 lecciones (nombres exactos de BD):');
+          console.log('   ðŸ“‹ Primeras 3 lecciones (nombres exactos de BD):');
           formattedLessons.slice(0, 3).forEach((l: any, i: number) => {
             console.log(`      ${i + 1}. "${l.lessonTitle}" (${l.durationMinutes} min)`);
           });
@@ -916,24 +1046,24 @@ export function StudyPlannerLIA() {
     const generateWelcomeMessage = async (externalController?: AbortController) => {
       // ✅ NUEVO: Si hay un tour activo, esperar (Requisito de flujo: Tour -> Planificador)
       // if (isRunning) {
-      //   console.log('⏳ [Welcome] Tour activo, esperando a que termine...');
+      //   console.log('â³ [Welcome] Tour activo, esperando a que termine...');
       //   return;
       // }
 
       if (!showConversation || conversationHistory.length > 0 || showCourseSelector) {
-        console.log('❌ [Welcome] Condiciones iniciales no cumplidas');
+        console.log('âŒ [Welcome] Condiciones iniciales no cumplidas');
         return;
       }
 
       // ✅ ESPERAR a que userContext esté disponible
       if (!userContext?.userType) {
-        console.log('⏳ [Welcome] userContext aún no disponible');
+        console.log('â³ [Welcome] userContext aún no disponible');
         return;
       }
 
-      // ✅ CRÍTICO: Si hay cursos asignados, ESPERAR a que las lecciones estén cargadas
+      // ✅ CRÃTICO: Si hay cursos asignados, ESPERAR a que las lecciones estén cargadas
       if (assignedCourses.length > 0 && !liaData.isReady) {
-        console.log('⏳ [Welcome] Esperando carga de lecciones...');
+        console.log('â³ [Welcome] Esperando carga de lecciones...');
         return;
       }
 
@@ -957,7 +1087,7 @@ El usuario acaba de abrir el planificador de estudios. Genera un mensaje de bien
 
 DATOS DEL USUARIO:
 - Rol: ${contextInfo.rol || 'No especificado'}
-- Área: ${contextInfo.area || 'No especificada'}
+- Ãrea: ${contextInfo.area || 'No especificada'}
 - Organización: ${contextInfo.organizationName || 'No especificada'}
 - Equipos: ${contextInfo.workTeams && contextInfo.workTeams.length > 0 ? contextInfo.workTeams.map(t => t.name).join(', ') : 'Ninguno'}
 - Cursos asignados: ${contextInfo.courses.length > 0 ? contextInfo.courses.map(c => `"${c.title}"${c.dueDate ? ` (fecha límite: ${c.dueDate})` : ''}`).join(', ') : 'Ninguno'}
@@ -993,7 +1123,7 @@ INSTRUCCIONES:
             month: 'long',
             year: 'numeric'
           });
-          welcomeDueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormattedWelcome}\n⚠️ Todas las lecciones DEBEN completarse ANTES de esta fecha.`;
+          welcomeDueDateContext = `\n\nðŸš¨ FECHA LÃMITE OBLIGATORIA: ${dueDateFormattedWelcome}\nâš ï¸ Todas las lecciones DEBEN completarse ANTES de esta fecha.`;
         }
 
         // Obtener contexto de lecciones pendientes
@@ -1002,43 +1132,43 @@ INSTRUCCIONES:
         // ✅ FIX 207 + FIX 289: Inyectar calendario Y Festivos
         let calendarContext = '';
         try {
-            const busyList: string[] = [];
+          const busyList: string[] = [];
 
-            // 1. Agregar días festivos de México (Prioridad Alta)
-            const todayForHolidays = new Date();
-            const futureDateForHolidays = new Date();
-            futureDateForHolidays.setMonth(todayForHolidays.getMonth() + 6); // Proyectar 6 meses
-            
-            const holidays = HolidayService.getHolidaysInRange(todayForHolidays, futureDateForHolidays, 'MX');
-            
-            if (holidays.length > 0) {
-                holidays.forEach(h => {
-                     // Formato: "Lunes, 1 de enero de 2024"
-                     const dateStr = h.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                     busyList.push(`⛔ ${dateStr}: DÍA FESTIVO (${h.name.toUpperCase()}) - PROHIBIDO PROGRAMAR LECCIONES`);
+          // 1. Agregar días festivos de México (Prioridad Alta)
+          const todayForHolidays = new Date();
+          const futureDateForHolidays = new Date();
+          futureDateForHolidays.setMonth(todayForHolidays.getMonth() + 6); // Proyectar 6 meses
+
+          const holidays = HolidayService.getHolidaysInRange(todayForHolidays, futureDateForHolidays, 'MX');
+
+          if (holidays.length > 0) {
+            holidays.forEach(h => {
+              // Formato: "Lunes, 1 de enero de 2024"
+              const dateStr = h.date.toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+              busyList.push(`â›” ${dateStr}: DÃA FESTIVO (${h.name.toUpperCase()}) - PROHIBIDO PROGRAMAR LECCIONES`);
+            });
+          }
+
+          // 2. Agregar agenda del usuario
+          if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
+            Object.entries(savedCalendarData).forEach(([dateKey, dayData]: [string, any]) => {
+              if (dayData?.busySlots?.length > 0) {
+                dayData.busySlots.forEach((slot: any) => {
+                  const start = new Date(slot.start);
+                  const end = new Date(slot.end);
+                  const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
+                  busyList.push(`- ${dateKey}: ${timeStr} (Usuario Ocupado)`);
                 });
-            }
+              }
+            });
+          }
 
-            // 2. Agregar agenda del usuario
-            if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
-               Object.entries(savedCalendarData).forEach(([dateKey, dayData]: [string, any]) => {
-                   if (dayData?.busySlots?.length > 0) {
-                       dayData.busySlots.forEach((slot: any) => {
-                           const start = new Date(slot.start);
-                           const end = new Date(slot.end);
-                           const timeStr = `${start.getHours().toString().padStart(2, '0')}:${start.getMinutes().toString().padStart(2, '0')} - ${end.getHours().toString().padStart(2, '0')}:${end.getMinutes().toString().padStart(2, '0')}`;
-                           busyList.push(`- ${dateKey}: ${timeStr} (Usuario Ocupado)`);
-                       });
-                   }
-               });
-            }
-            
-            if (busyList.length > 0) {
-                   calendarContext = `\n\n⛔ RESTRICCIONES DE TIEMPO (CALENDARIO Y FESTIVOS):\n${busyList.join('\n')}`;
-            }
+          if (busyList.length > 0) {
+            calendarContext = `\n\nâ›” RESTRICCIONES DE TIEMPO (CALENDARIO Y FESTIVOS):\n${busyList.join('\n')}`;
+          }
 
         } catch (e) {
-            console.warn('Error formateando calendario para prompt:', e);
+          console.warn('Error formateando calendario para prompt:', e);
         }
 
         const liaSystemPrompt = generateStudyPlannerPrompt({
@@ -1064,7 +1194,7 @@ INSTRUCCIONES:
 
         clearTimeout(timeoutId);
 
-        console.log('📥 [Welcome] Respuesta de API:', response.status, response.ok);
+        console.log('ðŸ“¥ [Welcome] Respuesta de API:', response.status, response.ok);
 
         if (response.ok) {
           const data = await response.json();
@@ -1107,8 +1237,8 @@ INSTRUCCIONES:
         }
       } catch (error: any) {
         if (externalController?.signal.aborted || error.name === 'AbortError') {
-            console.log('🛑 [Welcome] Generación cancelada por aborto/tour');
-            return;
+          console.log('ðŸ›‘ [Welcome] Generación cancelada por aborto/tour');
+          return;
         }
 
         console.error('Error generando mensaje de bienvenida:', error);
@@ -1164,7 +1294,7 @@ INSTRUCCIONES:
     }
   }, [isVisible]);
 
-  // ⚙️ CONFIGURACIÓN DE VOZ ELEVENLABS - Optimizada para máxima expresión y consistencia
+  // âš™ï¸ CONFIGURACIÓN DE VOZ ELEVENLABS - Optimizada para máxima expresión y consistencia
   const ELEVENLABS_CONFIG = {
     // Velocidad del habla (0.25-4.0): 1.0 = normal, <1.0 = más lento, >1.0 = más rápido
     // Aumentado a 1.1 para velocidad más consistente y natural
@@ -1229,11 +1359,11 @@ INSTRUCCIONES:
       // Simplificar el saludo y contexto
       if (formatted.includes('Tienes asignado el siguiente curso')) {
         // Extraer el nombre del curso (asumiendo formato "Curso: [Nombre]")
-        const courseMatch = formatted.match(/Curso:\s*([^\n•]+)/i);
+        const courseMatch = formatted.match(/Curso:\s*([^\nâ€¢]+)/i);
         const courseName = courseMatch ? courseMatch[1].trim() : 'tu curso asignado';
 
         // Extraer la fecha (opcional)
-        const dateMatch = formatted.match(/Fecha límite:\s*([^\n•?]+)/i);
+        const dateMatch = formatted.match(/Fecha límite:\s*([^\nâ€¢?]+)/i);
         const dateStr = dateMatch ? `para terminar antes del ${dateMatch[1].trim()}` : '';
 
         // Construir versión resumida para voz
@@ -1241,7 +1371,7 @@ INSTRUCCIONES:
         simplified += "He analizado tu perfil y veo que tienes asignado el curso de " + courseName + ". ";
         simplified += "¿Te gustaría que programemos sesiones rápidas, normales o largas?";
 
-        console.log('🗣️ [TTS] Mensaje de bienvenida simplificado para voz:', simplified);
+        console.log('ðŸ—£ï¸ [TTS] Mensaje de bienvenida simplificado para voz:', simplified);
         return simplified;
       }
     }
@@ -1347,7 +1477,7 @@ INSTRUCCIONES:
       const modelId = 'eleven_turbo_v2_5';
 
       if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
 
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
@@ -1406,13 +1536,13 @@ INSTRUCCIONES:
       }
 
       const audioBlob = await response.blob();
-      
+
       // ✅ FIX: Verificar rigurosamente si se canceló la reproducción
       // Si ttsAbortRef es null (por stopAllAudio) o diferente al controller actual, o si la señal está abortada, DETENER
       if (!ttsAbortRef.current || ttsAbortRef.current !== controller || controller.signal.aborted) {
-        console.log('🔇 [speakText] Reproducción abortada antes de iniciar audio (silenciado o cancelado).');
+        console.log('ðŸ”‡ [speakText] Reproducción abortada antes de iniciar audio (silenciado o cancelado).');
         if (ttsAbortRef.current === controller) {
-            ttsAbortRef.current = null;
+          ttsAbortRef.current = null;
         }
         return;
       }
@@ -1435,11 +1565,11 @@ INSTRUCCIONES:
       };
 
       try {
-        console.log('🔊 [speakText] Iniciando reproducción de audio...');
+        console.log('ðŸ”Š [speakText] Iniciando reproducción de audio...');
         await audio.play();
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
-        console.error('❌ [speakText] Error al reproducir audio:', playError);
+        console.error('âŒ [speakText] Error al reproducir audio:', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {
@@ -1642,7 +1772,7 @@ INSTRUCCIONES:
       const hasInjectionAttempt = promptInjectionPatterns.some(pattern => pattern.test(question));
 
       if (hasInjectionAttempt) {
-        console.warn('🚫 Intento de prompt injection detectado, bloqueando...');
+        console.warn('ðŸš« Intento de prompt injection detectado, bloqueando...');
         setConversationHistory(prev => [...prev, {
           role: 'assistant',
           content: 'Entiendo que quieres probar diferentes cosas, pero estoy aquí específicamente para ayudarte con tu plan de estudios. ¿En qué puedo asistirte con la planificación de tus cursos?'
@@ -1653,9 +1783,9 @@ INSTRUCCIONES:
       }
 
       // ✅ LOG DEBUG: Verificar si el ref tiene las lecciones
-      console.log(`🔍 [handleVoiceQuestion] pendingLessonsRef.current.length: ${pendingLessonsRef.current.length}`);
+      console.log(`ðŸ” [handleVoiceQuestion] pendingLessonsRef.current.length: ${pendingLessonsRef.current.length}`);
       if (pendingLessonsRef.current.length > 0) {
-        console.log(`📚 [handleVoiceQuestion] Primeras 3 lecciones en ref:`);
+        console.log(`ðŸ“š [handleVoiceQuestion] Primeras 3 lecciones en ref:`);
         pendingLessonsRef.current.slice(0, 3).forEach((l, i) => {
           console.log(`   ${i + 1}. [${l.moduleTitle}] ${l.lessonTitle}`);
         });
@@ -1676,7 +1806,7 @@ INSTRUCCIONES:
 
       const voiceSystemPrompt = generateStudyPlannerPrompt({
         userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
-        studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${pendingLessonsContext}\n\nFECHA LÍMITE: ${targetDate || savedTargetDate || 'No establecida'}`,
+        studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${pendingLessonsContext}\n\nFECHA LÃMITE: ${targetDate || savedTargetDate || 'No establecida'}`,
         currentDate: currentDateStr
       });
 
@@ -1705,20 +1835,20 @@ INSTRUCCIONES:
       let liaResponse = data.response;
 
       // Filtro de seguridad: detectar cuando el modelo devuelve el prompt COMPLETO
-      // ⚠️ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
-      console.log('🔍 [handleQuestion] Analizando respuesta de', liaResponse.length, 'caracteres');
-      console.log('🔍 [handleQuestion] Primeros 200 caracteres:', liaResponse.substring(0, 200));
+      // âš ï¸ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
+      console.log('ðŸ” [handleQuestion] Analizando respuesta de', liaResponse.length, 'caracteres');
+      console.log('ðŸ” [handleQuestion] Primeros 200 caracteres:', liaResponse.substring(0, 200));
 
       // Solo filtrar si COMIENZA con cabeceras ASCII del prompt
       const startsWithPrompt =
-        liaResponse.trim().startsWith('╔═══') ||
-        liaResponse.trim().startsWith('█ IDENTIDAD') ||
-        liaResponse.trim().startsWith('█ DATOS') ||
+        liaResponse.trim().startsWith('â•”â•â•â•') ||
+        liaResponse.trim().startsWith('â–ˆ IDENTIDAD') ||
+        liaResponse.trim().startsWith('â–ˆ DATOS') ||
         liaResponse.trim().startsWith('PROMPT MAESTRO') ||
-        liaResponse.trim().startsWith('⛔ INSTRUCCIÓN CRÍTICA');
+        liaResponse.trim().startsWith('â›” INSTRUCCIÓN CRÃTICA');
 
       if (startsWithPrompt) {
-        console.warn('🚫 [handleQuestion] Respuesta COMIENZA con prompt del sistema');
+        console.warn('ðŸš« [handleQuestion] Respuesta COMIENZA con prompt del sistema');
         liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
@@ -1776,7 +1906,7 @@ INSTRUCCIONES:
       await speakText(liaResponse);
 
     } catch (error) {
-      console.error('❌ Error procesando pregunta:', error);
+      console.error('âŒ Error procesando pregunta:', error);
       const errorMessage = 'Lo siento, tuve un problema procesando tu pregunta. ¿Podrías intentarlo de nuevo?';
       try { await speakText(errorMessage); } catch (e) { /* ignore */ }
     } finally {
@@ -1971,7 +2101,7 @@ INSTRUCCIONES:
     // Abrir en popup en lugar de redirigir
     const popup = window.open(
       authUrl,
-      'sofialia-ai-google-calendar-auth',
+      'SOFLIAlia-ai-google-calendar-auth',
       'width=600,height=700,scrollbars=yes,resizable=yes,status=yes,location=yes,toolbar=no,menubar=no'
     );
 
@@ -2050,7 +2180,7 @@ INSTRUCCIONES:
               }
             });
           } else {
-            console.warn('⚠️ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
+            console.warn('âš ï¸ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
             // Reintentar después de 1 segundo
             hasCheckedAfterClose = false;
             setTimeout(() => {
@@ -2059,7 +2189,7 @@ INSTRUCCIONES:
           }
         }
       } catch (error) {
-        console.error('❌ [Calendar] Error verificando estado del calendario:', error);
+        console.error('âŒ [Calendar] Error verificando estado del calendario:', error);
         setIsConnectingCalendar(false);
       }
     };
@@ -2130,7 +2260,7 @@ INSTRUCCIONES:
 
       // Manejar errores de calendario
       if (event.data && event.data.type === 'calendar-error') {
-        console.error('❌ [Calendar] Error al conectar calendario:', event.data.error);
+        console.error('âŒ [Calendar] Error al conectar calendario:', event.data.error);
 
         // Limpiar interval
         if (popupCheckInterval) {
@@ -2283,7 +2413,7 @@ INSTRUCCIONES:
               }
             });
           } else {
-            console.warn('⚠️ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
+            console.warn('âš ï¸ [Calendar] Calendario no encontrado en BD, reintentando en 1 segundo...');
             hasCheckedAfterClose = false;
             setTimeout(() => {
               checkCalendarAndContinue(provider);
@@ -2291,7 +2421,7 @@ INSTRUCCIONES:
           }
         }
       } catch (error) {
-        console.error('❌ [Calendar] Error verificando estado del calendario:', error);
+        console.error('âŒ [Calendar] Error verificando estado del calendario:', error);
         setIsConnectingCalendar(false);
       }
     };
@@ -2350,7 +2480,7 @@ INSTRUCCIONES:
       }
 
       if (event.data && event.data.type === 'calendar-error') {
-        console.error('❌ [Calendar] Error al conectar calendario:', event.data.error);
+        console.error('âŒ [Calendar] Error al conectar calendario:', event.data.error);
 
         if (popupCheckInterval) {
           clearInterval(popupCheckInterval);
@@ -2930,7 +3060,7 @@ INSTRUCCIONES:
       });
       setTargetDate(nearestDueDateFormatted);
       setHasAskedTargetDate(true);
-      console.log(`📅 [handleApproachSelection] No hay fecha límite, usando fecha predeterminada: ${nearestDueDateFormatted} (${weeksToAdd} semanas)`);
+      console.log(`ðŸ“… [handleApproachSelection] No hay fecha límite, usando fecha predeterminada: ${nearestDueDateFormatted} (${weeksToAdd} semanas)`);
     }
 
     // Verificar si ya tiene calendario conectado antes de generar el mensaje
@@ -2939,7 +3069,7 @@ INSTRUCCIONES:
     let calendarAlreadyConnected = connectedCalendar !== null;
     let calendarProvider: 'google' | 'microsoft' | null = connectedCalendar;
 
-    console.log('🔍 [handleApproachSelection] Estado inicial del calendario:', {
+    console.log('ðŸ” [handleApproachSelection] Estado inicial del calendario:', {
       connectedCalendarState: connectedCalendar,
       calendarAlreadyConnected,
       calendarProvider
@@ -2948,21 +3078,21 @@ INSTRUCCIONES:
     // Si el estado local no indica conexión, verificar con el servidor como fallback
     if (!calendarAlreadyConnected) {
       try {
-        console.log('📡 [handleApproachSelection] Consultando estado del calendario al servidor...');
+        console.log('ðŸ“¡ [handleApproachSelection] Consultando estado del calendario al servidor...');
         const calendarResponse = await fetch('/api/study-planner/calendar/status');
         if (calendarResponse.ok) {
           const calendarData = await calendarResponse.json();
-          console.log('📡 [handleApproachSelection] Respuesta del servidor:', calendarData);
+          console.log('ðŸ“¡ [handleApproachSelection] Respuesta del servidor:', calendarData);
           if (calendarData.isConnected && calendarData.provider) {
             calendarAlreadyConnected = true;
             calendarProvider = calendarData.provider;
             setConnectedCalendar(calendarData.provider as 'google' | 'microsoft');
           }
         } else {
-          console.warn('⚠️ [handleApproachSelection] Error HTTP verificando calendario:', calendarResponse.status);
+          console.warn('âš ï¸ [handleApproachSelection] Error HTTP verificando calendario:', calendarResponse.status);
         }
       } catch (error) {
-        console.error('❌ [handleApproachSelection] Error verificando calendario:', error);
+        console.error('âŒ [handleApproachSelection] Error verificando calendario:', error);
       }
     } else {
       console.log('✅ [handleApproachSelection] Usando estado local del calendario (ya conectado)');
@@ -2970,7 +3100,7 @@ INSTRUCCIONES:
 
     // Construir el prompt para LIA dependiendo del estado del calendario
     let systemPrompt: string;
-    
+
     if (calendarAlreadyConnected) {
       // Caso 1: Calendario ya conectado
       systemPrompt = `[SELECCION_ENFOQUE_CALENDARIO_CONECTADO]
@@ -2992,7 +3122,7 @@ El usuario YA INDICÓ que prefiere NO conectar su calendario.
 ${nearestDueDateFormatted ? `La fecha límite establecida por su organización es: ${nearestDueDateFormatted}` : ''}
 Cursos asignados: ${assignedCourses.map(c => c.title).join(', ')}
 
-⚠️ INSTRUCCIONES IMPORTANTES - NO pedir calendario:
+âš ï¸ INSTRUCCIONES IMPORTANTES - NO pedir calendario:
 1. Confirma la selección del tipo de sesiones de manera entusiasta
 2. Si hay fecha límite, menciónala
 3. NO menciones el calendario - el usuario YA RECHAZÓ conectarlo
@@ -3102,7 +3232,7 @@ INSTRUCCIONES:
           );
           console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado exitosamente');
         } catch (error) {
-          console.error('❌ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
+          console.error('âŒ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
           // ✅ FIX: Mostrar mensaje de fallback al usuario cuando hay un error
           setIsProcessing(false);
           const fallbackMsg = `Tu calendario de ${providerToUse === 'google' ? 'Google' : 'Microsoft'} está conectado, pero hubo un pequeño problema al analizarlo.\n\n¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
@@ -3110,13 +3240,13 @@ INSTRUCCIONES:
         }
       }, 2000); // ✅ Reducido a 2 segundos para mejor UX
     } else if (!calendarSkipped) {
-      console.log('⚠️ [handleApproachSelection] Calendario NO conectado y NO rechazado, mostrando modal...');
+      console.log('âš ï¸ [handleApproachSelection] Calendario NO conectado y NO rechazado, mostrando modal...');
       // Calendario NO está conectado Y el usuario NO ha rechazado, mostrar modal después de un delay
       setTimeout(() => {
         setShowCalendarModal(true);
       }, 3000);
     } else {
-      console.log('ℹ️ [handleApproachSelection] Calendario rechazado por el usuario, no mostrar modal.');
+      console.log('â„¹ï¸ [handleApproachSelection] Calendario rechazado por el usuario, no mostrar modal.');
       // El usuario ya rechazó el calendario, no volver a mostrar el modal
       // El flujo continuará cuando el usuario proporcione sus días y horarios preferidos
     }
@@ -3201,14 +3331,14 @@ INSTRUCCIONES:
     await handleApproachSelection(approach);
   };
 
-  // ✅ FUNCIÓN ESPECÍFICA PARA ANÁLISIS DE CALENDARIO B2B
+  // ✅ FUNCIÓN ESPECÃFICA PARA ANÃLISIS DE CALENDARIO B2B
   const analyzeCalendarAndSuggestB2B = async (
     provider: string,
     approach: 'rapido' | 'normal' | 'largo',
     userProfile: any,
     assignedCourses: Array<{ courseId: string; title: string; dueDate: string | null }>
   ) => {
-    console.log('🏢 [B2B] Iniciando análisis específico para usuario B2B...', {
+    console.log('ðŸ¢ [B2B] Iniciando análisis específico para usuario B2B...', {
       provider,
       approach,
       coursesCount: assignedCourses.length,
@@ -3234,12 +3364,12 @@ INSTRUCCIONES:
 
       // ✅ FIX: Si no hay fechas límite, generar una fecha predeterminada basada en el enfoque
       if (!furthestDueDate) {
-        console.log('⚠️ [B2B] No hay fechas límite, generando fecha predeterminada...');
+        console.log('âš ï¸ [B2B] No hay fechas límite, generando fecha predeterminada...');
         const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
         furthestDueDate = new Date();
         furthestDueDate.setDate(furthestDueDate.getDate() + (weeksToAdd * 7));
         nearestDueDate = furthestDueDate; // Si no hay fechas, usar la misma
-        console.log(`📅 [B2B] Usando fecha predeterminada: ${furthestDueDate.toLocaleDateString('es-ES')} (${weeksToAdd} semanas)`);
+        console.log(`ðŸ“… [B2B] Usando fecha predeterminada: ${furthestDueDate.toLocaleDateString('es-ES')} (${weeksToAdd} semanas)`);
       }
 
       const startDate = new Date();
@@ -3247,7 +3377,7 @@ INSTRUCCIONES:
       const endDate = new Date(furthestDueDate);
       endDate.setHours(23, 59, 59, 999);
 
-      console.log(`📅 [B2B] Rango de análisis: ${startDate.toLocaleDateString('es-ES')} hasta ${endDate.toLocaleDateString('es-ES')}`);
+      console.log(`ðŸ“… [B2B] Rango de análisis: ${startDate.toLocaleDateString('es-ES')} hasta ${endDate.toLocaleDateString('es-ES')}`);
       console.log(`   Fecha límite más próxima: ${nearestDueDate.toLocaleDateString('es-ES')}`);
       console.log(`   Fecha límite más lejana: ${furthestDueDate.toLocaleDateString('es-ES')}`);
 
@@ -3264,7 +3394,7 @@ INSTRUCCIONES:
           console.log(`✅ [B2B] Eventos obtenidos: ${calendarEvents.length}`);
         }
       } catch (error) {
-        console.error('❌ [B2B] Error obteniendo eventos:', error);
+        console.error('âŒ [B2B] Error obteniendo eventos:', error);
       }
 
       // 3. Calcular disponibilidad y slots para cada curso según su fecha límite
@@ -3285,14 +3415,14 @@ INSTRUCCIONES:
           try {
             // Obtener metadata del curso para contar todas las lecciones
             const metadataResponse = await fetch(`/api/workshops/${course.courseId}/metadata`);
-            console.log(`📡 [B2B] Metadata response status para ${course.courseId}:`, metadataResponse.status);
+            console.log(`ðŸ“¡ [B2B] Metadata response status para ${course.courseId}:`, metadataResponse.status);
 
             if (metadataResponse.ok) {
               const metadataData = await metadataResponse.json();
-              console.log(`📡 [B2B] Metadata keys:`, Object.keys(metadataData));
-              console.log(`📡 [B2B] metadataData.success:`, metadataData.success);
-              console.log(`📡 [B2B] metadataData.metadata existe:`, !!metadataData.metadata);
-              console.log(`📡 [B2B] metadataData.metadata?.modules:`, metadataData.metadata?.modules?.length || 'undefined');
+              console.log(`ðŸ“¡ [B2B] Metadata keys:`, Object.keys(metadataData));
+              console.log(`ðŸ“¡ [B2B] metadataData.success:`, metadataData.success);
+              console.log(`ðŸ“¡ [B2B] metadataData.metadata existe:`, !!metadataData.metadata);
+              console.log(`ðŸ“¡ [B2B] metadataData.metadata?.modules:`, metadataData.metadata?.modules?.length || 'undefined');
 
               // El API puede devolver la data directamente sin wrapper 'success/metadata'
               const modules = metadataData.metadata?.modules || metadataData.modules || [];
@@ -3335,10 +3465,10 @@ INSTRUCCIONES:
                     completedLessons = completedLessonIds.length;
                     console.log(`✅ [B2B] Curso ${course.title}: ${completedLessons} lecciones completadas de ${totalLessons} totales`);
                   } else {
-                    console.warn(`⚠️ [B2B] No se pudo obtener progreso del curso ${course.courseId}`);
+                    console.warn(`âš ï¸ [B2B] No se pudo obtener progreso del curso ${course.courseId}`);
                   }
                 } catch (progressError) {
-                  console.warn(`⚠️ [B2B] Error obteniendo progreso del curso ${course.courseId}:`, progressError);
+                  console.warn(`âš ï¸ [B2B] Error obteniendo progreso del curso ${course.courseId}:`, progressError);
                 }
 
                 // ✅ NUEVO: Obtener lecciones pendientes con nombres y módulos
@@ -3384,7 +3514,7 @@ INSTRUCCIONES:
                   return a.lessonOrderIndex - b.lessonOrderIndex;
                 });
 
-                console.log(`📚 [B2B] Lecciones PENDIENTES del curso "${course.title}":`);
+                console.log(`ðŸ“š [B2B] Lecciones PENDIENTES del curso "${course.title}":`);
                 pendingLessonsDetails.slice(0, 5).forEach((l, i) => {
                   console.log(`   ${i + 1}. [${l.moduleTitle}] ${l.lessonTitle} - Duración: ${l.totalDurationMinutes} min`);
                 });
@@ -3407,13 +3537,13 @@ INSTRUCCIONES:
                 };
 
               } else {
-                console.warn(`⚠️ [B2B] No se encontraron módulos en metadata para curso ${course.courseId}`);
+                console.warn(`âš ï¸ [B2B] No se encontraron módulos en metadata para curso ${course.courseId}`);
               }
             } else {
-              console.warn(`⚠️ [B2B] No se pudo obtener metadata del curso ${course.courseId}`);
+              console.warn(`âš ï¸ [B2B] No se pudo obtener metadata del curso ${course.courseId}`);
             }
           } catch (error) {
-            console.warn(`⚠️ [B2B] Error obteniendo lecciones del curso ${course.courseId}:`, error);
+            console.warn(`âš ï¸ [B2B] Error obteniendo lecciones del curso ${course.courseId}:`, error);
           }
 
           const pendingLessons = totalLessons - completedLessons;
@@ -3466,7 +3596,7 @@ INSTRUCCIONES:
       setPendingLessonsWithNames(allPendingLessons);
       // ✅ También actualizar el ref para que esté disponible inmediatamente
       pendingLessonsRef.current = allPendingLessons;
-      console.log(`📚 [B2B] Total de lecciones pendientes guardadas (ref+state): ${allPendingLessons.length}`);
+      console.log(`ðŸ“š [B2B] Total de lecciones pendientes guardadas (ref+state): ${allPendingLessons.length}`);
 
       // ✅ 4. Usar la misma lógica de análisis de calendario que B2C
       // Establecer selectedCourseIds temporalmente para que la lógica funcione
@@ -3485,7 +3615,7 @@ INSTRUCCIONES:
       // Llamar a analyzeCalendarAndSuggest con skipB2BRedirect=true para evitar bucle
       // Esto permite usar toda la lógica de B2C (slots, distribución, etc.) pero desde B2B
       console.log('🚀 [B2B] Llama a analyzeCalendarAndSuggest (modo B2C forzado)...');
-      
+
       try {
         await analyzeCalendarAndSuggest(
           provider,
@@ -3495,7 +3625,7 @@ INSTRUCCIONES:
         );
         console.log('✅ [B2B] Retorno exitoso de analyzeCalendarAndSuggest');
       } catch (innerError) {
-        console.error('❌ [B2B] Error interno en analyzeCalendarAndSuggest:', innerError);
+        console.error('âŒ [B2B] Error interno en analyzeCalendarAndSuggest:', innerError);
         throw innerError; // Re-lanzar para que lo capture el catch externo y muestre el mensaje
       } finally {
         setIsProcessing(false);
@@ -3505,7 +3635,7 @@ INSTRUCCIONES:
       setSelectedCourseIds(originalSelectedCourseIds);
 
     } catch (error) {
-      console.error('❌ [B2B] Error en análisis de calendario:', error);
+      console.error('âŒ [B2B] Error en análisis de calendario:', error);
       setIsProcessing(false);
 
       // ✅ FIX: Preguntar por preferencias de estudio en lugar de mensaje genérico de error
@@ -3552,7 +3682,7 @@ INSTRUCCIONES:
     const effectiveApproach = approachParam !== undefined ? approachParam : studyApproach;
     const effectiveTargetDate = targetDateParam || targetDate;
 
-    console.log('🔍 [analyzeCalendarAndSuggest] Iniciando análisis...', {
+    console.log('ðŸ” [analyzeCalendarAndSuggest] Iniciando análisis...', {
       provider,
       targetDateParam,
       targetDate,
@@ -3565,7 +3695,7 @@ INSTRUCCIONES:
     // Evitar múltiples llamadas simultáneas
     // ✅ FIX: Permitir reintentos incluso si isProcessing es true, pero loguearlo
     if (isProcessing) {
-      console.warn('⚠️ [analyzeCalendarAndSuggest] Se llamó mientras estaba procesando. Continuando de todos modos para asegurar recuperación...');
+      console.warn('âš ï¸ [analyzeCalendarAndSuggest] Se llamó mientras estaba procesando. Continuando de todos modos para asegurar recuperación...');
       // No retornamos, permitimos que continúe y sobrescriba el proceso actual si es necesario
     }
 
@@ -3573,15 +3703,15 @@ INSTRUCCIONES:
     // IMPORTANTE: No usar 'if (isProcessing)' aquí porque el closure captura el valor inicial (false)
     // y nunca ejecutaría la limpieza. Forzar la limpieza es más seguro.
     setTimeout(() => {
-        console.log('⏰ [Safety Timeout] Ejecutando limpieza de seguridad de estado (45s)');
-        setIsProcessing(false);
+      console.log('â° [Safety Timeout] Ejecutando limpieza de seguridad de estado (45s)');
+      setIsProcessing(false);
     }, 45000);
 
     // Verificar que se tengan los datos necesarios antes de analizar
     // NOTA: Para usuarios B2B, el effectiveApproach viene como parámetro, no del estado
     const approachToUse = effectiveApproach || approachParam;
     if (!approachToUse) {
-      console.log('❌ [analyzeCalendarAndSuggest] Falta studyApproach/approachParam, saliendo...', {
+      console.log('âŒ [analyzeCalendarAndSuggest] Falta studyApproach/approachParam, saliendo...', {
         studyApproach,
         approachParam,
         effectiveApproach
@@ -3604,10 +3734,10 @@ INSTRUCCIONES:
           month: 'long',
           year: 'numeric'
         });
-        console.log('📅 [analyzeCalendarAndSuggest] Usando fecha límite de curso B2B:', dateToUse);
+        console.log('ðŸ“… [analyzeCalendarAndSuggest] Usando fecha límite de curso B2B:', dateToUse);
       }
     }
-    
+
     // ✅ FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
     if (!dateToUse) {
       const weeksToAdd = approachToUse === 'rapido' ? 2 : (approachToUse === 'normal' ? 4 : 8);
@@ -3618,7 +3748,7 @@ INSTRUCCIONES:
         month: 'long',
         year: 'numeric'
       });
-      console.log(`📅 [analyzeCalendarAndSuggest] Usando fecha predeterminada: ${dateToUse} (${weeksToAdd} semanas)`);
+      console.log(`ðŸ“… [analyzeCalendarAndSuggest] Usando fecha predeterminada: ${dateToUse} (${weeksToAdd} semanas)`);
     }
 
     console.log('✅ [analyzeCalendarAndSuggest] Todas las validaciones pasadas, procediendo con análisis...');
@@ -3650,19 +3780,19 @@ INSTRUCCIONES:
             })) || null,
           });
 
-          // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÍFICA
+          // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÃFICA
           // Solo redirigir si no se está saltando la redirección (evitar bucle)
-            if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
-              console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
-              // Mantener isProcessing en true mientras redirigimos
-              await analyzeCalendarAndSuggestB2B(
-                provider,
-                effectiveApproach!,
-                userProfile,
-                assignedCourses
-              );
-              return; // Salir temprano, no ejecutar lógica B2C
-            }
+          if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
+            console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
+            // Mantener isProcessing en true mientras redirigimos
+            await analyzeCalendarAndSuggestB2B(
+              provider,
+              effectiveApproach!,
+              userProfile,
+              assignedCourses
+            );
+            return; // Salir temprano, no ejecutar lógica B2C
+          }
         }
       }
 
@@ -3701,10 +3831,10 @@ INSTRUCCIONES:
           }
 
           if (!targetDateObjForEvents) {
-            console.warn(`⚠️ No se pudo parsear la fecha objetivo: "${effectiveTargetDate}"`);
+            console.warn(`âš ï¸ No se pudo parsear la fecha objetivo: "${effectiveTargetDate}"`);
           }
         } catch (e) {
-          console.warn('❌ Error parseando fecha objetivo para eventos:', e);
+          console.warn('âŒ Error parseando fecha objetivo para eventos:', e);
         }
       }
 
@@ -3713,7 +3843,7 @@ INSTRUCCIONES:
 
       // ✅ CAPTURAR HORA ACTUAL para filtrar slots pasados
       const currentTime = new Date();
-      console.log(`🕐 Hora actual capturada: ${currentTime.toLocaleString('es-ES')}`);
+      console.log(`ðŸ• Hora actual capturada: ${currentTime.toLocaleString('es-ES')}`);
 
       // Calcular fecha final: usar la fecha objetivo si existe, sino 30 días desde hoy
       let endDate = new Date();
@@ -3752,11 +3882,11 @@ INSTRUCCIONES:
             }
           }
 
-          console.error('❌ Error en respuesta de eventos:', eventsResponse.status, errorData);
+          console.error('âŒ Error en respuesta de eventos:', eventsResponse.status, errorData);
 
           // Si el error indica que se requiere reconexión, actualizar estado
           if (eventsResponse.status === 401 && errorData.requiresReconnection) {
-            console.warn('⚠️ Token expirado y no se pudo refrescar. Se requiere reconexión del calendario.');
+            console.warn('âš ï¸ Token expirado y no se pudo refrescar. Se requiere reconexión del calendario.');
             setConnectedCalendar(null);
 
             // Agregar mensaje al usuario pidiendo reconexión
@@ -3776,7 +3906,7 @@ INSTRUCCIONES:
           } else {
             // Otro tipo de error, continuar sin eventos pero loguear
             calendarEvents = [];
-            console.warn('⚠️ No se pudieron obtener eventos del calendario, continuando sin análisis de disponibilidad');
+            console.warn('âš ï¸ No se pudieron obtener eventos del calendario, continuando sin análisis de disponibilidad');
           }
         }
       } catch (calError) {
@@ -3821,7 +3951,7 @@ INSTRUCCIONES:
 
       if (targetDateObjForEvents) {
       } else {
-        console.warn(`   ⚠️ targetDateObjForEvents es NULL - usando 30 días por defecto`);
+        console.warn(`   âš ï¸ targetDateObjForEvents es NULL - usando 30 días por defecto`);
       }
 
       // Inicializar análisis para todos los días hasta la fecha objetivo
@@ -3835,8 +3965,8 @@ INSTRUCCIONES:
         const isoDate = date.toISOString();
         const isJan1Root = isoDate.includes('-01-01T') || (date.getMonth() === 0 && date.getDate() === 1);
         if (HolidayService.isHoliday(date, 'MX') || isJan1Root) {
-             console.log(`⛔ [Analysis] Día festivo saltado en origen: ${date.toLocaleDateString()} (ISO: ${isoDate})`);
-             continue;
+          console.log(`â›” [Analysis] Día festivo saltado en origen: ${date.toLocaleDateString()} (ISO: ${isoDate})`);
+          continue;
         }
 
         // Si hay fecha objetivo, no analizar días después de ella
@@ -3936,7 +4066,7 @@ INSTRUCCIONES:
         }
       });
 
-      // 🔍 DEBUG: Verificar cuántos días requieren descanso después de marcar el día siguiente
+      // ðŸ” DEBUG: Verificar cuántos días requieren descanso después de marcar el día siguiente
       const daysWithRestAfterMarking = Object.values(daySlots).filter(d => d.requiresRestAfter);
 
       if (daysWithRestAfterMarking.length > 0 && daysWithRestAfterMarking.length <= 10) {
@@ -3997,8 +4127,8 @@ INSTRUCCIONES:
         let lastEnd = dayStart;
 
         if (dayData.busySlots.length === 0) {
-          // ✅ DÍA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
-          console.log(`📅 Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
+          // ✅ DÃA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
+          console.log(`ðŸ“… Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
 
           // Verificar si es el día actual para filtrar bloques pasados
           const slotDate = new Date(dayData.date);
@@ -4034,7 +4164,7 @@ INSTRUCCIONES:
               durationMinutes: 300, // 5 horas
             });
           } else {
-            console.log(`   ⏰ Bloque mañana filtrado (ya pasó): 7am - 12pm`);
+            console.log(`   â° Bloque mañana filtrado (ya pasó): 7am - 12pm`);
           }
 
           // Agregar bloque de la tarde (12pm - 6pm = 6 horas) solo si no ha pasado
@@ -4045,7 +4175,7 @@ INSTRUCCIONES:
               durationMinutes: 360, // 6 horas
             });
           } else {
-            console.log(`   ⏰ Bloque tarde filtrado (ya pasó): 12pm - 6pm`);
+            console.log(`   â° Bloque tarde filtrado (ya pasó): 12pm - 6pm`);
           }
 
           // Agregar bloque de la noche (6pm - 10pm = 4 horas) solo si no ha pasado
@@ -4056,7 +4186,7 @@ INSTRUCCIONES:
               durationMinutes: 240, // 4 horas
             });
           } else {
-            console.log(`   ⏰ Bloque noche filtrado (ya pasó): 6pm - 10pm`);
+            console.log(`   â° Bloque noche filtrado (ya pasó): 6pm - 10pm`);
           }
 
         } else {
@@ -4160,7 +4290,7 @@ INSTRUCCIONES:
         daysAnalysis.push(dayData);
       });
 
-      // 🔍 DEBUG: Resumen de daysAnalysis después de procesar todos los días
+      // ðŸ” DEBUG: Resumen de daysAnalysis después de procesar todos los días
 
       const daysWithFreeSlotsGenerated = daysAnalysis.filter(d => d.freeSlots.length > 0);
       const daysWithoutFreeSlots = daysAnalysis.filter(d => d.freeSlots.length === 0);
@@ -4263,7 +4393,7 @@ INSTRUCCIONES:
             const isValid = slotStartTime > currentTimeMs;
 
             if (!isValid) {
-              console.log(`   ⏰ Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+              console.log(`   â° Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
             }
 
             return isValid;
@@ -4277,7 +4407,7 @@ INSTRUCCIONES:
       // Obtener la duración mínima recomendada según el enfoque
       const minSessionDuration = profileAvailability?.recommendedSessionLength || 30;
 
-      // 🔍 DEBUG: Verificar qué días están en daysAnalysis y su estado
+      // ðŸ” DEBUG: Verificar qué días están en daysAnalysis y su estado
 
       const daysWithRest = daysAnalysis.filter(d => d.requiresRestAfter);
       const daysWithoutRest = daysAnalysis.filter(d => !d.requiresRestAfter);
@@ -4296,7 +4426,7 @@ INSTRUCCIONES:
         // Excluir días que requieren descanso después de eventos pesados
         // IMPORTANTE: Solo excluir el día específico marcado, NO afectar días posteriores
         if (day.requiresRestAfter) {
-          // ✅ CRÍTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
+          // ✅ CRÃTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
           return;
         }
 
@@ -4317,7 +4447,7 @@ INSTRUCCIONES:
             requiresRest: day.requiresRestAfter,
             restReason: day.restReason,
           }))
-          // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÍA ACTUAL
+          // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
           .filter(slot => {
             const slotDate = new Date(slot.date);
             slotDate.setHours(0, 0, 0, 0);
@@ -4338,7 +4468,7 @@ INSTRUCCIONES:
               const isValid = slotStartTime > currentTimeMs;
 
               if (!isValid) {
-                console.log(`   ⏰ Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+                console.log(`   â° Slot filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
               }
 
               return isValid;
@@ -4518,10 +4648,10 @@ INSTRUCCIONES:
         // Esto captura festivos independientemente de la zona horaria UTC/Local
         const iso = slot.date.toISOString();
         const isNuclearHoliday = iso.includes('-01-01T') || iso.includes('-12-25T') || iso.includes('-05-01T') || iso.includes('-09-16T') || iso.includes('-11-20T');
-        
+
         if (isNuclearHoliday) {
-             console.log(`☢️ [NUCLEAR FILTER] Slot eliminado por fecha prohibida en ISO: ${iso}`);
-             return false;
+          console.log(`â˜¢ï¸ [NUCLEAR FILTER] Slot eliminado por fecha prohibida en ISO: ${iso}`);
+          return false;
         }
 
         // ✅ DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
@@ -4530,17 +4660,17 @@ INSTRUCCIONES:
         const isSpecialDate = (month === 11 && dayOfMonth === 25) || (month === 0 && dayOfMonth === 1);
 
         if (isSpecialDate) {
-          console.log(`🎄 [DEBUG FESTIVO] Fecha especial detectada: ${slot.date.toLocaleDateString('es-ES')} | isHoliday: ${isHolidayDate} | Año: ${slot.date.getFullYear()}`);
+          console.log(`ðŸŽ„ [DEBUG FESTIVO] Fecha especial detectada: ${slot.date.toLocaleDateString('es-ES')} | isHoliday: ${isHolidayDate} | Año: ${slot.date.getFullYear()}`);
         }
 
         if (isHolidayDate) {
           const holidayName = HolidayService.getHolidayName(slot.date, userCountry);
-          console.log(`🚫 [Festivo Excluido] ${slot.date.toLocaleDateString('es-ES')} - ${holidayName || 'Día festivo'} (${userCountry})`);
+          console.log(`ðŸš« [Festivo Excluido] ${slot.date.toLocaleDateString('es-ES')} - ${holidayName || 'Día festivo'} (${userCountry})`);
         }
         return !isHolidayDate;
       });
 
-      console.log(`📆 [Días Festivos] ${uniqueDateSlots.length} slots totales → ${slotsWithoutHolidays.length} después de excluir festivos`);
+      console.log(`ðŸ“† [Días Festivos] ${uniqueDateSlots.length} slots totales â†’ ${slotsWithoutHolidays.length} después de excluir festivos`);
 
       // Calcular tiempo disponible hasta la fecha objetivo
       let targetDateObj: Date | null = null;
@@ -4583,15 +4713,15 @@ INSTRUCCIONES:
 
             // Validar que weeksUntilTarget sea razonable (mínimo 1 semana, máximo 52 semanas)
             if (weeksUntilTarget < 1) {
-              console.warn(`⚠️ weeksUntilTarget es menor a 1, ajustando a 1`);
+              console.warn(`âš ï¸ weeksUntilTarget es menor a 1, ajustando a 1`);
               weeksUntilTarget = 1;
             } else if (weeksUntilTarget > 52) {
-              console.warn(`⚠️ weeksUntilTarget es mayor a 52 semanas, ajustando a 52`);
+              console.warn(`âš ï¸ weeksUntilTarget es mayor a 52 semanas, ajustando a 52`);
               weeksUntilTarget = 52;
             }
 
           } else {
-            console.warn(`⚠️ No se pudo parsear la fecha objetivo: ${targetDate}`);
+            console.warn(`âš ï¸ No se pudo parsear la fecha objetivo: ${targetDate}`);
             // Fallback: usar 4 semanas si no se puede parsear
             weeksUntilTarget = 4;
           }
@@ -4671,14 +4801,14 @@ INSTRUCCIONES:
                             is_published: lesson.is_published !== false
                           })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
-                          // ✅ CORRECCIÓN CRÍTICA: Eliminar duplicados por lessonId
+                          // ✅ CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId
                           const uniqueLessonsMap = new Map<string, any>();
                           normalizedLessons.forEach((lesson: any) => {
                             if (lesson && lesson.lessonId) {
                               if (!uniqueLessonsMap.has(lesson.lessonId)) {
                                 uniqueLessonsMap.set(lesson.lessonId, lesson);
                               } else {
-                                console.warn(`   ⚠️ Lección duplicada detectada en API (cálculo): ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                                console.warn(`   âš ï¸ Lección duplicada detectada en API (cálculo): ${lesson.lessonId} - ${lesson.lessonTitle}`);
                               }
                             }
                           });
@@ -4698,7 +4828,7 @@ INSTRUCCIONES:
 
                             } else {
                               const errorData = await progressResponse.json();
-                              console.warn(`   ⚠️ Error obteniendo progreso del curso ${courseId}: ${errorData.error || progressResponse.status}`);
+                              console.warn(`   âš ï¸ Error obteniendo progreso del curso ${courseId}: ${errorData.error || progressResponse.status}`);
                             }
                           } catch (progressError) {
                             console.warn(`Error obteniendo progreso del curso ${courseId}:`, progressError);
@@ -4776,7 +4906,7 @@ INSTRUCCIONES:
 
           // Si totalLessonsNeeded es 0, usar estimación conservadora basada en el número de cursos
           if (totalLessonsNeeded === 0 && selectedCourseIds.length > 0) {
-            console.warn(`⚠️ totalLessonsNeeded es 0, usando estimación conservadora de 10 lecciones por curso`);
+            console.warn(`âš ï¸ totalLessonsNeeded es 0, usando estimación conservadora de 10 lecciones por curso`);
             totalLessonsNeeded = selectedCourseIds.length * 10; // Estimación: 10 lecciones por curso
           }
         } catch (error) {
@@ -4787,7 +4917,7 @@ INSTRUCCIONES:
           }
         }
       } else {
-        console.warn('⚠️ No se pudo calcular lecciones necesarias: selectedCourseIds.length =', selectedCourseIds.length, 'profileAvailability =', !!profileAvailability);
+        console.warn('âš ï¸ No se pudo calcular lecciones necesarias: selectedCourseIds.length =', selectedCourseIds.length, 'profileAvailability =', !!profileAvailability);
         // Fallback: estimación conservadora
         if (selectedCourseIds.length > 0) {
           totalLessonsNeeded = selectedCourseIds.length * 10;
@@ -4826,7 +4956,7 @@ INSTRUCCIONES:
       const MIN_SLOT_DURATION = 25; // Duración mínima de una lección
       const finalSlots: FreeSlotWithDay[] = validDateSlots
         .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
-        // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÍA ACTUAL
+        // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
         .filter(slot => {
           const slotDate = new Date(slot.date);
           slotDate.setHours(0, 0, 0, 0);
@@ -4847,7 +4977,7 @@ INSTRUCCIONES:
             const isValid = slotStartTime > currentTimeMs;
 
             if (!isValid) {
-              console.log(`   ⏰ Slot final filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
+              console.log(`   â° Slot final filtrado (ya pasó): ${slot.dayName} ${slot.start.toLocaleTimeString('es-ES')} - ${slot.end.toLocaleTimeString('es-ES')}`);
             }
 
             return isValid;
@@ -4898,7 +5028,7 @@ INSTRUCCIONES:
         }
       });
 
-      // ✅ LIMITAR SLOTS POR DÍA (adaptado para B2B vs B2C)
+      // ✅ LIMITAR SLOTS POR DÃA (adaptado para B2B vs B2C)
       // Para B2B: permitir más slots por día si es necesario para cumplir plazos
       // Para B2C: máximo 2 slots por día (requisito del usuario)
       // ✅ Cuando skipB2BRedirect=true, tratar como B2C para usar la misma lógica
@@ -4934,18 +5064,18 @@ INSTRUCCIONES:
           return b.durationMinutes - a.durationMinutes;
         });
 
-        // Tomar máximo 2 slots por día
-        const selectedDaySlots = daySlots.slice(0, 2);
+        // Tomar máximo slots por día según el tipo de usuario (B2B: 4, B2C: 2)
+        const selectedDaySlots = daySlots.slice(0, maxSlotsPerDay);
 
         limitedSlots.push(...selectedDaySlots);
       });
 
-      // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÍODO
+      // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÃODO
       // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
       // Ordenar por fecha
       limitedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+      // ✅ CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
       // Para B2B (sin skipB2BRedirect), usar TODOS los slots disponibles para asegurar que todas las lecciones se asignen
       // Para B2C, usar distribución equidistante más conservadora
       const isB2BUser = userProfile?.userType === 'b2b' && !skipB2BRedirect;
@@ -4954,29 +5084,41 @@ INSTRUCCIONES:
 
       if (isB2BUser) {
         // ✅ B2B: Usar TODOS los slots disponibles para cumplir con plazos organizacionales
-        console.log(`📊 [B2B] Usando TODOS los slots disponibles para cumplir con plazos organizacionales`);
+        console.log(`ðŸ“Š [B2B] Usando TODOS los slots disponibles para cumplir con plazos organizacionales`);
         console.log(`   Slots disponibles: ${limitedSlots.length}`);
         equidistantSlots = [...limitedSlots];
       } else {
-        // ✅ B2C: Distribución equidistante más conservadora
-        const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
-        const avgLessonsPerSlot = 2; // Estimación conservadora
-        const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
+        // ✅ B2C o B2B con skipB2BRedirect
+        // Verificar si hay plazos organizacionales (cursos con dueDate)
+        const hasOrganizationalDeadlines = userProfile?.courses?.some((c: any) => c.dueDate);
 
-        // Seleccionar slots distribuidos equidistantemente
-        if (limitedSlots.length > 0) {
-          const totalAvailable = limitedSlots.length;
-          const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+        if (hasOrganizationalDeadlines) {
+          // ✅ FIX: Si hay plazos organizacionales, usar TODOS los slots disponibles
+          // Esto aplica para B2B incluso cuando skipB2BRedirect=true
+          console.log(`ðŸ“Š [Plazos Detectados] Usando TODOS los slots para cumplir con fechas límite`);
+          console.log(`   Slots disponibles: ${limitedSlots.length}`);
+          equidistantSlots = [...limitedSlots];
+        } else {
+          // B2C sin plazos: Distribución equidistante más conservadora
+          const estimatedLessons = Math.max(totalLessonsNeeded, 30); // Mínimo 30 lecciones
+          const avgLessonsPerSlot = 2; // Estimación conservadora
+          const slotsNeeded = Math.ceil(estimatedLessons / avgLessonsPerSlot);
 
-          if (slotsToUse >= totalAvailable) {
-            // Necesitamos todos los slots
-            equidistantSlots.push(...limitedSlots);
-          } else {
-            // Distribuir equidistantemente
-            const step = (totalAvailable - 1) / (slotsToUse - 1);
-            for (let i = 0; i < slotsToUse; i++) {
-              const index = Math.round(i * step);
-              equidistantSlots.push(limitedSlots[index]);
+          // Seleccionar slots distribuidos equidistantemente
+          if (limitedSlots.length > 0) {
+            const totalAvailable = limitedSlots.length;
+            const slotsToUse = Math.min(slotsNeeded, totalAvailable);
+
+            if (slotsToUse >= totalAvailable) {
+              // Necesitamos todos los slots
+              equidistantSlots.push(...limitedSlots);
+            } else {
+              // Distribuir equidistantemente
+              const step = (totalAvailable - 1) / (slotsToUse - 1);
+              for (let i = 0; i < slotsToUse; i++) {
+                const index = Math.round(i * step);
+                equidistantSlots.push(limitedSlots[index]);
+              }
             }
           }
         }
@@ -5022,7 +5164,7 @@ INSTRUCCIONES:
         : null;
 
       if (!weeklyGoals) {
-        console.warn('⚠️ No se pudieron calcular las metas semanales. Verificar condiciones.');
+        console.warn('âš ï¸ No se pudieron calcular las metas semanales. Verificar condiciones.');
         console.warn(`   Condiciones: selectedCourseIds=${selectedCourseIds.length > 0}, weeklyAvailableMinutes=${weeklyAvailableMinutes > 0}, studyApproach=${!!effectiveApproach}, weeksUntilTarget=${weeksUntilTarget > 0}, totalLessonsNeeded=${totalLessonsNeeded > 0}`);
       }
 
@@ -5058,7 +5200,7 @@ INSTRUCCIONES:
 
         // Agregar contexto del calendario (sin mencionar números exactos)
         if (calendarEvents.length > 0) {
-          introParts.push(`\n📊 He encontrado múltiples eventos en tu calendario durante el próximo mes.`);
+          introParts.push(`\nðŸ“Š He encontrado múltiples eventos en tu calendario durante el próximo mes.`);
           if (busiestDays.length > 0) {
             introParts.push(`Tus días más ocupados son: ${busiestDays.join(', ')}.`);
           }
@@ -5098,10 +5240,39 @@ INSTRUCCIONES:
           calendarMessage += recommendationIntro.join(' ');
 
           // Obtener lecciones de los cursos seleccionados para distribuir por horarios
-          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number }>> = new Map();
+          let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number; moduleOrderIndex?: number; totalDurationMinutes?: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
 
-          if (selectedCourseIds.length > 0) {
+          // ✅ FIX: Si ya tenemos lecciones cargadas (flujo B2B), usarlas directamente
+          // en lugar de volver a llamar a /api/my-courses que falla para usuarios B2B
+          const cachedPendingLessons = pendingLessonsRef.current || pendingLessonsWithNames;
+
+          if (cachedPendingLessons && cachedPendingLessons.length > 0) {
+            console.log(`ðŸ“š [Distribución] Usando ${cachedPendingLessons.length} lecciones pre-cargadas (flujo B2B)`);
+
+            // Agrupar lecciones por courseId
+            cachedPendingLessons.forEach(lesson => {
+              const currentLessons = allLessonsByCourse.get(lesson.courseId) || [];
+              currentLessons.push({
+                lessonId: lesson.lessonId,
+                lessonTitle: lesson.lessonTitle,
+                lessonOrderIndex: lesson.lessonOrderIndex,
+                durationSeconds: (lesson.durationMinutes || 15) * 60,
+                moduleOrderIndex: lesson.moduleOrderIndex,
+                totalDurationMinutes: lesson.durationMinutes
+              });
+              allLessonsByCourse.set(lesson.courseId, currentLessons);
+            });
+
+            // No hay lecciones completadas porque ya fueron filtradas en el flujo B2B
+            selectedCourseIds.forEach(courseId => {
+              completedLessonIdsByCourse.set(courseId, []);
+            });
+
+            console.log(`ðŸ“Š [Distribución] Cursos con lecciones: ${allLessonsByCourse.size}`);
+          } else if (selectedCourseIds.length > 0) {
+            // Fallback: cargar desde /api/my-courses (para usuarios B2C)
+            console.log(`ðŸ“š [Distribución] Cargando lecciones desde /api/my-courses (flujo B2C)...`);
             try {
               const myCoursesResponse = await fetch('/api/my-courses');
               if (myCoursesResponse.ok) {
@@ -5131,7 +5302,7 @@ INSTRUCCIONES:
                             return module.lessons.map((lesson: any) => {
                               // Validar que la lección tenga todos los campos requeridos
                               if (!lesson.lessonId || !lesson.lessonTitle || typeof lesson.lessonTitle !== 'string') {
-                                console.warn(`   ⚠️ Lección inválida en módulo ${module.moduleId}:`, lesson);
+                                console.warn(`   âš ï¸ Lección inválida en módulo ${module.moduleId}:`, lesson);
                                 return null;
                               }
                               // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
@@ -5145,14 +5316,14 @@ INSTRUCCIONES:
                                 lessonId: lesson.lessonId,
                                 lessonTitle: lesson.lessonTitle.trim(),
                                 lessonOrderIndex: orderIndex,
-                                moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÍTICO: Para ordenar correctamente
+                                moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÃTICO: Para ordenar correctamente
                                 durationSeconds: lesson.durationSeconds || 0,
                                 totalDurationMinutes: lesson.totalDurationMinutes // ✅ CORRECCIÓN: Pasar duración total explícita si existe
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
 
-                          // ✅ CORRECCIÓN CRÍTICA: Eliminar duplicados por lessonId ANTES de filtrar y ordenar
+                          // ✅ CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId ANTES de filtrar y ordenar
                           const uniqueLessonsMap = new Map<string, any>();
                           allLessons.forEach((lesson: any) => {
                             if (lesson && lesson.lessonId) {
@@ -5160,7 +5331,7 @@ INSTRUCCIONES:
                               if (!uniqueLessonsMap.has(lesson.lessonId)) {
                                 uniqueLessonsMap.set(lesson.lessonId, lesson);
                               } else {
-                                console.warn(`   ⚠️ Lección duplicada detectada en API: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                                console.warn(`   âš ï¸ Lección duplicada detectada en API: ${lesson.lessonId} - ${lesson.lessonTitle}`);
                               }
                             }
                           });
@@ -5177,7 +5348,7 @@ INSTRUCCIONES:
                                 lesson.lessonTitle.trim() !== '' &&
                                 lesson.lessonOrderIndex >= 0;
                               if (!isValid) {
-                                console.warn(`   ⚠️ Lección filtrada por datos inválidos:`, lesson);
+                                console.warn(`   âš ï¸ Lección filtrada por datos inválidos:`, lesson);
                               }
                               return isValid;
                             })
@@ -5217,12 +5388,12 @@ INSTRUCCIONES:
                                   }
                                   completedLessonIdsByCourse.set(courseId, completedIds);
                                 } else {
-                                  console.warn(`   ⚠️ Error obteniendo progreso para curso ${courseId}: ${progressResponse.status}`);
+                                  console.warn(`   âš ï¸ Error obteniendo progreso para curso ${courseId}: ${progressResponse.status}`);
                                   const errorData = await progressResponse.json();
                                   console.warn(`   Error data:`, errorData);
                                 }
                               } else {
-                                console.warn(`   ⚠️ No se pudo obtener userId para curso ${courseId}`);
+                                console.warn(`   âš ï¸ No se pudo obtener userId para curso ${courseId}`);
                               }
                             }
                           } catch (e) {
@@ -5282,20 +5453,20 @@ INSTRUCCIONES:
             lessons.forEach(lesson => {
               // Validar que la lección tenga datos válidos
               if (!lesson || !lesson.lessonId) {
-                console.warn(`   ⚠️ Lección sin ID válido - omitida`);
+                console.warn(`   âš ï¸ Lección sin ID válido - omitida`);
                 skippedCount++;
                 return;
               }
 
               if (!lesson.lessonTitle || lesson.lessonTitle.trim() === '') {
-                console.warn(`   ⚠️ Lección ${lesson.lessonId} sin título válido - omitida`);
+                console.warn(`   âš ï¸ Lección ${lesson.lessonId} sin título válido - omitida`);
                 skippedCount++;
                 return;
               }
 
               // ✅ PASO 1.2: Verificar duplicados ANTES de agregar a la lista
               if (addedLessonIds.has(lesson.lessonId)) {
-                console.warn(`   ⚠️ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle} (ya agregada anteriormente)`);
+                console.warn(`   âš ï¸ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle} (ya agregada anteriormente)`);
                 duplicateCount++;
                 return;
               }
@@ -5366,10 +5537,10 @@ INSTRUCCIONES:
               // Mismo curso: verificar módulo y lección
               if (prev.courseId === curr.courseId) {
                 if (prev.moduleOrderIndex > curr.moduleOrderIndex) {
-                  console.error(`❌ ERROR DE ORDEN: Módulo ${prev.moduleOrderIndex} después de ${curr.moduleOrderIndex} en curso ${prev.courseId}`);
+                  console.error(`âŒ ERROR DE ORDEN: Módulo ${prev.moduleOrderIndex} después de ${curr.moduleOrderIndex} en curso ${prev.courseId}`);
                   orderIsCorrect = false;
                 } else if (prev.moduleOrderIndex === curr.moduleOrderIndex && prev.lessonOrderIndex >= curr.lessonOrderIndex) {
-                  console.error(`❌ ERROR DE ORDEN: Lección ${prev.lessonOrderIndex} después de ${curr.lessonOrderIndex} en módulo ${prev.moduleOrderIndex}`);
+                  console.error(`âŒ ERROR DE ORDEN: Lección ${prev.lessonOrderIndex} después de ${curr.lessonOrderIndex} en módulo ${prev.moduleOrderIndex}`);
                   orderIsCorrect = false;
                 }
               }
@@ -5390,7 +5561,7 @@ INSTRUCCIONES:
               l.lessonTitle.trim() !== '' &&
               l.lessonOrderIndex >= 0;
             if (!isValid) {
-              console.warn(`⚠️ Lección inválida filtrada:`, {
+              console.warn(`âš ï¸ Lección inválida filtrada:`, {
                 lessonId: l?.lessonId,
                 lessonTitle: l?.lessonTitle,
                 lessonOrderIndex: l?.lessonOrderIndex
@@ -5401,7 +5572,7 @@ INSTRUCCIONES:
 
           const invalidLessonsCount = allPendingLessons.length - validPendingLessons.length;
           if (invalidLessonsCount > 0) {
-            console.warn(`⚠️ ${invalidLessonsCount} lecciones inválidas filtradas antes de la distribución`);
+            console.warn(`âš ï¸ ${invalidLessonsCount} lecciones inválidas filtradas antes de la distribución`);
           }
 
           // Guardar distribución de lecciones para el resumen final (no mostrar en recomendaciones iniciales)
@@ -5411,7 +5582,7 @@ INSTRUCCIONES:
           };
 
           const lessonDistribution: LessonDistribution[] = [];
-          // ✅ CORRECCIÓN CRÍTICA: Rastrear lessonIds asignados para evitar duplicados
+          // ✅ CORRECCIÓN CRÃTICA: Rastrear lessonIds asignados para evitar duplicados
           const assignedLessonIds = new Set<string>();
 
           // Calcular distribución de lecciones por slot (para guardarla, no mostrar aún)
@@ -5424,29 +5595,29 @@ INSTRUCCIONES:
           // Esto asegura que ni la lógica principal ni los fallbacks B2B usen festivos
           const sortedSlots = [...finalSlots]
             .filter(slot => {
-                 // Protección robusta contra tipos de fecha
-                 const d = new Date(slot.date);
-                 if (isNaN(d.getTime())) return false; // Fecha inválida
-                 // Validación de festivos mediante servicio 
-                 const isHoliday = HolidayService.isHoliday(d, 'MX');
-                 
-                 // Validación redundante manual EXTREMA para 1 de Enero
-                 // Verificar múltiples formas para evitar errores de zona horaria
-                 const isJan1 = d.getMonth() === 0 && d.getDate() === 1; // Local Enero 1
-                 const isoStr = d.toISOString();
-                 const isJan1ISO = isoStr.includes('-01-01T'); // UTC Enero 1
-                 
-                 if (isHoliday || isJan1 || isJan1ISO) {
-                     console.log(`⛔ [Global Filter] Festivo eliminado: ${d.toLocaleDateString()} (ISO: ${isoStr})`);
-                     return false;
-                 }
-                 return true;
+              // Protección robusta contra tipos de fecha
+              const d = new Date(slot.date);
+              if (isNaN(d.getTime())) return false; // Fecha inválida
+              // Validación de festivos mediante servicio 
+              const isHoliday = HolidayService.isHoliday(d, 'MX');
+
+              // Validación redundante manual EXTREMA para 1 de Enero
+              // Verificar múltiples formas para evitar errores de zona horaria
+              const isJan1 = d.getMonth() === 0 && d.getDate() === 1; // Local Enero 1
+              const isoStr = d.toISOString();
+              const isJan1ISO = isoStr.includes('-01-01T'); // UTC Enero 1
+
+              if (isHoliday || isJan1 || isJan1ISO) {
+                console.log(`â›” [Global Filter] Festivo eliminado: ${d.toLocaleDateString()} (ISO: ${isoStr})`);
+                return false;
+              }
+              return true;
             })
             .sort((a, b) => {
-               return new Date(a.date).getTime() - new Date(b.date).getTime();
+              return new Date(a.date).getTime() - new Date(b.date).getTime();
             });
 
-          // ✅ CRÍTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+          // ✅ CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
           // Para usuarios B2B (sin skipB2BRedirect), usar TODOS los slots hasta la fecha límite más lejana
           // Para B2C, usar solo hasta la fecha objetivo del usuario
           let slotsUntilTarget: FreeSlotWithDay[] = [];
@@ -5475,7 +5646,7 @@ INSTRUCCIONES:
                 const isDeadlineDay = HolidayService.isSameDay(slotDateOnly, dueDateOnly);
                 return isBeforeDeadline || isDeadlineDay;
               });
-              console.log(`📅 [B2B] Usando slots hasta fecha límite más lejana: ${furthestDueDate.toLocaleDateString('es-ES')} (${slotsUntilTarget.length} slots)`);
+              console.log(`ðŸ“… [B2B] Usando slots hasta fecha límite más lejana: ${furthestDueDate.toLocaleDateString('es-ES')} (${slotsUntilTarget.length} slots)`);
             } else {
               // Fallback: usar fecha objetivo si no hay fechas límite
               slotsUntilTarget = targetDateObj
@@ -5511,14 +5682,25 @@ INSTRUCCIONES:
           slotsUntilTarget = slotsUntilTarget.filter(slot => {
             const isHoliday = HolidayService.isHoliday(slot.date, 'MX');
             if (isHoliday) {
-                console.log(`⛔ [Distribución] Slot filtrado por festivo: ${slot.date.toLocaleDateString('es-ES')}`);
+              console.log(`â›” [Distribución] Slot filtrado por festivo: ${slot.date.toLocaleDateString('es-ES')}`);
             }
             return !isHoliday;
           });
-          
+
           if (originalSlotsCount > slotsUntilTarget.length) {
-             console.log(`ℹ️ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
+            console.log(`â„¹ï¸ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
           }
+
+          // ✅ DEBUG: Mostrar todos los slots disponibles por día
+          const slotsByDay = new Map<string, number>();
+          slotsUntilTarget.forEach(slot => {
+            const dayKey = slot.date.toLocaleDateString('es-ES');
+            slotsByDay.set(dayKey, (slotsByDay.get(dayKey) || 0) + 1);
+          });
+          console.log(`ðŸ“… [Slots Disponibles] ${slotsUntilTarget.length} slots en ${slotsByDay.size} días:`);
+          slotsByDay.forEach((count, day) => {
+            console.log(`   - ${day}: ${count} slot(s)`);
+          });
 
           if (slotsUntilTarget.length > 0) {
           }
@@ -5542,7 +5724,7 @@ INSTRUCCIONES:
 
           // Función para extraer el número base de lección del título
           const extractLessonNumber = (title: string): string | null => {
-            // Patrones: "Lección 1:", "Lección 1.1:", "Lección 1 —", etc.
+            // Patrones: "Lección 1:", "Lección 1.1:", "Lección 1 â€”", etc.
             const match = title.match(/Lecci[oó]n\s+(\d+(?:\.\d+)?)/i);
             return match ? match[1] : null;
           };
@@ -5582,7 +5764,7 @@ INSTRUCCIONES:
                 totalDuration += nextLesson.durationMinutes || 15;
                 processedIndices.add(i + 1);
 
-                console.log(`🔗 [Agrupación] Lecciones agrupadas: "${currentLesson.lessonTitle.substring(0, 30)}..." + "${nextLesson.lessonTitle.substring(0, 30)}..." = ${totalDuration}min`);
+                console.log(`ðŸ”— [Agrupación] Lecciones agrupadas: "${currentLesson.lessonTitle.substring(0, 30)}..." + "${nextLesson.lessonTitle.substring(0, 30)}..." = ${totalDuration}min`);
               }
             }
 
@@ -5594,7 +5776,7 @@ INSTRUCCIONES:
             });
           }
 
-          console.log(`📦 [Agrupación] ${validPendingLessons.length} lecciones agrupadas en ${lessonGroups.length} bloques`);
+          console.log(`ðŸ“¦ [Agrupación] ${validPendingLessons.length} lecciones agrupadas en ${lessonGroups.length} bloques`);
 
           // --------------------------------------------------------------------------------
           // ✅ NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
@@ -5602,45 +5784,68 @@ INSTRUCCIONES:
 
           // 1. ✅ SIMPLIFICADO: Multiplicador siempre es 1.0 (usar duración base de lecciones)
           const approachMultiplier = 1.0;
-          console.log(`⚡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (sin modificación)`);
+          console.log(`âš¡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (sin modificación)`);
 
           // 2. Variables de estado para la distribución (usando las ya declaradas arriba)
           lessonDistribution.length = 0;
           assignedLessonIds.clear();
           let currentGroupIndex = 0;
 
-          // ✅ NUEVO: Calcular la estrategia de distribución según el enfoque seleccionado
-          // - rapido: llenar cada slot al máximo, usar todos los slots necesarios
-          // - normal: distribución equilibrada (50-75% de la capacidad máxima)
-          // - largo: distribuir a lo largo de todo el tiempo disponible (mínimo por día)
-
+          // ✅ NUEVO: Calcular capacidad total disponible vs. requerida
           const totalGroups = lessonGroups.length;
           const totalSlots = slotsUntilTarget.length;
+
+          // Calcular tiempo total disponible en todos los slots
+          const totalAvailableMinutes = slotsUntilTarget.reduce((sum, slot) => sum + slot.durationMinutes, 0);
+
+          // Calcular tiempo total requerido para todas las lecciones
+          const totalRequiredMinutes = lessonGroups.reduce((sum, group) => sum + group.totalDuration, 0);
+
+          console.log(`ðŸ“Š [Capacidad] Tiempo disponible: ${totalAvailableMinutes} min en ${totalSlots} slots`);
+          console.log(`ðŸ“Š [Capacidad] Tiempo requerido: ${totalRequiredMinutes} min para ${totalGroups} grupos`);
+
+          const capacityRatio = totalAvailableMinutes / totalRequiredMinutes;
+          console.log(`ðŸ“Š [Capacidad] Ratio: ${capacityRatio.toFixed(2)}x (${capacityRatio >= 1 ? '✅ Suficiente' : 'âš ï¸ Insuficiente'})`);
 
           // Calcular cuántos grupos por slot según el enfoque
           let maxGroupsPerSlot: number;
           let skipSlots: number = 0; // Cuántos slots saltar entre asignaciones (para largo)
+          let forceUseAllSlots = false; // ✅ FIX: Forzar uso de todos los slots si no hay suficiente capacidad
 
-          if (studyApproach === 'rapido') {
+          // ✅ FIX: Si la capacidad es ajustada (< 1.3x), forzar uso de todos los slots
+          // para maximizar la probabilidad de asignar todas las lecciones
+          if (capacityRatio < 1.3) {
+            forceUseAllSlots = true;
+            maxGroupsPerSlot = 999; // Sin límite
+            skipSlots = 0;
+            console.log(`ðŸš¨ [Capacidad Ajustada] Forzando uso de TODOS los slots disponibles para cumplir fecha límite`);
+          } else if (studyApproach === 'rapido') {
             // Terminar rápido: llenar cada slot al máximo (sin límite de grupos)
             maxGroupsPerSlot = 999; // Sin límite práctico
             skipSlots = 0;
             console.log(`🚀 [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
           } else if (studyApproach === 'largo') {
             // Tomar tiempo: distribuir a lo largo de todo el tiempo disponible
-            // Calcular cuántos slots necesitamos si ponemos ~1-2 grupos por sesión
-            const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
-            maxGroupsPerSlot = Math.min(2, groupsPerSession); // Máximo 2 grupos por slot
-            // Calcular si necesitamos saltar slots para distribuir mejor
-            if (totalGroups < totalSlots / 2) {
-              skipSlots = Math.floor(totalSlots / totalGroups) - 1;
+            // Solo aplicar distribución relajada si HAY espacio de sobra (capacidad >= 2x)
+            if (capacityRatio >= 2.0) {
+              const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
+              maxGroupsPerSlot = Math.min(2, groupsPerSession); // Máximo 2 grupos por slot
+              // Calcular si necesitamos saltar slots para distribuir mejor
+              if (totalGroups < totalSlots / 2) {
+                skipSlots = Math.floor(totalSlots / totalGroups) - 1;
+              }
+              console.log(`ðŸ“… [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
+            } else {
+              // No hay suficiente espacio para relajarse, usar todos los slots
+              maxGroupsPerSlot = 3;
+              skipSlots = 0;
+              console.log(`ðŸ“… [Enfoque Relajado â†’ Normal] Capacidad insuficiente para distribución relajada, usando todos los slots`);
             }
-            console.log(`📅 [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
           } else {
             // Normal: equilibrado (2-3 grupos por slot dependiendo del tamaño)
             maxGroupsPerSlot = 3;
             skipSlots = 0;
-            console.log(`⚖️ [Enfoque Equilibrado] Máximo ${maxGroupsPerSlot} grupos por slot`);
+            console.log(`âš–ï¸ [Enfoque Equilibrado] Máximo ${maxGroupsPerSlot} grupos por slot`);
           }
 
           // 3. Iterar por cada slot disponible con la nueva estrategia
@@ -5661,13 +5866,14 @@ INSTRUCCIONES:
             const slotDuration = slot.durationMinutes;
             let usedDurationInSlot = 0;
             const lessonsForSlot: any[] = [];
-            let currentSlotModuleIndex: number | null = null;
-            let currentSlotCourseId: string | null = null;
-            let groupsInThisSlot = 0; // ✅ NUEVO: Contador de grupos en este slot
+            let groupsInThisSlot = 0;
 
             // Intentar meter GRUPOS de lecciones mientras quepan y haya disponibles
             // ✅ NUEVO: También limitar por maxGroupsPerSlot según el enfoque
-            while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot) {
+            let consecutiveSkips = 0; // ✅ FIX: Contador de grupos saltados consecutivamente
+            const maxSkipsBeforeBreak = 3; // Si saltamos 3 grupos seguidos que no caben, pasar al siguiente slot
+
+            while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot && consecutiveSkips < maxSkipsBeforeBreak) {
               const group = lessonGroups[currentGroupIndex];
               const firstLesson = group.lessons[0];
 
@@ -5684,16 +5890,13 @@ INSTRUCCIONES:
               // Lógica de encaje:
               // 1. Si el slot está vacío, aceptamos el grupo aunque se pase un poco (para no bloquear grupos largos)
               // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
-              // 3. Solo agrupar lecciones del MISMO MÓDULO y MISMO CURSO
+              // ✅ FIX DEFINITIVO: Eliminar TODAS las restricciones de curso/módulo
+              // Las lecciones deben asignarse secuencialmente en orden, llenando los slots disponibles
               const fits = (usedDurationInSlot + groupDuration <= slotDuration);
               const isSlotEmpty = lessonsForSlot.length === 0;
-              const isSameModule = isSlotEmpty || (
-                currentSlotModuleIndex !== null &&
-                firstLesson.moduleOrderIndex === currentSlotModuleIndex &&
-                currentSlotCourseId === firstLesson.courseId
-              );
 
-              if ((isSlotEmpty || fits) && isSameModule) {
+              // Aceptar si: el slot está vacío O si cabe (sin restricciones de curso)
+              if (isSlotEmpty || fits) {
                 // Asignar TODAS las lecciones del grupo al mismo slot
                 group.lessons.forEach(lesson => {
                   const lessonDuration = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
@@ -5701,25 +5904,26 @@ INSTRUCCIONES:
                     courseTitle: lesson.courseTitle || 'Curso',
                     lessonTitle: lesson.lessonTitle.trim(),
                     lessonOrderIndex: (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0) ? lesson.lessonOrderIndex : 0,
-                    durationMinutes: lessonDuration
+                    durationMinutes: lessonDuration,
+                    moduleTitle: lesson.moduleTitle || undefined,
+                    moduleOrderIndex: lesson.moduleOrderIndex
                   });
                   assignedLessonIds.add(lesson.lessonId);
                 });
 
-                if (isSlotEmpty) {
-                  currentSlotModuleIndex = firstLesson.moduleOrderIndex;
-                  currentSlotCourseId = firstLesson.courseId;
-                }
                 usedDurationInSlot += groupDuration;
                 currentGroupIndex++;
-                groupsInThisSlot++; // ✅ NUEVO: Incrementar contador de grupos
+                groupsInThisSlot++;
+                consecutiveSkips = 0;
 
                 // Log de verificación (solo para grupos agrupados)
                 if (group.lessons.length > 1 && slotIndex < 3) {
-                  console.log(`🔗 [Greedy] Grupo asignado: ${group.lessons.length} lecciones juntas | Duración total: ${groupDuration}m`);
+                  console.log(`ðŸ”— [Greedy] Grupo asignado: ${group.lessons.length} lecciones juntas | Duración total: ${groupDuration}m`);
                 }
               } else {
                 // No cabe el grupo completo -> Pasar al siguiente slot
+                // ✅ FIX: No incrementamos currentGroupIndex aquí
+                // El grupo que no cabe será el primero en intentarse en el siguiente slot
                 break;
               }
             }
@@ -5733,7 +5937,7 @@ INSTRUCCIONES:
           // 4. Verificación final de lecciones sin asignar
           const unassignedCount = validPendingLessons.length - assignedLessonIds.size;
           if (unassignedCount > 0) {
-            console.warn(`⚠️ [Distribución] Quedaron ${unassignedCount} lecciones sin asignar por falta de espacio en el calendario.`);
+            console.warn(`âš ï¸ [Distribución] Quedaron ${unassignedCount} lecciones sin asignar por falta de espacio en el calendario.`);
           } else {
             console.log(`✅ [Distribución] Éxito: Todas las lecciones asignadas correctamente.`);
           }
@@ -5774,14 +5978,14 @@ INSTRUCCIONES:
 
               // Las lecciones ya están validadas, pero agregar verificación de seguridad
               if (!lesson || !lesson.lessonId || !lesson.lessonTitle) {
-                console.error(`❌ ERROR: Lección en índice ${currentLessonIndex} es inválida después del filtrado. Esto no debería pasar.`);
+                console.error(`âŒ ERROR: Lección en índice ${currentLessonIndex} es inválida después del filtrado. Esto no debería pasar.`);
                 currentLessonIndex++;
                 continue;
               }
 
-              // ✅ CORRECCIÓN CRÍTICA: Verificar que la lección no haya sido asignada ya
+              // ✅ CORRECCIÓN CRÃTICA: Verificar que la lección no haya sido asignada ya
               if (assignedLessonIds.has(lesson.lessonId)) {
-                console.warn(`⚠️ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle}`);
+                console.warn(`âš ï¸ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle}`);
                 currentLessonIndex++;
                 // ✅ IMPORTANTE: Buscar la siguiente lección NO asignada en lugar de continuar
                 // Esto evita bucles infinitos si hay muchas lecciones duplicadas
@@ -5811,7 +6015,7 @@ INSTRUCCIONES:
 
               // ✅ LOGGING: Verificar multiplicador (mostrar primeras lecciones)
               if (assignedInSlot < 3 && slotIndex === 0) {
-                console.log(`⚡ [Multiplicador] Lección: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${lesson.durationMinutes || 15}m | Enfoque: ${effectiveApproach} (x${approachMultiplier}) | Final: ${durationWithMultiplier}m`);
+                console.log(`âš¡ [Multiplicador] Lección: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${lesson.durationMinutes || 15}m | Enfoque: ${effectiveApproach} (x${approachMultiplier}) | Final: ${durationWithMultiplier}m`);
               }
 
               lessonsForSlot.push({
@@ -5840,7 +6044,7 @@ INSTRUCCIONES:
                 lessons: lessonsForSlot
               });
             } else if (slotIndex < 5) {
-              console.warn(`⚠️ Slot ${slotIndex} no tiene lecciones asignadas`);
+              console.warn(`âš ï¸ Slot ${slotIndex} no tiene lecciones asignadas`);
             }
           });
 
@@ -5969,7 +6173,7 @@ INSTRUCCIONES:
                 
                 // Opción B: Si el slot tiene espacio, intentar agregar SOLO si la lección nueva es del mismo curso/modulo
                 // Como no tenemos el dato, saltamos esta optimización para asegurar calidad.
-                // O podemos intentar agregarla a un slot VACÍO (que ya manejamos arriba).
+                // O podemos intentar agregarla a un slot VACÃO (que ya manejamos arriba).
                 
                 // DECISIÓN: No agregar a slots existentes para no romper la regla de "un módulo por sesión".
                 // Es preferible dejar un slot con espacio libre que mezclar temas.
@@ -5979,12 +6183,12 @@ INSTRUCCIONES:
 
           }
 
-          // ✅ CRÍTICO PARA B2B: Si aún quedan lecciones sin asignar, usar TODOS los slots disponibles
+          // ✅ CRÃTICO PARA B2B: Si aún quedan lecciones sin asignar, usar TODOS los slots disponibles
           if (currentLessonIndex < validPendingLessons.length) {
             const stillRemaining = validPendingLessons.length - currentLessonIndex;
-            console.warn(`⚠️ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar. Usando TODOS los slots disponibles...`);
+            console.warn(`âš ï¸ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar. Usando TODOS los slots disponibles...`);
 
-            // ✅ CRÍTICO: Obtener TODOS los slots disponibles (no solo slotsUntilTarget)
+            // ✅ CRÃTICO: Obtener TODOS los slots disponibles (no solo slotsUntilTarget)
             // Para B2B, necesitamos usar TODOS los slots hasta la fecha límite más lejana
             const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr + d.slot.start.toISOString()));
 
@@ -6029,7 +6233,7 @@ INSTRUCCIONES:
             const remainingLessonsCount = validPendingLessons.length - currentLessonIndex;
             const remainingSlotsCount = allUnusedSlots.length;
 
-            console.log(`   📊 Redistribuyendo ${remainingLessonsCount} lecciones en ${remainingSlotsCount} slots adicionales`);
+            console.log(`   ðŸ“Š Redistribuyendo ${remainingLessonsCount} lecciones en ${remainingSlotsCount} slots adicionales`);
 
             // ✅ NUEVA LÓGICA DE FALLBACK B2B: Usar Greedy Packing en slots extra para asegurar continuidad y eficiencia
             
@@ -6107,7 +6311,7 @@ INSTRUCCIONES:
             // Si aún quedan lecciones, intentar agregar más lecciones a slots existentes
             if (currentLessonIndex < validPendingLessons.length) {
               const stillRemainingAfter = validPendingLessons.length - currentLessonIndex;
-              console.warn(`⚠️ Aún quedan ${stillRemainingAfter} lecciones. Intentando llenar slots existentes al máximo...`);
+              console.warn(`âš ï¸ Aún quedan ${stillRemainingAfter} lecciones. Intentando llenar slots existentes al máximo...`);
 
               // Ordenar slots por espacio disponible (mayor primero)
               const allSlotsWithSpace = lessonDistribution
@@ -6129,7 +6333,7 @@ INSTRUCCIONES:
 
             const finalRemaining = validPendingLessons.length - currentLessonIndex;
             if (finalRemaining > 0) {
-              console.error(`❌ CRÍTICO: Aún quedan ${finalRemaining} lecciones sin asignar después de usar TODOS los slots disponibles`);
+              console.error(`âŒ CRÃTICO: Aún quedan ${finalRemaining} lecciones sin asignar después de usar TODOS los slots disponibles`);
           */
 
           // Guardar distribución en el estado para usar en el resumen final
@@ -6144,7 +6348,7 @@ INSTRUCCIONES:
                   lesson.lessonTitle.trim() !== '' &&
                   lesson.lessonOrderIndex >= 0;
                 if (!isValid) {
-                  console.warn(`⚠️ Lección inválida filtrada de distribución:`, lesson);
+                  console.warn(`âš ï¸ Lección inválida filtrada de distribución:`, lesson);
                 }
                 return isValid;
               }).map(lesson => {
@@ -6166,7 +6370,7 @@ INSTRUCCIONES:
                 return null;
               }
 
-              // ✅ CORRECCIÓN CRÍTICA: Guardar horarios en formato 24h para evitar problemas con AM/PM
+              // ✅ CORRECCIÓN CRÃTICA: Guardar horarios en formato 24h para evitar problemas con AM/PM
               // Formato: "HH:MM" (ej: "14:30", "09:00")
               const formatTime24h = (date: Date): string => {
                 const hours = date.getHours().toString().padStart(2, '0');
@@ -6224,7 +6428,7 @@ INSTRUCCIONES:
             const dayName = distributions[0].slot.dayName;
             const formattedDate = dayDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
 
-            calendarMessage += `\n📅 **${dayName} ${formattedDate}:**\n`;
+            calendarMessage += `\nðŸ“… **${dayName} ${formattedDate}:**\n`;
 
             distributions.forEach(dist => {
               // Calcular duración real basada en la suma de las lecciones asignadas
@@ -6238,11 +6442,11 @@ INSTRUCCIONES:
               const startTimeStr = startTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
               const endTimeStr = adjustedEndTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
 
-              calendarMessage += `   ⏰ HORARIO EXACTO: ${startTimeStr} - ${endTimeStr} (${realDurationMinutes} min):\n`;
+              calendarMessage += `   â° HORARIO EXACTO: ${startTimeStr} - ${endTimeStr} (${realDurationMinutes} min):\n`;
 
               dist.lessons.forEach(l => {
                 // ✅ CORRECCIÓN: Usar menos espacios para evitar que Markdown lo detecte como bloque de código
-                calendarMessage += `   • ${l.lessonTitle} (${l.durationMinutes || 15} min)\n`;
+                calendarMessage += `   â€¢ ${l.lessonTitle} (${l.durationMinutes || 15} min)\n`;
               });
               calendarMessage += `\n`; // Espacio entre slots
             });
@@ -6263,7 +6467,7 @@ INSTRUCCIONES:
             calendarMessage += `\n**Nota:** He identificado ${slotsAfterTarget} espacios adicionales disponibles después de tu fecha objetivo (${targetDate}). Estos pueden ser útiles para repaso o actividades complementarias.`;
           }
 
-          // ✅ CRÍTICO: Verificar si se asignaron todas las lecciones
+          // ✅ CRÃTICO: Verificar si se asignaron todas las lecciones
           // Para B2B, esto es OBLIGATORIO - todas las lecciones deben asignarse
           const totalAssignedLessons = lessonDistribution.reduce((sum, dist) => sum + dist.lessons.length, 0);
           const remainingLessons = validPendingLessons.length - assignedLessonIds.size;
@@ -6274,7 +6478,7 @@ INSTRUCCIONES:
               : 0;
 
             // Mostrar advertencia si quedan lecciones sin asignar
-            calendarMessage += `\n\n⚠️ **ALERTA IMPORTANTE:** Quedan ${remainingLessons} lecciones pendientes por asignar de ${validPendingLessons.length} totales. `;
+            calendarMessage += `\n\nâš ï¸ **ALERTA IMPORTANTE:** Quedan ${remainingLessons} lecciones pendientes por asignar de ${validPendingLessons.length} totales. `;
             calendarMessage += `Para cumplir con los plazos organizacionales, es necesario asignar TODAS las lecciones. `;
             if (daysUntilTarget < 7) {
               calendarMessage += `El plazo de ${daysUntilTarget} días es muy corto. `;
@@ -6288,13 +6492,13 @@ INSTRUCCIONES:
 
           // LOGGER ADICIONAL PARA DEPURACIÓN DE DATOS (NO VISIBLE AL USUARIO)
           if (validPendingLessons.length > 0) {
-            console.log("🔍 [DEBUG DATOS LECCIONES]");
+            console.log("ðŸ” [DEBUG DATOS LECCIONES]");
             validPendingLessons.slice(0, 5).forEach(l => {
               console.log(`   - ID: ${l.lessonId} | Título: "${l.lessonTitle}" | Orden: ${l.lessonOrderIndex} | Duración: ${l.durationMinutes}m | Secs: ${(l as any).durationSeconds} | TotalMins: ${(l as any).totalDurationMinutes}`);
             });
           }
 
-          // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÁTICAMENTE
+          // Agregar datos crudos para que LIA calcule las metas semanales AUTOMÃTICAMENTE
           if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && targetDate) {
             // Calcular metas automáticamente
             const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
@@ -6314,7 +6518,7 @@ INSTRUCCIONES:
 
             // Agregar información del buffer
             if (bufferDays > 0 && adjustedTargetDate && targetDateObj) {
-              calendarMessage += `**📅 PLANIFICACIÓN INTELIGENTE:**\n`;
+              calendarMessage += `**ðŸ“… PLANIFICACIÓN INTELIGENTE:**\n`;
               calendarMessage += `He planificado que completes todas las lecciones para el **${adjustedTargetDate.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })}**, `;
               calendarMessage += `${bufferDays} día${bufferDays > 1 ? 's' : ''} antes de tu fecha límite (${targetDateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}).\n`;
               calendarMessage += `Esto te da un margen para imprevistos, repasos o actividades adicionales.\n`;
@@ -6381,11 +6585,11 @@ INSTRUCCIONES:
             if (restExamples.length > 0) {
               if (restExamples.length === 1) {
                 const example = restExamples[0];
-                closingParts.push(`💤 Nota: He identificado que el ${example.day} tienes "${example.eventTitle}" (${example.reason}), por lo que ese día y el siguiente los consideré para descanso y no incluí sesiones de estudio, para que puedas recuperarte adecuadamente.`);
+                closingParts.push(`ðŸ’¤ Nota: He identificado que el ${example.day} tienes "${example.eventTitle}" (${example.reason}), por lo que ese día y el siguiente los consideré para descanso y no incluí sesiones de estudio, para que puedas recuperarte adecuadamente.`);
               } else if (restExamples.length === 2) {
-                closingParts.push(`💤 Nota: He identificado que el ${restExamples[0].day} tienes "${restExamples[0].eventTitle}" y el ${restExamples[1].day} tienes "${restExamples[1].eventTitle}", eventos que pueden ser mentalmente cansados. Por eso, esos días y los siguientes los consideré para descanso y no incluí sesiones de estudio.`);
+                closingParts.push(`ðŸ’¤ Nota: He identificado que el ${restExamples[0].day} tienes "${restExamples[0].eventTitle}" y el ${restExamples[1].day} tienes "${restExamples[1].eventTitle}", eventos que pueden ser mentalmente cansados. Por eso, esos días y los siguientes los consideré para descanso y no incluí sesiones de estudio.`);
               } else {
-                closingParts.push(`💤 Nota: He identificado varios días con eventos que requieren descanso mental (como el ${restExamples[0].day} con "${restExamples[0].eventTitle}" y el ${restExamples[1].day} con "${restExamples[1].eventTitle}"). Por eso, esos días y los siguientes los consideré para descanso y no incluí sesiones de estudio.`);
+                closingParts.push(`ðŸ’¤ Nota: He identificado varios días con eventos que requieren descanso mental (como el ${restExamples[0].day} con "${restExamples[0].eventTitle}" y el ${restExamples[1].day} con "${restExamples[1].eventTitle}"). Por eso, esos días y los siguientes los consideré para descanso y no incluí sesiones de estudio.`);
               }
               closingParts.push(`\n`);
             }
@@ -6421,7 +6625,7 @@ INSTRUCCIONES:
             shownWeekDays.add(day.dayName);
 
             const freeHours = Math.round(day.totalFreeMinutes / 60 * 10) / 10;
-            calendarMessage += `• ${day.dayName}: aproximadamente ${freeHours} hora${freeHours >= 2 ? 's' : ''} disponible${freeHours >= 2 ? 's' : ''}\n`;
+            calendarMessage += `â€¢ ${day.dayName}: aproximadamente ${freeHours} hora${freeHours >= 2 ? 's' : ''} disponible${freeHours >= 2 ? 's' : ''}\n`;
           });
 
           calendarMessage += `\nPuedo ayudarte a elegir los mejores horarios dentro de estos días. ¿Te parecen bien estas opciones?`;
@@ -6472,7 +6676,7 @@ INSTRUCCIONES:
         }
 
         noEventsParts.push(`\n`);
-        noEventsParts.push(`📅 No encontré eventos programados en tu calendario para el próximo mes. ¡Esto nos da total flexibilidad para diseñar tu plan de estudios!`);
+        noEventsParts.push(`ðŸ“… No encontré eventos programados en tu calendario para el próximo mes. ¡Esto nos da total flexibilidad para diseñar tu plan de estudios!`);
         noEventsParts.push(`\n`);
         noEventsParts.push(`¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: mañana, tarde o noche?`);
 
@@ -6537,7 +6741,7 @@ Cuéntame manualmente:
 
   // Desconectar calendario
   const disconnectCalendar = async (provider: 'google' | 'microsoft') => {
-    console.log('🔌 [disconnectCalendar] Iniciando desconexión de:', provider);
+    console.log('ðŸ”Œ [disconnectCalendar] Iniciando desconexión de:', provider);
     try {
       setIsConnectingCalendar(true);
 
@@ -6551,7 +6755,7 @@ Cuéntame manualmente:
       });
 
       const data = await response.json();
-      console.log('🔌 [disconnectCalendar] Respuesta:', { ok: response.ok, data });
+      console.log('ðŸ”Œ [disconnectCalendar] Respuesta:', { ok: response.ok, data });
 
       if (!response.ok || !data.success) {
         throw new Error(data.error || 'Error al desconectar el calendario');
@@ -6574,7 +6778,7 @@ Cuéntame manualmente:
         await speakText(`Calendario de ${provider === 'google' ? 'Google' : 'Microsoft'} desconectado exitosamente.`);
       }
     } catch (error) {
-      console.error('❌ [disconnectCalendar] Error desconectando calendario:', error);
+      console.error('âŒ [disconnectCalendar] Error desconectando calendario:', error);
       const errorMsg = error instanceof Error ? error.message : 'Error desconocido al desconectar el calendario';
 
       setConversationHistory(prev => [...prev, {
@@ -6637,14 +6841,14 @@ Cuéntame manualmente:
 
         profileInfo = `\n\n**HE REVISADO TU PERFIL:**\n`;
         if (isB2B && orgName) {
-          profileInfo += `• Tipo: Usuario B2B (perteneces a "${orgName}")\n`;
+          profileInfo += `â€¢ Tipo: Usuario B2B (perteneces a "${orgName}")\n`;
         } else {
-          profileInfo += `• Tipo: Usuario B2C (profesional independiente)\n`;
+          profileInfo += `â€¢ Tipo: Usuario B2C (profesional independiente)\n`;
         }
-        if (rol) profileInfo += `• Rol: ${rol}\n`;
-        if (area) profileInfo += `• Área: ${area}\n`;
-        if (nivel) profileInfo += `• Nivel: ${nivel}\n`;
-        if (tamano) profileInfo += `• Tamaño de empresa: ${tamano}\n`;
+        if (rol) profileInfo += `â€¢ Rol: ${rol}\n`;
+        if (area) profileInfo += `â€¢ Ãrea: ${area}\n`;
+        if (nivel) profileInfo += `â€¢ Nivel: ${nivel}\n`;
+        if (tamano) profileInfo += `â€¢ Tamaño de empresa: ${tamano}\n`;
 
         // Calcular disponibilidad
         const availability = calculateEstimatedAvailability({
@@ -6657,8 +6861,8 @@ Cuéntame manualmente:
         });
 
         profileInfo += `\n**ESTIMACIÓN BASADA EN TU PERFIL:**\n`;
-        profileInfo += `• Tiempo disponible: ~${availability.minutesPerDay} min/día\n`;
-        profileInfo += `• Sesiones recomendadas: ${availability.recommendedSessionLength} min`;
+        profileInfo += `â€¢ Tiempo disponible: ~${availability.minutesPerDay} min/día\n`;
+        profileInfo += `â€¢ Sesiones recomendadas: ${availability.recommendedSessionLength} min`;
       }
 
       const liaResponse = `Entendido, no hay problema.${profileInfo}
@@ -6784,11 +6988,11 @@ Cuéntame:
         /horario/i.test(liaResponse) && /\d{1,2}/.test(liaResponse);
 
       if (!hasSchedulePatterns) {
-        console.log('   ⚠️ No se detectaron patrones de horarios en la respuesta');
+        console.log('   âš ï¸ No se detectaron patrones de horarios en la respuesta');
         return null; // No hay horarios en la respuesta
       }
 
-      console.log('🔍 Detectados patrones de horarios en respuesta de LIA, parseando...');
+      console.log('ðŸ” Detectados patrones de horarios en respuesta de LIA, parseando...');
 
       const extractedSchedules: StoredLessonDistribution[] = [];
 
@@ -6804,7 +7008,7 @@ Cuéntame:
       // Función para parsear fecha desde texto
       const parseDate = (dateText: string): { date: Date; dateStr: string; dayName: string } | null => {
         const lowerText = dateText.toLowerCase().trim();
-        console.log(`   📅 parseDate intentando parsear: "${dateText}" (lower: "${lowerText}")`);
+        console.log(`   ðŸ“… parseDate intentando parsear: "${dateText}" (lower: "${lowerText}")`);
 
         // Patrón 1: "Lunes 15 de diciembre de 2024" o "Lunes 15 de diciembre"
         const pattern1 = /(lunes|martes|miércoles|miercoles|jueves|viernes|sábado|sabado|domingo)\s+(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)(?:\s+de\s+(\d{4}))?/i;
@@ -6899,7 +7103,7 @@ Cuéntame:
       // Función para parsear hora desde texto
       const parseTime = (timeText: string): { hours: number; minutes: number } | null => {
         const lowerText = timeText.toLowerCase().trim();
-        console.log(`   🕐 parseTime intentando parsear: "${timeText}" (lower: "${lowerText}")`);
+        console.log(`   ðŸ• parseTime intentando parsear: "${timeText}" (lower: "${lowerText}")`);
 
         // Patrón 1: "6:00 p.m." o "6:00 pm" o "05:00 p. m." (con espacios) o "18:00"
         const pattern1 = /(\d{1,2}):(\d{2})\s*(a\.?\s*m\.?|p\.?\s*m\.?)?/i;
@@ -6962,15 +7166,15 @@ Cuéntame:
         const startTimeText = match[2].trim();
         const endTimeText = match[3].trim();
 
-        console.log(`   🔍 Intentando parsear: "${dateText}" -> "${startTimeText}" - "${endTimeText}"`);
+        console.log(`   ðŸ” Intentando parsear: "${dateText}" -> "${startTimeText}" - "${endTimeText}"`);
 
         const dateInfo = parseDate(dateText);
         const startTime = parseTime(startTimeText);
         const endTime = parseTime(endTimeText);
 
-        console.log(`   📅 Fecha parseada:`, dateInfo ? `${dateInfo.dateStr} (${dateInfo.dayName})` : 'null');
-        console.log(`   🕐 Hora inicio parseada:`, startTime ? `${startTime.hours}:${startTime.minutes}` : 'null');
-        console.log(`   🕐 Hora fin parseada:`, endTime ? `${endTime.hours}:${endTime.minutes}` : 'null');
+        console.log(`   ðŸ“… Fecha parseada:`, dateInfo ? `${dateInfo.dateStr} (${dateInfo.dayName})` : 'null');
+        console.log(`   ðŸ• Hora inicio parseada:`, startTime ? `${startTime.hours}:${startTime.minutes}` : 'null');
+        console.log(`   ðŸ• Hora fin parseada:`, endTime ? `${endTime.hours}:${endTime.minutes}` : 'null');
 
         if (dateInfo && startTime && endTime) {
           // Buscar lecciones asociadas a este horario (en las siguientes líneas)
@@ -6985,11 +7189,11 @@ Cuéntame:
             }
 
             // Buscar lecciones - patrones mejorados
-            // Formato: "• Lección 4: Introducción..." o "Lección 5: ..." o "- Lección 6: ..."
+            // Formato: "â€¢ Lección 4: Introducción..." o "Lección 5: ..." o "- Lección 6: ..."
             const lessonPatterns = [
-              /(?:•\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+?)(?:\n|$)/i,
-              /(?:•\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
-              /(?:•\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
+              /(?:â€¢\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+?)(?:\n|$)/i,
+              /(?:â€¢\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
+              /(?:â€¢\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
             ];
 
             for (const pattern of lessonPatterns) {
@@ -6998,9 +7202,9 @@ Cuéntame:
                 const lessonOrderIndex = parseInt(lessonMatch[1]) || 0;
                 const lessonTitle = lessonMatch[2].trim();
                 // Limpiar el título de caracteres especiales al inicio/final
-                const cleanTitle = lessonTitle.replace(/^[•\-\s]+/, '').replace(/[•\-\s]+$/, '').trim();
+                const cleanTitle = lessonTitle.replace(/^[â€¢\-\s]+/, '').replace(/[â€¢\-\s]+$/, '').trim();
 
-                // ✅ CRÍTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // ✅ CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
                 // Un título válido debe tener más que solo el número de lección
                 const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) ||
                   /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
@@ -7011,10 +7215,10 @@ Cuéntame:
                     lessonTitle: cleanTitle,
                     lessonOrderIndex
                   });
-                  console.log(`   📚 Lección extraída: ${lessonOrderIndex} - "${cleanTitle}"`);
+                  console.log(`   ðŸ“š Lección extraída: ${lessonOrderIndex} - "${cleanTitle}"`);
                   break; // Solo agregar una vez
                 } else {
-                  console.log(`   ⚠️ Título de lección inválido o solo número: "${cleanTitle}"`);
+                  console.log(`   âš ï¸ Título de lección inválido o solo número: "${cleanTitle}"`);
                 }
               }
             }
@@ -7093,12 +7297,12 @@ Cuéntame:
             }
           }
 
-          // Buscar lecciones mencionadas: "• Lección 4: Introducción..." o "Lección 5: ..."
-          if (currentDate && (line.includes('Lección') || line.includes('lección') || line.startsWith('•') || line.startsWith('-'))) {
+          // Buscar lecciones mencionadas: "â€¢ Lección 4: Introducción..." o "Lección 5: ..."
+          if (currentDate && (line.includes('Lección') || line.includes('lección') || line.startsWith('â€¢') || line.startsWith('-'))) {
             const lessonPatterns = [
-              /(?:•\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+)/i,
-              /(?:•\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
-              /(?:•\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
+              /(?:â€¢\s*|-?\s*)?(?:Lección\s+)?(\d+)[:\.]?\s*(.+)/i,
+              /(?:â€¢\s*|-?\s*)?Lección\s+(\d+)[:\.]?\s*(.+)/i,
+              /(?:â€¢\s*|-?\s*)?(\d+)[:\.]\s*(.+)/i, // Formato simple: "4: Título"
             ];
 
             for (const pattern of lessonPatterns) {
@@ -7107,9 +7311,9 @@ Cuéntame:
                 const lessonOrderIndex = parseInt(lessonMatch[1]) || 0;
                 const lessonTitle = lessonMatch[2].trim();
                 // Limpiar el título de caracteres especiales al inicio/final
-                const cleanTitle = lessonTitle.replace(/^[•\-\s]+/, '').replace(/[•\-\s]+$/, '').trim();
+                const cleanTitle = lessonTitle.replace(/^[â€¢\-\s]+/, '').replace(/[â€¢\-\s]+$/, '').trim();
 
-                // ✅ CRÍTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // ✅ CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
                 // Un título válido debe tener más que solo el número de lección
                 const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) ||
                   /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
@@ -7120,10 +7324,10 @@ Cuéntame:
                     lessonTitle: cleanTitle,
                     lessonOrderIndex
                   });
-                  console.log(`   📚 Lección extraída (línea por línea): ${lessonOrderIndex} - "${cleanTitle}"`);
+                  console.log(`   ðŸ“š Lección extraída (línea por línea): ${lessonOrderIndex} - "${cleanTitle}"`);
                   break; // Solo agregar una vez
                 } else {
-                  console.log(`   ⚠️ Título de lección inválido o solo número (línea por línea): "${cleanTitle}"`);
+                  console.log(`   âš ï¸ Título de lección inválido o solo número (línea por línea): "${cleanTitle}"`);
                 }
               }
             }
@@ -7154,21 +7358,21 @@ Cuéntame:
 
       // Si detectamos patrones pero no extrajimos horarios, loguear para debugging
       if (hasSchedulePatterns) {
-        console.warn('⚠️ Se detectaron patrones de horarios pero no se extrajeron horarios válidos');
+        console.warn('âš ï¸ Se detectaron patrones de horarios pero no se extrajeron horarios válidos');
         console.warn('   Respuesta de LIA (primeros 500 caracteres):', liaResponse.substring(0, 500));
       }
 
       return null;
     } catch (error) {
-      console.error('❌ Error parseando respuesta de LIA:', error);
+      console.error('âŒ Error parseando respuesta de LIA:', error);
       return null;
     }
   };
 
   // Función para guardar el plan de estudios en la base de datos
   const saveStudyPlan = async () => {
-    // ✅ VALIDACIÓN CRÍTICA: Verificar que savedLessonDistribution tenga datos
-    console.log('💾 Iniciando guardado de plan de estudios...');
+    // ✅ VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos
+    console.log('ðŸ’¾ Iniciando guardado de plan de estudios...');
     console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
 
     if (savedLessonDistribution.length === 0) {
@@ -7176,7 +7380,7 @@ Cuéntame:
     }
 
     // ✅ LOGGING: Mostrar qué se va a guardar
-    console.log('📋 Horarios que se van a guardar:');
+    console.log('ðŸ“‹ Horarios que se van a guardar:');
     savedLessonDistribution.slice(0, 5).forEach((slot, idx) => {
       console.log(`   ${idx + 1}. ${slot.dateStr} ${slot.startTime}-${slot.endTime} (${slot.lessons.length} lecciones)`);
     });
@@ -7289,29 +7493,71 @@ Cuéntame:
         breakDurationMinutes = 15;
       }
 
+      // ✅ HELPER: Parsear fechas en múltiples formatos
+      const parseDateStr = (dateStr: string): Date | null => {
+        // Formato YYYY-MM-DD
+        if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+          const parts = dateStr.split('-');
+          return new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+        }
+
+        // Formato legible: "Lunes 14 de febrero" o similar
+        const monthNames: Record<string, number> = {
+          'enero': 0, 'febrero': 1, 'marzo': 2, 'abril': 3, 'mayo': 4, 'junio': 5,
+          'julio': 6, 'agosto': 7, 'septiembre': 8, 'octubre': 9, 'noviembre': 10, 'diciembre': 11
+        };
+
+        // Intentar extraer "14 de febrero" o "14 febrero"
+        const readableMatch = dateStr.match(/(\d{1,2})\s*(?:de\s+)?(\w+)/i);
+        if (readableMatch) {
+          const day = parseInt(readableMatch[1]);
+          const monthName = readableMatch[2].toLowerCase();
+          const month = monthNames[monthName];
+
+          if (month !== undefined && day >= 1 && day <= 31) {
+            const year = new Date().getFullYear();
+            return new Date(year, month, day);
+          }
+        }
+
+        // Fallback: intentar parsear directamente
+        const parsed = new Date(dateStr);
+        if (!isNaN(parsed.getTime())) {
+          return parsed;
+        }
+
+        console.warn(`âš ï¸ [parseDateStr] No se pudo parsear fecha: "${dateStr}"`);
+        return null;
+      };
+
       // Obtener fecha de inicio y fin
-      const startDate = savedLessonDistribution.length > 0
-        ? new Date(savedLessonDistribution[0].dateStr).toISOString()
+      const firstSlotDate = savedLessonDistribution.length > 0
+        ? parseDateStr(savedLessonDistribution[0].dateStr)
+        : null;
+      const startDate = firstSlotDate && !isNaN(firstSlotDate.getTime())
+        ? firstSlotDate.toISOString()
         : new Date().toISOString();
 
+      const lastSlotDate = savedLessonDistribution.length > 0
+        ? parseDateStr(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr)
+        : null;
       const endDate = savedTargetDate
         ? new Date(savedTargetDate).toISOString()
-        : savedLessonDistribution.length > 0
-          ? new Date(savedLessonDistribution[savedLessonDistribution.length - 1].dateStr).toISOString()
+        : lastSlotDate && !isNaN(lastSlotDate.getTime())
+          ? lastSlotDate.toISOString()
           : null;
 
-      // ✅ CORRECCIÓN CRÍTICA: Transformar sesiones al formato esperado
+      // ✅ CORRECCIÓN CRÃTICA: Transformar sesiones al formato esperado
       // Mejorar el parsing de horarios para manejar AM/PM y formato 24h correctamente
       const sessions = savedLessonDistribution.map(slot => {
-        const dateParts = slot.dateStr.split('-');
-        const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+        const date = parseDateStr(slot.dateStr) || new Date();
 
-        // ✅ CORRECCIÓN CRÍTICA: Parsear horarios en formato 24h (HH:MM)
+        // ✅ CORRECCIÓN CRÃTICA: Parsear horarios en formato 24h (HH:MM)
         // Ahora guardamos en formato 24h para evitar problemas con AM/PM
         // Pero también soportamos formato 12h por compatibilidad con datos antiguos
         const parseTime = (timeStr: string): { hours: number; minutes: number } => {
           if (!timeStr || typeof timeStr !== 'string') {
-            console.warn(`⚠️ Horario inválido: ${timeStr}`);
+            console.warn(`âš ï¸ Horario inválido: ${timeStr}`);
             return { hours: 9, minutes: 0 };
           }
 
@@ -7321,7 +7567,7 @@ Cuéntame:
           // Buscar patrón de hora:minuto
           const timeMatch = normalized.match(/(\d{1,2}):(\d{2})/);
           if (!timeMatch) {
-            console.warn(`⚠️ No se pudo extraer hora:minuto de: ${timeStr}`);
+            console.warn(`âš ï¸ No se pudo extraer hora:minuto de: ${timeStr}`);
             return { hours: 9, minutes: 0 };
           }
 
@@ -7330,11 +7576,11 @@ Cuéntame:
 
           // Validar que los valores sean correctos
           if (isNaN(hours) || isNaN(minutes) || minutes < 0 || minutes > 59) {
-            console.warn(`⚠️ Valores de hora inválidos: ${hours}:${minutes} de: ${timeStr}`);
+            console.warn(`âš ï¸ Valores de hora inválidos: ${hours}:${minutes} de: ${timeStr}`);
             return { hours: 9, minutes: 0 };
           }
 
-          // ✅ CORRECCIÓN CRÍTICA: Detectar AM/PM en formato español e inglés
+          // ✅ CORRECCIÓN CRÃTICA: Detectar AM/PM en formato español e inglés
           // Formatos posibles: "a. m.", "a.m.", "am", "AM", "p. m.", "p.m.", "pm", "PM"
           const normalizedLower = normalized.toLowerCase();
           const isPM = /p\.?\s*m\.?|pm/i.test(normalizedLower);
@@ -7361,7 +7607,7 @@ Cuéntame:
 
           // Validar horas finales
           if (hours < 0 || hours > 23) {
-            console.warn(`⚠️ Hora fuera de rango después de conversión: ${hours}:${minutes} de: ${timeStr}`);
+            console.warn(`âš ï¸ Hora fuera de rango después de conversión: ${hours}:${minutes} de: ${timeStr}`);
             return { hours: 9, minutes: 0 };
           }
 
@@ -7380,7 +7626,7 @@ Cuéntame:
 
         // ✅ Validar que el horario de fin sea después del inicio
         if (endTime <= startTime) {
-          console.error(`❌ ERROR: Horario de fin (${slot.endTime}) debe ser después del inicio (${slot.startTime})`);
+          console.error(`âŒ ERROR: Horario de fin (${slot.endTime}) debe ser después del inicio (${slot.startTime})`);
           // Ajustar automáticamente: agregar 1 hora al final si es necesario
           endTime = new Date(startTime);
           endTime.setHours(endTime.getHours() + 1);
@@ -7388,7 +7634,7 @@ Cuéntame:
 
         const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 
-        // ✅ CORRECCIÓN CRÍTICA: Obtener la primera lección del slot para el título y courseId
+        // ✅ CORRECCIÓN CRÃTICA: Obtener la primera lección del slot para el título y courseId
         // IMPORTANTE: La estructura usa lessonTitle (camelCase), NO lesson_title (snake_case)
         const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
         const courseTitle = firstLesson?.courseTitle || 'Curso';
@@ -7398,14 +7644,14 @@ Cuéntame:
         const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
         const courseId = course?.id || selectedCourseIds[0] || '';
 
-        // ✅ CORRECCIÓN CRÍTICA: Crear título de la sesión usando lessonTitle (camelCase)
+        // ✅ CORRECCIÓN CRÃTICA: Crear título de la sesión usando lessonTitle (camelCase)
         let sessionTitle = 'Sesión de estudio';
         if (slot.lessons && slot.lessons.length > 0) {
           // Validar que las lecciones tengan títulos válidos
           const validLessons = slot.lessons.filter(l => l.lessonTitle && l.lessonTitle.trim() !== '');
 
           if (validLessons.length === 0) {
-            console.warn(`⚠️ Slot sin lecciones válidas: ${slot.dateStr} ${slot.startTime}`);
+            console.warn(`âš ï¸ Slot sin lecciones válidas: ${slot.dateStr} ${slot.startTime}`);
             sessionTitle = 'Sesión de estudio';
           } else if (validLessons.length === 1) {
             // Una sola lección: usar el título completo
@@ -7427,7 +7673,7 @@ Cuéntame:
           }
         }
 
-        // ✅ CORRECCIÓN CRÍTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
+        // ✅ CORRECCIÓN CRÃTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
         const description = slot.lessons && slot.lessons.length > 0
           ? slot.lessons
             .filter(l => l.lessonTitle && l.lessonTitle.trim() !== '')
@@ -7504,7 +7750,7 @@ Cuéntame:
             errorData = errorText ? JSON.parse(errorText) : {};
           } catch (parseError) {
             // Si no es JSON válido, usar el texto directamente
-            console.error('❌ Error del servidor (texto no JSON):', errorText);
+            console.error('âŒ Error del servidor (texto no JSON):', errorText);
             errorMessage = errorText && errorText.trim()
               ? `Error ${saveResponse.status}: ${errorText.substring(0, 200)}`
               : `Error ${saveResponse.status}: ${saveResponse.statusText}`;
@@ -7523,7 +7769,7 @@ Cuéntame:
             }
           }
 
-          console.error('❌ Error del servidor:', {
+          console.error('âŒ Error del servidor:', {
             status: saveResponse.status,
             statusText: saveResponse.statusText,
             errorData: errorData,
@@ -7531,7 +7777,7 @@ Cuéntame:
           });
         } catch (e) {
           // Si falla todo, usar el error por defecto
-          console.error('❌ Error procesando respuesta del servidor:', e);
+          console.error('âŒ Error procesando respuesta del servidor:', e);
           errorMessage = `Error ${saveResponse.status}: ${saveResponse.statusText || 'Error desconocido'}`;
         }
         throw new Error(errorMessage);
@@ -7549,60 +7795,95 @@ Cuéntame:
         console.log(`✅ PlanId guardado: ${saveData.data.planId}`);
       }
 
-      // ✅ CORRECCIÓN: Si hay calendario conectado, sincronizar las sesiones con mejor manejo de errores
-      if (connectedCalendar && saveData.data?.planId && saveData.data?.sessionIds && saveData.data.sessionIds.length > 0) {
-        try {
+      // ✅ INSERTAR EVENTOS EN GOOGLE CALENDAR AUTOMÃTICAMENTE
+      let calendarInsertSuccess = false;
+      let calendarInsertedCount = 0;
 
-          const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
+      console.log(`ðŸ“… [Calendar Insert] connectedCalendar: ${connectedCalendar}`);
+      console.log(`ðŸ“… [Calendar Insert] savedLessonDistribution.length: ${savedLessonDistribution.length}`);
+
+      if (connectedCalendar && savedLessonDistribution.length > 0) {
+        try {
+          console.log(`ðŸ“… [Insert Events] Insertando ${savedLessonDistribution.length} eventos en calendario...`);
+
+          // Convertir distribución guardada al formato del API - Usando parseDateStr
+          const lessonDistributionForApi = savedLessonDistribution.map(item => {
+            // Usar la misma función parseDateStr para consistencia
+            let baseDate = parseDateStr(item.dateStr);
+            if (!baseDate || isNaN(baseDate.getTime())) {
+              console.warn(`âš ï¸ [Insert Events] Fecha inválida: "${item.dateStr}", usando fecha actual`);
+              baseDate = new Date();
+            }
+
+            // Parsear horarios (formato "HH:MM")
+            const [startHour, startMin] = item.startTime.split(':').map(Number);
+            const [endHour, endMin] = item.endTime.split(':').map(Number);
+
+            const startDate = new Date(baseDate);
+            startDate.setHours(startHour, startMin, 0, 0);
+
+            const endDate = new Date(baseDate);
+            endDate.setHours(endHour, endMin, 0, 0);
+
+            return {
+              slot: {
+                date: baseDate.toISOString(),
+                start: startDate.toISOString(),
+                end: endDate.toISOString(),
+                dayName: item.dayName,
+                durationMinutes: Math.round((endDate.getTime() - startDate.getTime()) / 60000)
+              },
+              lessons: item.lessons.map(l => ({
+                courseTitle: l.courseTitle,
+                lessonTitle: l.lessonTitle,
+                lessonOrderIndex: l.lessonOrderIndex,
+                durationMinutes: l.durationMinutes || 15
+              }))
+            };
+          });
+
+          const insertResponse = await fetch('/api/study-planner/calendar/insert-events', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              sessionIds: saveData.data.sessionIds,
-            }),
+              lessonDistribution: lessonDistributionForApi,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              planName: 'Plan de Estudios SOFLIA'
+            })
           });
 
-          if (syncResponse.ok) {
-            const syncData = await syncResponse.json();
-            if (syncData.success && syncData.data) {
+          const insertResult = await insertResponse.json();
 
-              if (syncData.data.failedCount > 0) {
-                console.warn(`⚠️ ${syncData.data.failedCount} sesiones fallaron al sincronizar`);
-                if (syncData.data.errors) {
-                  console.error('Errores:', syncData.data.errors);
-                }
-              }
-            } else {
-              console.error('❌ Error en respuesta de sincronización:', syncData);
-            }
+          if (insertResponse.ok && insertResult.success) {
+            calendarInsertSuccess = true;
+            calendarInsertedCount = insertResult.insertedCount || 0;
+            console.log(`✅ [Insert Events] ${calendarInsertedCount} eventos insertados exitosamente`);
           } else {
-            const errorText = await syncResponse.text();
-            console.error(`❌ Error sincronizando con calendario (${syncResponse.status}):`, errorText);
+            console.error(`âŒ [Insert Events] Error: ${insertResult.error || 'Error desconocido'}`);
 
-            // Si es error 401, puede requerir reconexión
-            if (syncResponse.status === 401) {
+            // Si es error de reconexión, notificar al usuario
+            if (insertResult.requiresReconnection || insertResponse.status === 401) {
               setConnectedCalendar(null);
-              const reconnectMsg = `Tu conexión con el calendario ha expirado. Por favor, reconecta tu calendario para sincronizar las sesiones.`;
               setConversationHistory(prev => [...prev, {
                 role: 'assistant',
-                content: reconnectMsg
+                content: 'âš ï¸ Tu conexión con el calendario ha expirado. El plan se guardó pero no se pudieron crear los eventos. Reconecta tu calendario para sincronizar.'
               }]);
             }
           }
-        } catch (syncError) {
-          console.error('❌ Error sincronizando con calendario:', syncError);
-          // No fallar el guardado si falla la sincronización, pero informar al usuario
-          const syncErrorMsg = `El plan se guardó correctamente, pero hubo un problema al sincronizar con tu calendario. Puedes intentar sincronizar manualmente más tarde.`;
-          setConversationHistory(prev => [...prev, {
-            role: 'assistant',
-            content: syncErrorMsg
-          }]);
+        } catch (insertError) {
+          console.error('âŒ [Insert Events] Error insertando eventos:', insertError);
+          // No fallar el guardado si falla la inserción
         }
-      } else {
-
       }
 
       // Mostrar mensaje de éxito
-      const successMessage = `¡Perfecto! He guardado tu plan de estudios con ${sessions.length} sesiones programadas.${connectedCalendar ? ' Las sesiones han sido sincronizadas con tu calendario.' : ''}\n\nPuedes ver tu plan en la sección de "Mis Planes" y comenzar a estudiar cuando lo desees. ¡Éxito en tu aprendizaje! 🎓`;
+      let calendarMsg = '';
+      if (connectedCalendar && calendarInsertSuccess && calendarInsertedCount > 0) {
+        calendarMsg = ` He insertado ${calendarInsertedCount} eventos en tu calendario de Google (en "SOFLIA - Sesiones de Estudio").`;
+      } else if (connectedCalendar) {
+        calendarMsg = ' Las sesiones han sido sincronizadas con tu calendario.';
+      }
+      const successMessage = `¡Perfecto! He guardado tu plan de estudios con ${sessions.length} sesiones programadas.${calendarMsg}\n\nPuedes ver tu plan en la sección de "Mis Planes" y comenzar a estudiar cuando lo desees. ¡Éxito en tu aprendizaje! ðŸŽ“`;
 
       setConversationHistory(prev => {
         // Reemplazar el mensaje de procesamiento con el de éxito
@@ -7644,7 +7925,7 @@ Cuéntame:
             window.location.href = targetUrl;
           }
         } catch (redirectError) {
-          console.error('❌ Error al redirigir:', redirectError);
+          console.error('âŒ Error al redirigir:', redirectError);
           // Fallback garantizado: usar window.location
           window.location.href = targetUrl;
         }
@@ -7692,9 +7973,9 @@ Cuéntame:
     // 3. El último mensaje de LIA mencionaba ampliar horarios o fecha límite
     const isAcceptingToExpandSchedule = (
       (lowerMessage === 'sí' || lowerMessage === 'si' || lowerMessage === 'ok' ||
-       lowerMessage === 'acepto' || lowerMessage === 'dale' || lowerMessage === 'va' ||
-       lowerMessage.includes('está bien') || lowerMessage.includes('de acuerdo') ||
-       lowerMessage.includes('adelante') || lowerMessage.includes('claro'))
+        lowerMessage === 'acepto' || lowerMessage === 'dale' || lowerMessage === 'va' ||
+        lowerMessage.includes('está bien') || lowerMessage.includes('de acuerdo') ||
+        lowerMessage.includes('adelante') || lowerMessage.includes('claro'))
     ) && savedLessonDistribution.length === 0;
 
     if (isAcceptingToExpandSchedule) {
@@ -7767,12 +8048,12 @@ Cuéntame:
           `Sus días originales eran: ${detectedDays.join(', ') || 'no especificados'}. ` +
           `Sus horarios originales eran: ${detectedTimes.join(', ') || 'noche'}. ` +
           `PROPÓN INMEDIATAMENTE este plan expandido: "${expandedDays.join(', ')} por la ${expandedTimes.join(' y ')}${additionalTime}". ` +
-          `NO vuelvas a preguntar si quiere ampliar - YA DIJO QUE SÍ. ` +
+          `NO vuelvas a preguntar si quiere ampliar - YA DIJO QUE SÃ. ` +
           `Genera el plan con estos horarios expandidos AHORA.]`;
 
         // Continuar con el mensaje enriquecido
         message = proposalMessage;
-        console.log('📅 Propuesta expandida automática:', expandedDays, expandedTimes);
+        console.log('ðŸ“… Propuesta expandida automática:', expandedDays, expandedTimes);
       }
     }
 
@@ -7899,7 +8180,7 @@ Cuéntame:
           const dayName = dateObj.toLocaleDateString('es-ES', { weekday: 'long' });
           const formattedDate = dateObj.toLocaleDateString('es-ES', { day: 'numeric', month: 'long' });
           const eventTitle = conflict.event?.title || conflict.event?.summary || 'Evento programado';
-          conflictMessage += `• ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${formattedDate} a las ${conflict.time}: Tienes "${eventTitle}" programado\n`;
+          conflictMessage += `â€¢ ${dayName.charAt(0).toUpperCase() + dayName.slice(1)} ${formattedDate} a las ${conflict.time}: Tienes "${eventTitle}" programado\n`;
         });
 
         conflictMessage += `\n¿Te gustaría que ajuste esos horarios a otros momentos disponibles ese día, o prefieres mantener los horarios originales?`;
@@ -7947,7 +8228,7 @@ Cuéntame:
                 const newStartTimeStr = `${newStartTime.getHours().toString().padStart(2, '0')}:${newStartTime.getMinutes().toString().padStart(2, '0')}`;
                 const newEndTimeStr = `${newEndTime.getHours().toString().padStart(2, '0')}:${newEndTime.getMinutes().toString().padStart(2, '0')}`;
 
-                console.log(`   📝 Actualizando slot ${slot.dateStr}: ${slot.startTime}-${slot.endTime} → ${newStartTimeStr}-${newEndTimeStr}`);
+                console.log(`   ðŸ“ Actualizando slot ${slot.dateStr}: ${slot.startTime}-${slot.endTime} â†’ ${newStartTimeStr}-${newEndTimeStr}`);
 
                 return {
                   ...slot,
@@ -7980,7 +8261,7 @@ Cuéntame:
 
         if (!planIdToUse) {
           try {
-            console.log(`📋 No hay savedPlanId, obteniendo plan activo del usuario...`);
+            console.log(`ðŸ“‹ No hay savedPlanId, obteniendo plan activo del usuario...`);
             const planResponse = await fetch('/api/study-planner/active-plan');
             if (planResponse.ok) {
               const planData = await planResponse.json();
@@ -7991,13 +8272,13 @@ Cuéntame:
               }
             }
           } catch (error) {
-            console.warn(`⚠️ No se pudo obtener el plan activo:`, error);
+            console.warn(`âš ï¸ No se pudo obtener el plan activo:`, error);
           }
         }
 
         if (planIdToUse) {
           try {
-            console.log(`📝 Actualizando ${updatedCount} sesiones en la BD para plan ${planIdToUse}...`);
+            console.log(`ðŸ“ Actualizando ${updatedCount} sesiones en la BD para plan ${planIdToUse}...`);
 
             // Preparar actualizaciones para el endpoint
             const updates = updatedDistribution
@@ -8017,7 +8298,7 @@ Cuéntame:
               .filter((update): update is NonNullable<typeof update> => update !== null);
 
             if (updates.length > 0) {
-              console.log(`📤 Enviando ${updates.length} actualizaciones a la BD:`, updates);
+              console.log(`ðŸ“¤ Enviando ${updates.length} actualizaciones a la BD:`, updates);
 
               const updateResponse = await fetch('/api/study-planner/sessions/update', {
                 method: 'PUT',
@@ -8030,13 +8311,13 @@ Cuéntame:
 
               if (updateResponse.ok) {
                 const updateData = await updateResponse.json();
-                console.log(`📥 Respuesta de actualización:`, updateData);
+                console.log(`ðŸ“¥ Respuesta de actualización:`, updateData);
 
                 if (updateData.success) {
                   console.log(`✅ ${updateData.data.updatedCount} sesiones actualizadas en la BD de ${updateData.data.totalUpdates} intentadas`);
 
                   if (updateData.data.errors && updateData.data.errors.length > 0) {
-                    console.warn(`⚠️ Errores al actualizar:`, updateData.data.errors);
+                    console.warn(`âš ï¸ Errores al actualizar:`, updateData.data.errors);
                     // Informar al usuario sobre errores
                     const errorMsg = `Se actualizaron ${updateData.data.updatedCount} de ${updateData.data.totalUpdates} horarios. Algunos no se pudieron actualizar.`;
                     setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
@@ -8050,21 +8331,21 @@ Cuéntame:
                     setConversationHistory(prev => [...prev, { role: 'assistant', content: syncMessage }]);
                   }
                 } else {
-                  console.warn(`⚠️ La actualización falló:`, updateData);
+                  console.warn(`âš ï¸ La actualización falló:`, updateData);
                   const errorMsg = `No se pudieron actualizar los horarios en la base de datos. Por favor, intenta guardar el plan de nuevo.`;
                   setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
                 }
               } else {
                 const errorText = await updateResponse.text();
-                console.error(`❌ Error actualizando sesiones en BD (${updateResponse.status}):`, errorText);
+                console.error(`âŒ Error actualizando sesiones en BD (${updateResponse.status}):`, errorText);
                 const errorMsg = `Error al actualizar los horarios en la base de datos. Por favor, intenta guardar el plan de nuevo.`;
                 setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
               }
             } else {
-              console.log(`⚠️ No hay actualizaciones para enviar (updates.length = 0)`);
+              console.log(`âš ï¸ No hay actualizaciones para enviar (updates.length = 0)`);
             }
           } catch (updateError) {
-            console.error('❌ Error actualizando sesiones en BD:', updateError);
+            console.error('âŒ Error actualizando sesiones en BD:', updateError);
             // No fallar el cambio de horario si falla la actualización en BD
           }
         }
@@ -8081,7 +8362,7 @@ Cuéntame:
 
         console.log(`✅ ${updatedCount} horarios actualizados en savedLessonDistribution`);
       } else {
-        console.log(`⚠️ No se encontraron horarios para actualizar (oldHour: ${timeChange.oldHour})`);
+        console.log(`âš ï¸ No se encontraron horarios para actualizar (oldHour: ${timeChange.oldHour})`);
       }
     }
 
@@ -8098,19 +8379,22 @@ Cuéntame:
       lowerMessage.includes('procede')
     ) && savedLessonDistribution.length > 0;
 
-    // Detectar si el usuario está confirmando el resumen final (segunda confirmación)
+    // Detectar si el usuario está confirmando los horarios/plan - UNIFICADO para guardar y sincronizar con calendario
+    // Ahora se ejecuta en la PRIMERA confirmación cuando hay horarios disponibles
     const isConfirmingFinalSummary = (
-      (lowerMessage.includes('sí') ||
-        lowerMessage.includes('si') ||
-        lowerMessage.includes('confirmo') ||
+      (lowerMessage === 'sí' || lowerMessage === 'si' || lowerMessage === 'ok' ||
+        lowerMessage === 'vale' || lowerMessage === 'perfecto' || lowerMessage === 'genial' ||
+        lowerMessage === 'excelente' ||
+        lowerMessage.includes('me gusta') ||
         lowerMessage.includes('está bien') ||
-        lowerMessage.includes('perfecto') ||
+        lowerMessage.includes('confirmo') ||
+        lowerMessage.includes('me parece') ||
         lowerMessage.includes('de acuerdo') ||
         lowerMessage.includes('adelante') ||
         lowerMessage.includes('procede') ||
         lowerMessage.includes('guardar') ||
         lowerMessage.includes('crear plan'))
-    ) && hasShownFinalSummary && savedLessonDistribution.length > 0;
+    ) && savedLessonDistribution.length > 0;
 
     // Detectar si el usuario está cambiando la fecha límite
     const isChangingTargetDate = (
@@ -8133,13 +8417,13 @@ Cuéntame:
       setConversationHistory(newHistory);
       setIsProcessing(true);
 
-      // ✅ CRÍTICO: Esperar un momento para asegurar que el estado esté actualizado
+      // ✅ CRÃTICO: Esperar un momento para asegurar que el estado esté actualizado
       // Esto es importante si LIA acaba de actualizar el estado
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // ✅ VALIDACIÓN CRÍTICA: Verificar que savedLessonDistribution tenga datos antes de guardar
+      // ✅ VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos antes de guardar
       if (savedLessonDistribution.length === 0) {
-        console.error('❌ ERROR: No hay horarios para guardar. savedLessonDistribution está vacío.');
+        console.error('âŒ ERROR: No hay horarios para guardar. savedLessonDistribution está vacío.');
         setConversationHistory(prev => [...prev, {
           role: 'assistant',
           content: 'Lo siento, no hay horarios para guardar. Por favor, pide a LIA que genere un plan de estudios primero.'
@@ -8149,7 +8433,7 @@ Cuéntame:
       }
 
       // ✅ LOGGING: Verificar qué se va a guardar
-      console.log('📋 Preparando para guardar plan:');
+      console.log('ðŸ“‹ Preparando para guardar plan:');
       console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
       console.log(`   Primeros 3 horarios:`, savedLessonDistribution.slice(0, 3).map(s => ({
         fecha: s.dateStr,
@@ -8160,7 +8444,7 @@ Cuéntame:
       // Mostrar mensaje de procesamiento
       setConversationHistory(prev => [...prev, {
         role: 'assistant',
-        content: '⏳ Procesando tu plan de estudios... Estoy guardando todas las sesiones y sincronizándolas con tu calendario.'
+        content: 'â³ Procesando tu plan de estudios... Estoy guardando todas las sesiones y sincronizándolas con tu calendario.'
       }]);
 
       if (isAudioEnabled) {
@@ -8225,9 +8509,9 @@ Cuéntame:
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
 
-      // 🚨 INSTRUCCIÓN CRÍTICA SOBRE LA FECHA LÍMITE
+      // ðŸš¨ INSTRUCCIÓN CRÃTICA SOBRE LA FECHA LÃMITE
       if (savedTargetDate) {
-        distributionSummary += `🚨 REGLA ABSOLUTA SOBRE LA FECHA LÍMITE:\n`;
+        distributionSummary += `ðŸš¨ REGLA ABSOLUTA SOBRE LA FECHA LÃMITE:\n`;
         distributionSummary += `- La fecha límite establecida es: **${savedTargetDate}**\n`;
         distributionSummary += `- NUNCA, bajo NINGUNA circunstancia, debes crear o sugerir horarios DESPUÉS de esta fecha\n`;
         distributionSummary += `- Si el usuario solicita agregar horarios (ej: "agrega los jueves de 6 a 8pm"), calcula SOLO hasta ${savedTargetDate}\n`;
@@ -8261,8 +8545,8 @@ Cuéntame:
         // ✅ PROMPT GUARD: Última línea de defensa
         // Eliminar festivos del texto que recibe LIA para que no pueda mostrarlos visualmente
         if (item.dateStr.includes('-01-01') || item.dateStr.includes('-12-25') || item.dateStr.includes('-05-01') || item.dateStr.includes('-09-16') || item.dateStr.includes('-11-20')) {
-             console.warn(`🔥 [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
-             return;
+          console.warn(`ðŸ”¥ [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
+          return;
         }
 
         const formattedDate = formatDateForDisplay(item.dateStr, item.dayName);
@@ -8278,7 +8562,7 @@ Cuéntame:
 
               // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
-              distributionSummary += `• ${lessonTitle}\n`;
+              distributionSummary += `â€¢ ${lessonTitle}\n`;
 
               // Log para debugging de las primeras sesiones
               if (idx < 3 && lessonIndex < 3) {
@@ -8287,7 +8571,7 @@ Cuéntame:
             }
           });
         } else {
-          distributionSummary += `• Sin lecciones asignadas\n`;
+          distributionSummary += `â€¢ Sin lecciones asignadas\n`;
         }
       });
 
@@ -8299,23 +8583,23 @@ Cuéntame:
         // ✅ Para B2B, esto es crítico - mostrar advertencia más fuerte
         const isB2BSummary = userContext?.userType === 'b2b';
         if (isB2BSummary) {
-          distributionSummary += `⚠️ **ALERTA CRÍTICA:** Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
+          distributionSummary += `âš ï¸ **ALERTA CRÃTICA:** Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
           distributionSummary += `Para cumplir con los plazos organizacionales, es necesario asignar TODAS las lecciones. Considera contactar a tu administrador.\n`;
         } else {
-          distributionSummary += `⚠️ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
+          distributionSummary += `âš ï¸ Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
         }
       }
 
       // Instrucciones importantes sobre qué lecciones incluir
       distributionSummary += `\n`;
-      distributionSummary += `**🚨 CRÍTICO - INSTRUCCIONES PARA EL RESUMEN:**\n`;
+      distributionSummary += `**ðŸš¨ CRÃTICO - INSTRUCCIONES PARA EL RESUMEN:**\n`;
       distributionSummary += `- Total de lecciones en el plan: ${totalLessonsAssigned} lecciones PENDIENTES\n`;
       distributionSummary += `- Las lecciones YA COMPLETADAS fueron filtradas y NO están en este plan\n`;
-      distributionSummary += `- **USA SOLO LAS LECCIONES QUE ESTÁN LISTADAS ARRIBA EN CADA HORARIO**\n`;
+      distributionSummary += `- **USA SOLO LAS LECCIONES QUE ESTÃN LISTADAS ARRIBA EN CADA HORARIO**\n`;
       distributionSummary += `- **NO inventes lecciones desde el principio** - el usuario ya tiene lecciones completadas\n`;
       distributionSummary += `- **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están asignadas arriba\n`;
-      distributionSummary += `- En tu contexto, SOLO usa las lecciones marcadas como "○ Pendiente"\n`;
-      distributionSummary += `- NO incluyas lecciones marcadas como "✓ Completada"\n`;
+      distributionSummary += `- En tu contexto, SOLO usa las lecciones marcadas como "â—‹ Pendiente"\n`;
+      distributionSummary += `- NO incluyas lecciones marcadas como "âœ“ Completada"\n`;
       distributionSummary += `- Cada horario tiene lecciones específicas asignadas - usa EXACTAMENTE esas lecciones\n`;
       distributionSummary += `\n`;
       distributionSummary += `*Genera un resumen completo con TODOS los horarios, usando EXACTAMENTE las lecciones que están asignadas arriba en cada horario. NO inventes lecciones.*`;
@@ -8349,7 +8633,7 @@ Cuéntame:
       };
 
       // Construir el contexto de horarios existentes para AGREGAR nuevos
-      let addScheduleContext = `\n\n**🚨 INSTRUCCIÓN CRÍTICA - AGREGAR HORARIOS:**\n`;
+      let addScheduleContext = `\n\n**ðŸš¨ INSTRUCCIÓN CRÃTICA - AGREGAR HORARIOS:**\n`;
       addScheduleContext += `El usuario está solicitando AGREGAR nuevos horarios, NO reemplazar los existentes.\n`;
       addScheduleContext += `DEBES MANTENER todos los horarios que ya están asignados y AGREGAR los nuevos horarios solicitados.\n\n`;
 
@@ -8377,7 +8661,7 @@ Cuéntame:
 
               // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
-              addScheduleContext += `  • ${lessonTitle}\n`;
+              addScheduleContext += `  â€¢ ${lessonTitle}\n`;
             }
           });
         }
@@ -8391,7 +8675,7 @@ Cuéntame:
 
       // Validar conflictos con el calendario si hay datos guardados
       if (savedCalendarData && Object.keys(savedCalendarData).length > 0) {
-        addScheduleContext += `**⚠️ VALIDACIÓN DE CONFLICTOS:**\n`;
+        addScheduleContext += `**âš ï¸ VALIDACIÓN DE CONFLICTOS:**\n`;
         addScheduleContext += `- Si los nuevos horarios solicitados tienen conflictos con eventos del calendario, NO los incluyas\n`;
         addScheduleContext += `- Solo incluye los horarios nuevos que NO tengan conflictos\n`;
         addScheduleContext += `- Advierte al usuario sobre cualquier conflicto detectado\n\n`;
@@ -8399,18 +8683,18 @@ Cuéntame:
 
       // Instrucciones sobre la fecha límite
       if (savedTargetDate) {
-        addScheduleContext += `**🚨 FECHA LÍMITE:**\n`;
+        addScheduleContext += `**ðŸš¨ FECHA LÃMITE:**\n`;
         addScheduleContext += `- Fecha límite establecida: **${savedTargetDate}**\n`;
         addScheduleContext += `- NO generes horarios después de esta fecha\n`;
         addScheduleContext += `- Calcula los nuevos horarios SOLO hasta ${savedTargetDate}\n\n`;
       }
 
-      addScheduleContext += `**🚨 INSTRUCCIONES CRÍTICAS PARA TU RESPUESTA:**\n`;
+      addScheduleContext += `**ðŸš¨ INSTRUCCIONES CRÃTICAS PARA TU RESPUESTA:**\n`;
       addScheduleContext += `1. MANTÉN todos los horarios existentes listados arriba CON SUS LECCIONES EXACTAS\n`;
       addScheduleContext += `2. AGREGA los nuevos horarios solicitados por el usuario\n`;
       addScheduleContext += `3. Muestra un resumen COMPLETO con TODOS los horarios (existentes + nuevos)\n`;
       addScheduleContext += `4. **ORDENA TODOS LOS HORARIOS CRONOLÓGICAMENTE** (del más antiguo al más reciente por fecha)\n`;
-      addScheduleContext += `5. **USA EXACTAMENTE LAS LECCIONES QUE ESTÁN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
+      addScheduleContext += `5. **USA EXACTAMENTE LAS LECCIONES QUE ESTÃN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
       addScheduleContext += `6. **NO inventes lecciones desde el principio** - el usuario puede tener lecciones completadas\n`;
       addScheduleContext += `7. **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están listadas arriba\n`;
       addScheduleContext += `8. Si hay conflictos con el calendario, advierte al usuario pero incluye los horarios sin conflictos\n`;
@@ -8443,7 +8727,7 @@ Cuéntame:
       };
 
       // Construir el contexto de horarios existentes cuando se cambia la fecha límite
-      let changeDateContext = `\n\n**🚨 INSTRUCCIÓN CRÍTICA - CAMBIAR FECHA LÍMITE:**\n`;
+      let changeDateContext = `\n\n**ðŸš¨ INSTRUCCIÓN CRÃTICA - CAMBIAR FECHA LÃMITE:**\n`;
       changeDateContext += `El usuario está solicitando CAMBIAR la fecha límite, NO eliminar los horarios existentes.\n`;
       changeDateContext += `DEBES MANTENER todos los horarios que ya están asignados y actualizar la fecha límite.\n`;
       changeDateContext += `Si la nueva fecha límite es posterior a la anterior, puedes agregar más horarios hasta la nueva fecha.\n\n`;
@@ -8472,7 +8756,7 @@ Cuéntame:
 
               // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
-              changeDateContext += `  • ${lessonTitle}\n`;
+              changeDateContext += `  â€¢ ${lessonTitle}\n`;
             }
           });
         }
@@ -8485,14 +8769,14 @@ Cuéntame:
       changeDateContext += `- Lecciones pendientes por asignar: ${savedTotalLessons - totalLessonsAssigned}\n\n`;
 
       // Instrucciones sobre la nueva fecha límite
-      changeDateContext += `**🚨 INSTRUCCIONES PARA CAMBIAR FECHA LÍMITE:**\n`;
+      changeDateContext += `**ðŸš¨ INSTRUCCIONES PARA CAMBIAR FECHA LÃMITE:**\n`;
       changeDateContext += `1. MANTÉN todos los horarios existentes listados arriba\n`;
       changeDateContext += `2. Extrae la nueva fecha límite del mensaje del usuario\n`;
       changeDateContext += `3. Si la nueva fecha es posterior a la anterior, puedes agregar más horarios hasta la nueva fecha\n`;
       changeDateContext += `4. Si la nueva fecha es anterior, mantén solo los horarios que estén antes de la nueva fecha\n`;
       changeDateContext += `5. Muestra un resumen COMPLETO con TODOS los horarios (existentes + nuevos si aplica)\n`;
       changeDateContext += `6. **ORDENA TODOS LOS HORARIOS CRONOLÓGICAMENTE** (del más antiguo al más reciente por fecha)\n`;
-      changeDateContext += `7. **USA EXACTAMENTE LAS LECCIONES QUE ESTÁN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
+      changeDateContext += `7. **USA EXACTAMENTE LAS LECCIONES QUE ESTÃN ASIGNADAS EN CADA HORARIO EXISTENTE**\n`;
       changeDateContext += `8. **NO inventes lecciones desde el principio** - el usuario puede tener lecciones completadas\n`;
       changeDateContext += `9. **NO empieces desde "Lección 1"** - usa SOLO las lecciones que están listadas arriba\n`;
       changeDateContext += `10. Distribuye las lecciones pendientes (de tu contexto) en los nuevos horarios si se agregaron\n\n`;
@@ -8528,7 +8812,7 @@ Cuéntame:
       );
 
       if (hasInjectionAttempt) {
-        console.warn('🚫 Intento de prompt injection detectado, bloqueando...');
+        console.warn('ðŸš« Intento de prompt injection detectado, bloqueando...');
         setConversationHistory(prev => [...prev, {
           role: 'assistant',
           content: 'Entiendo que quieres probar diferentes cosas, pero estoy aquí específicamente para ayudarte con tu plan de estudios. ¿En qué puedo asistirte con la planificación de tus cursos?'
@@ -8583,17 +8867,17 @@ Cuéntame:
       // Esto evita que LIA "olvide" el plan cuando el usuario confirma ("sí") y el preCalculatedPlanContext desaparece
       let existingPlanContext = '';
       if (savedLessonDistribution.length > 0) {
-        existingPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n📝 PLAN PROPUESTO ACTUALMENTE (EN MEMORIA)\n═══════════════════════════════════════════════════════════════════════════════\nLIA, ya has propuesto este plan y el usuario lo tiene en pantalla:\n`;
-        
+        existingPlanContext = `\n\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\nðŸ“ PLAN PROPUESTO ACTUALMENTE (EN MEMORIA)\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\nLIA, ya has propuesto este plan y el usuario lo tiene en pantalla:\n`;
+
         // Resumir el plan para no consumir demasiados tokens
         let totalLessonsInPlan = 0;
         savedLessonDistribution.forEach(slot => {
           existingPlanContext += `* ${slot.dayName} ${slot.startTime}-${slot.endTime}: ${slot.lessons.length} lecciones\n`;
           totalLessonsInPlan += slot.lessons.length;
         });
-        
+
         existingPlanContext += `\nTotal lecciones agendadas: ${totalLessonsInPlan}\n`;
-        existingPlanContext += `⚠️ INSTRUCCIÓN CRÍTICA DE CONFIRMACIÓN: Si el usuario dice "sí", "ok", "me gusta" o confirma:\n1. NO recalculas nada.\n2. NO digas que hubo un error.\n3. Confirma que guardas este plan.\n4. Muestra entusiasmo.\n`;
+        existingPlanContext += `âš ï¸ INSTRUCCIÓN CRÃTICA DE CONFIRMACIÓN: Si el usuario dice "sí", "ok", "me gusta" o confirma:\n1. NO recalculas nada.\n2. NO digas que hubo un error.\n3. Confirma que guardas este plan.\n4. Muestra entusiasmo.\n`;
       }
 
       // ✅ NUEVO: Incluir información de fecha límite y cursos asignados
@@ -8606,104 +8890,110 @@ Cuéntame:
           month: 'long',
           year: 'numeric'
         });
-        dueDateContext = `\n\n🚨 FECHA LÍMITE OBLIGATORIA: ${dueDateFormatted}\n⚠️ NUNCA programar lecciones después de esta fecha.\n⚠️ La fecha de finalización del plan DEBE ser ANTERIOR a ${dueDateFormatted}.`;
+        dueDateContext = `\n\nðŸš¨ FECHA LÃMITE OBLIGATORIA: ${dueDateFormatted}\nâš ï¸ NUNCA programar lecciones después de esta fecha.\nâš ï¸ La fecha de finalización del plan DEBE ser ANTERIOR a ${dueDateFormatted}.`;
       }
 
-      // 🕵️ Detección automática de preferencias para Generador Determinista
+      // ðŸ•µï¸ Detección automática de preferencias para Generador Determinista
       let preCalculatedPlanContext = '';
-      
+
       // Regex mejorado para detectar mención de días (incluye abreviaciones y typos comunes)
       const daysMatch = message.match(/lunes|lune|lun|mon|martes|mar|tue|miércoles|miercoles|mier|wed|jueves|jue|thu|viernes|vier|vie|fri|sábado|sabado|sab|sat|domingo|dom|sun/gi);
       const timesMatch = message.match(/mañana|tarde|noche/gi);
-      
+
       // Estado para controlar si bloqueamos la visualización de lecciones
       let blockPlanGeneration = false;
 
       // Si el usuario menciona días explícitamente y tenemos lecciones, intentamos generar el plan "hardcoded"
       if (daysMatch && daysMatch.length > 0 && liaData.lessons.length > 0) {
         try {
-          console.log('🤖 [Deterministic] Detectada intención de planificar. Invocando generador...');
-          
+          console.log('ðŸ¤– [Deterministic] Detectada intención de planificar. Invocando generador...');
+
           const uniqueDays = [...new Set(daysMatch.map(d => d.toLowerCase()))];
           const uniqueTimes = timesMatch ? [...new Set(timesMatch.map(t => t.toLowerCase()))] : ['mañana']; // Default mañana
-          
+
           // Obtener fecha límite si existe
           const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
           let deadlineDate: string | undefined;
-          
+
           if (coursesWithDueDates.length > 0) {
-              // Ordenar por fecha más próxima y tomar la primera
-              const sorted = [...coursesWithDueDates].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
-              deadlineDate = sorted[0].dueDate;
+            // Ordenar por fecha más próxima y tomar la primera
+            const sorted = [...coursesWithDueDates].sort((a, b) => new Date(a.dueDate!).getTime() - new Date(b.dueDate!).getTime());
+            deadlineDate = sorted[0].dueDate;
           }
 
           const genRes = await fetch('/api/study-planner/generate-plan', {
-              method: 'POST',
-              headers: {'Content-Type': 'application/json'},
-              body: JSON.stringify({ 
-                lessons: liaData.lessons, 
-                preferences: { days: uniqueDays, times: uniqueTimes },
-                deadlineDate: deadlineDate,
-                maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50) 
-              })
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              lessons: liaData.lessons,
+              preferences: {
+                days: uniqueDays,
+                times: uniqueTimes,
+                // Mapear studyApproach a studyMode para estrategias de descanso
+                studyMode: studyApproach === 'rapido' ? 'pomodoro' : studyApproach === 'largo' ? 'intensive' : 'balanced',
+                maxConsecutiveHours: studyApproach === 'largo' ? 3 : 2 // Más horas para sesiones largas
+              },
+              deadlineDate: deadlineDate,
+              maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50)
+            })
           });
-          
+
           if (genRes.ok) {
-              const genData = await genRes.json();
-              if (genData.exceedsDeadline) {
-                  blockPlanGeneration = true; // ⛔ ACTIVAR BLOQUEO
+            const genData = await genRes.json();
+            if (genData.exceedsDeadline) {
+              blockPlanGeneration = true; // â›” ACTIVAR BLOQUEO
 
-                  // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
-                  // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
-                  const validAlternatives = genData.validAlternatives || [];
+              // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
+              // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
+              const validAlternatives = genData.validAlternatives || [];
 
-                  let alternativeOptions = '';
-                  if (validAlternatives.length > 0) {
-                    // Mostrar solo opciones que realmente funcionan, con fecha estimada
-                    validAlternatives.forEach((alt: any, index: number) => {
-                      alternativeOptions += `OPCIÓN ${index + 1}: ${alt.description}\n`;
-                      alternativeOptions += `   → Terminarías el: ${alt.estimatedEndDate} (${alt.daysBeforeDeadline} días antes del límite)\n\n`;
-                    });
-                  } else {
-                    // Si no hay alternativas válidas, el deadline es muy ajustado
-                    alternativeOptions = `⚠️ ADVERTENCIA: La fecha límite es muy ajustada.\n`;
-                    alternativeOptions += `Para poder completar el curso a tiempo, necesitarías estudiar TODOS los días con sesiones intensivas.\n`;
-                    alternativeOptions += `Considera solicitar una extensión de la fecha límite a tu instructor.\n`;
-                  }
-
-                  preCalculatedPlanContext = `\n\n⛔ BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÍMITE.\n` +
-                  `Fecha estimada terminación: ${genData.endDate}\n` +
-                  `Fecha límite del curso: ${genData.deadline}\n` +
-                  `Exceso: ${genData.daysExcess} días.\n\n` +
-                  `⚠️ INSTRUCCIÓN CRÍTICA PARA LIA:\n` +
-                  `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
-                  `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
-                  `3. PROPÓN DIRECTAMENTE estas alternativas VALIDADAS (cada una incluye la fecha en que terminarías):\n\n` +
-                  `${alternativeOptions}` +
-                  `4. IMPORTANTE: Cada opción ya fue calculada y GARANTIZA terminar antes del ${genData.deadline}.\n` +
-                  `5. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?"\n` +
-                  `6. Si el usuario elige una opción, GENERA EL PLAN con esos nuevos horarios.\n` +
-                  `7. DATOS DE LAS ALTERNATIVAS (para cuando el usuario elija):\n` +
-                  `${JSON.stringify(validAlternatives)}\n`;
-
-                  console.log('⛔ [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
-              } else if (genData.plan) {
-                  preCalculatedPlanContext = `\n\n═══════════════════════════════════════════════════════════════════════════════\n🚨 PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÁXIMA - COPIAR LITERALMENTE)\n═══════════════════════════════════════════════════════════════════════════════\n\n${genData.plan}\n\n⚠️ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÁN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
-                  console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+              let alternativeOptions = '';
+              if (validAlternatives.length > 0) {
+                // Mostrar solo opciones que realmente funcionan, con fecha estimada
+                validAlternatives.forEach((alt: any, index: number) => {
+                  alternativeOptions += `OPCIÓN ${index + 1}: ${alt.description}\n`;
+                  alternativeOptions += `   â†’ Terminarías el: ${alt.estimatedEndDate} (${alt.daysBeforeDeadline} días antes del límite)\n\n`;
+                });
+              } else {
+                // Si no hay alternativas válidas, el deadline es muy ajustado
+                alternativeOptions = `âš ï¸ ADVERTENCIA: La fecha límite es muy ajustada.\n`;
+                alternativeOptions += `Para poder completar el curso a tiempo, necesitarías estudiar TODOS los días con sesiones intensivas.\n`;
+                alternativeOptions += `Considera solicitar una extensión de la fecha límite a tu instructor.\n`;
               }
+
+              preCalculatedPlanContext = `\n\nâ›” BLOQUEO DE SEGURIDAD: LOS HORARIOS PROPUESTOS NO CUMPLEN LA FECHA LÃMITE.\n` +
+                `Fecha estimada terminación: ${genData.endDate}\n` +
+                `Fecha límite del curso: ${genData.deadline}\n` +
+                `Exceso: ${genData.daysExcess} días.\n\n` +
+                `âš ï¸ INSTRUCCIÓN CRÃTICA PARA LIA:\n` +
+                `1. INFORMA al usuario que con los horarios propuestos ("${uniqueDays.join(', ')} por la ${uniqueTimes.join(' y ')}") terminarías el ${genData.endDate}, que es DESPUÉS de la fecha límite (${genData.deadline}).\n` +
+                `2. NO muestres, ni inventes, ni menciones ninguna lección.\n` +
+                `3. PROPÓN DIRECTAMENTE estas alternativas VALIDADAS (cada una incluye la fecha en que terminarías):\n\n` +
+                `${alternativeOptions}` +
+                `4. IMPORTANTE: Cada opción ya fue calculada y GARANTIZA terminar antes del ${genData.deadline}.\n` +
+                `5. Pregunta al usuario: "¿Cuál de estas opciones te funcionaría mejor?"\n` +
+                `6. Si el usuario elige una opción, GENERA EL PLAN con esos nuevos horarios.\n` +
+                `7. DATOS DE LAS ALTERNATIVAS (para cuando el usuario elija):\n` +
+                `${JSON.stringify(validAlternatives)}\n`;
+
+              console.log('â›” [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
+            } else if (genData.plan) {
+              preCalculatedPlanContext = `\n\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\nðŸš¨ PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÃXIMA - COPIAR LITERALMENTE)\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\n\n${genData.plan}\n\nâš ï¸ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÃN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
+              console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+            }
           }
         } catch (err) {
-          console.error('❌ [Deterministic] Error generando plan:', err);
+          console.error('âŒ [Deterministic] Error generando plan:', err);
         }
       }
 
       // Si hay bloqueo, NO enviamos las lecciones al prompt para asegurar que LIA no pueda generar nada
       const finalStudyPlannerContext = blockPlanGeneration
-        ? `⚠️ SISTEMA: INFORMACIÓN DE LECCIONES OCULTA POR INSUFICIENCIA DE HORARIO.\n${preCalculatedPlanContext}`
+        ? `âš ï¸ SISTEMA: INFORMACIÓN DE LECCIONES OCULTA POR INSUFICIENCIA DE HORARIO.\n${preCalculatedPlanContext}`
         : `LECCIONES PENDIENTES (${liaData.totalPending || pendingLessonsRef.current.length} total):\n${sendMsgLessonsContext}\n\nCALENDARIO: ${connectedCalendar ? `Conectado (${connectedCalendar})` : 'No conectado'}${dueDateContext}${preCalculatedPlanContext}${existingPlanContext}`;
 
       const sendMsgSystemPrompt = generateStudyPlannerPrompt({
-        userName: userContext?.userName || undefined, 
+        userName: userContext?.userName || undefined,
         studyPlannerContextString: finalStudyPlannerContext,
         currentDate: sendMsgDateStr
       });
@@ -8738,32 +9028,32 @@ Cuéntame:
       }
 
       // Filtro de seguridad: detectar cuando el modelo devuelve el prompt COMPLETO
-      // ⚠️ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
-      console.log('🔍 [sendMessage] Analizando respuesta de', liaResponse.length, 'caracteres');
-      console.log('🔍 [sendMessage] Primeros 200 caracteres:', liaResponse.substring(0, 200));
+      // âš ï¸ MUY CONSERVADOR: Solo filtrar si COMIENZA con cabeceras del prompt
+      console.log('ðŸ” [sendMessage] Analizando respuesta de', liaResponse.length, 'caracteres');
+      console.log('ðŸ” [sendMessage] Primeros 200 caracteres:', liaResponse.substring(0, 200));
 
       // Solo filtrar si COMIENZA con cabeceras ASCII del prompt
       const startsWithPrompt =
-        liaResponse.trim().startsWith('╔═══') ||
-        liaResponse.trim().startsWith('█ IDENTIDAD') ||
-        liaResponse.trim().startsWith('█ DATOS') ||
+        liaResponse.trim().startsWith('â•”â•â•â•') ||
+        liaResponse.trim().startsWith('â–ˆ IDENTIDAD') ||
+        liaResponse.trim().startsWith('â–ˆ DATOS') ||
         liaResponse.trim().startsWith('PROMPT MAESTRO') ||
-        liaResponse.trim().startsWith('⛔ INSTRUCCIÓN CRÍTICA');
+        liaResponse.trim().startsWith('â›” INSTRUCCIÓN CRÃTICA');
 
       if (startsWithPrompt) {
-        console.warn('🚫 [sendMessage] Respuesta COMIENZA con prompt del sistema');
+        console.warn('ðŸš« [sendMessage] Respuesta COMIENZA con prompt del sistema');
         liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
       // ✅ SANITIZE: Limpiar respuesta de LIA para eliminar menciones de festivos
       // Eliminar bloques que mencionen "Jueves 1" (1 de Enero) u otros festivos
-      // Patrón: Líneas que empiecen con "*" o "📅" seguido de "Jueves 1" o similar
-      liaResponse = liaResponse.replace(/^\*?\s*📅?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, ''); // Jueves 1
+      // Patrón: Líneas que empiecen con "*" o "ðŸ“…" seguido de "Jueves 1" o similar
+      liaResponse = liaResponse.replace(/^\*?\s*ðŸ“…?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, ''); // Jueves 1
       liaResponse = liaResponse.replace(/^\*?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, '');
       liaResponse = liaResponse.replace(/\*\s*08:00.*Jueves\s+1.*\n/gi, '');
-      liaResponse = liaResponse.replace(/1\s+de\s+enero\s*[-–—]\s*\d+\s+de\s+enero/gi, (match) => {
-           // Reemplazar "1 de enero - 6 de enero" por "2 de enero - 6 de enero"
-           return match.replace(/1\s+de\s+enero/i, '2 de enero');
+      liaResponse = liaResponse.replace(/1\s+de\s+enero\s*[-â€“â€”]\s*\d+\s+de\s+enero/gi, (match) => {
+        // Reemplazar "1 de enero - 6 de enero" por "2 de enero - 6 de enero"
+        return match.replace(/1\s+de\s+enero/i, '2 de enero');
       });
       liaResponse = liaResponse.replace(/Fechas:\s*1\s+de\s+enero/gi, 'Fechas: 2 de enero');
       // Limpiar líneas vacías extras causadas por las eliminaciones
@@ -8773,7 +9063,7 @@ Cuéntame:
 
       // ✅ NUEVO: Parsear respuesta de LIA para extraer horarios y actualizar savedLessonDistribution
       // Ejecutar siempre que haya horarios en la respuesta o cuando sea relevante (agregar/confirmar horarios)
-      console.log('🔍 Intentando parsear respuesta de LIA para extraer horarios...');
+      console.log('ðŸ” Intentando parsear respuesta de LIA para extraer horarios...');
       console.log(`   Estado actual de savedLessonDistribution: ${savedLessonDistribution.length} horarios`);
       console.log(`   Longitud de respuesta de LIA: ${liaResponse.length} caracteres`);
       console.log(`   Primeros 500 caracteres de respuesta:`, liaResponse.substring(0, 500));
@@ -8783,24 +9073,24 @@ Cuéntame:
       // ✅ FILTRO ANTI-FESTIVOS EN PARSED SCHEDULES
       // Eliminar cualquier horario que haya sido parseado con fecha de festivo
       const extractedSchedules = extractedSchedulesRaw.filter(schedule => {
-           if (!schedule.dateStr) return true;
-           const dStr = schedule.dateStr;
-           // Festivos mexicanos principales (formato YYYY-MM-DD)
-           if (dStr.includes('-01-01') || dStr.includes('-12-25') ||
-               dStr.includes('-05-01') || dStr.includes('-09-16') ||
-               dStr.includes('-11-20')) {
-                console.warn(`🚫 [Parsed Schedule Filter] Eliminando horario festivo parseado: ${dStr} (${schedule.dayName})`);
-                return false;
-           }
-           return true;
+        if (!schedule.dateStr) return true;
+        const dStr = schedule.dateStr;
+        // Festivos mexicanos principales (formato YYYY-MM-DD)
+        if (dStr.includes('-01-01') || dStr.includes('-12-25') ||
+          dStr.includes('-05-01') || dStr.includes('-09-16') ||
+          dStr.includes('-11-20')) {
+          console.warn(`ðŸš« [Parsed Schedule Filter] Eliminando horario festivo parseado: ${dStr} (${schedule.dayName})`);
+          return false;
+        }
+        return true;
       });
 
       if (extractedSchedulesRaw.length !== extractedSchedules.length) {
-          console.log(`📉 Se filtraron ${extractedSchedulesRaw.length - extractedSchedules.length} horarios de festivos de la respuesta de LIA`);
+        console.log(`ðŸ“‰ Se filtraron ${extractedSchedulesRaw.length - extractedSchedules.length} horarios de festivos de la respuesta de LIA`);
       }
 
       if (extractedSchedules && extractedSchedules.length > 0) {
-        console.log(`📋 Parseando respuesta de LIA: ${extractedSchedules.length} horarios extraídos`);
+        console.log(`ðŸ“‹ Parseando respuesta de LIA: ${extractedSchedules.length} horarios extraídos`);
         console.log(`   Horarios existentes antes: ${savedLessonDistribution.length}`);
         console.log(`   Primeros 3 horarios extraídos:`, extractedSchedules.slice(0, 3).map(s => ({
           fecha: s.dateStr,
@@ -8846,7 +9136,7 @@ Cuéntame:
               const key = `${extracted.dateStr}_${extracted.startTime}`;
               const existing = existingMap.get(key);
 
-              console.log(`   🔍 Verificando horario ${extracted.dateStr} ${extracted.startTime}:`);
+              console.log(`   ðŸ” Verificando horario ${extracted.dateStr} ${extracted.startTime}:`);
               console.log(`      Lecciones extraídas: ${extracted.lessons.length}`);
               console.log(`      Horario existente: ${existing ? 'Sí' : 'No'}`);
               if (existing) {
@@ -8856,7 +9146,7 @@ Cuéntame:
                 }
               }
 
-              // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+              // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
               // LIA generalmente solo menciona "Lección X" sin el título completo, por lo que
               // debemos preservar los nombres completos de las lecciones existentes
               if (existing && existing.lessons.length > 0) {
@@ -8886,10 +9176,10 @@ Cuéntame:
                     return !isOnlyNumber && (hasSubstantialContent || matchesExisting);
                   });
 
-                // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
                 // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
                 // Por seguridad, siempre preservamos los nombres completos existentes
-                console.log(`   📚 Preservando ${existing.lessons.length} lecciones con nombres completos para ${extracted.dateStr} ${extracted.startTime}`);
+                console.log(`   ðŸ“š Preservando ${existing.lessons.length} lecciones con nombres completos para ${extracted.dateStr} ${extracted.startTime}`);
                 console.log(`      Lecciones preservadas:`, existing.lessons.map(l => `${l.lessonOrderIndex}: ${l.lessonTitle}`));
                 if (extracted.lessons.length > 0) {
                   console.log(`      Lecciones extraídas (descartadas - usando nombres completos existentes):`, extracted.lessons.map(l => `"${l.lessonTitle}"`));
@@ -8902,12 +9192,12 @@ Cuéntame:
 
               // Si no hay lecciones existentes, usar las extraídas (aunque puedan estar incompletas)
               if (extracted.lessons.length > 0) {
-                console.log(`   ⚠️ No hay lecciones existentes, usando ${extracted.lessons.length} lecciones extraídas`);
+                console.log(`   âš ï¸ No hay lecciones existentes, usando ${extracted.lessons.length} lecciones extraídas`);
                 return extracted;
               }
 
               // Si no hay lecciones válidas ni existentes, mantener el horario sin lecciones
-              console.log(`   ⚠️ No hay lecciones válidas para ${extracted.dateStr} ${extracted.startTime}`);
+              console.log(`   âš ï¸ No hay lecciones válidas para ${extracted.dateStr} ${extracted.startTime}`);
               return extracted;
             });
 
@@ -8928,12 +9218,12 @@ Cuéntame:
             return sortedSchedules;
           });
 
-          // ✅ CRÍTICO: Esperar un momento para que React actualice el estado antes de continuar
+          // ✅ CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
           // Esto asegura que el estado esté actualizado si el usuario confirma inmediatamente
           await new Promise(resolve => setTimeout(resolve, 100));
         } else {
           // Fusionar horarios extraídos con los existentes (para modificaciones menores)
-          console.log(`🔀 Fusionando ${extractedSchedules.length} horarios con los existentes`);
+          console.log(`ðŸ”€ Fusionando ${extractedSchedules.length} horarios con los existentes`);
 
           setSavedLessonDistribution(prev => {
             const updated = [...prev];
@@ -8956,12 +9246,12 @@ Cuéntame:
                   s.dateStr === extracted.dateStr && s.startTime === extracted.startTime
                 );
                 if (index >= 0) {
-                  // ✅ CRÍTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                  // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
                   // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
                   // Por seguridad, siempre preservamos los nombres completos existentes
                   const lessons = updated[index].lessons; // SIEMPRE usar las lecciones existentes con nombres completos
 
-                  console.log(`   ✏️ Actualizado horario: ${extracted.dateStr} ${extracted.startTime}`);
+                  console.log(`   âœï¸ Actualizado horario: ${extracted.dateStr} ${extracted.startTime}`);
                   console.log(`      Lecciones: ${lessons.length} preservadas (nombres completos)`);
                   if (lessons.length > 0) {
                     console.log(`      Nombres completos preservados:`, lessons.map(l => l.lessonTitle));
@@ -8978,7 +9268,7 @@ Cuéntame:
               } else {
                 // Agregar nuevo horario
                 updated.push(extracted);
-                console.log(`   ➕ Agregado nuevo horario: ${extracted.dateStr} ${extracted.startTime}`);
+                console.log(`   âž• Agregado nuevo horario: ${extracted.dateStr} ${extracted.startTime}`);
               }
             });
 
@@ -8998,20 +9288,20 @@ Cuéntame:
             return updated;
           });
 
-          // ✅ CRÍTICO: Esperar un momento para que React actualice el estado antes de continuar
+          // ✅ CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       } else {
-        console.log('⚠️ No se extrajeron horarios de la respuesta de LIA');
+        console.log('âš ï¸ No se extrajeron horarios de la respuesta de LIA');
         console.log(`   Estado actual de savedLessonDistribution: ${savedLessonDistribution.length} horarios`);
         console.log(`   ¿Es confirmación de horarios? ${isConfirmingSchedules}`);
         console.log(`   ¿Es resumen final? ${hasShownFinalSummary}`);
 
-        // ✅ CRÍTICO: Si LIA mostró un resumen pero no extrajimos horarios, 
+        // ✅ CRÃTICO: Si LIA mostró un resumen pero no extrajimos horarios, 
         // y el usuario está confirmando, debemos preservar el estado actual
         // Esto puede pasar si LIA no usa el formato exacto que el parser espera
         if (isConfirmingSchedules || hasShownFinalSummary) {
-          console.log('   ℹ️ LIA mostró resumen pero no se extrajeron horarios - preservando estado actual');
+          console.log('   â„¹ï¸ LIA mostró resumen pero no se extrajeron horarios - preservando estado actual');
           console.log(`   ✅ Manteniendo ${savedLessonDistribution.length} horarios existentes en savedLessonDistribution`);
         }
       }
@@ -9075,17 +9365,17 @@ Cuéntame:
         }
       }
 
-      // 🎯 DETECCIÓN DE CONFIRMACIÓN FINAL
+      // ðŸŽ¯ DETECCIÓN DE CONFIRMACIÓN FINAL
       // Si el usuario dijo "sí/ok" y LIA confirma guardado, ejecutar la acción real
       const isUserConfirmation = message.toLowerCase().match(/^(s[íi]|ok|claro|perfecto|me parece|est[áa] bien|adelante|dale|va|seguro|gracias|genial)/i);
       const liaConfirmsSaving = liaResponse.toLowerCase().match(/(guardad|guardar|xito|comenzar|dashboard|redireccion|creado|alegra|disfrut)/i);
 
       if (isUserConfirmation && liaConfirmsSaving && savedLessonDistribution.length > 0) {
-         console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
-         // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
-         setTimeout(() => {
-           executeFinalPlanSave();
-         }, 2000); 
+        console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
+        // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
+        setTimeout(() => {
+          executeFinalPlanSave();
+        }, 2000);
       }
 
       if (isAudioEnabled) {
@@ -9106,21 +9396,21 @@ Cuéntame:
   // Función para guardar el plan y redirigir
   const executeFinalPlanSave = async () => {
     try {
-      console.log('💾 Guardando plan de estudios...');
-      
+      console.log('ðŸ’¾ Guardando plan de estudios...');
+
       // FILTRADO PREVIO
-      const cleanDistribution = savedLessonDistribution.filter(slot => 
-          slot && 
-          slot.lessons && 
-          slot.lessons.length > 0
+      const cleanDistribution = savedLessonDistribution.filter(slot =>
+        slot &&
+        slot.lessons &&
+        slot.lessons.length > 0
       );
 
       if (cleanDistribution.length === 0) {
-        console.warn('⚠️ No hay lecciones para guardar (cleanDistribution empty)');
+        console.warn('âš ï¸ No hay lecciones para guardar (cleanDistribution empty)');
         return;
       }
-      
-      console.log(`ℹ️ Procesando ${cleanDistribution.length} sesiones. Primer slot:`, cleanDistribution[0]);
+
+      console.log(`â„¹ï¸ Procesando ${cleanDistribution.length} sesiones. Primer slot:`, cleanDistribution[0]);
 
       setIsProcessing(true);
 
@@ -9128,129 +9418,129 @@ Cuéntame:
       const daysSet = new Set<number>();
       const validTimestamps: number[] = [];
       const now = new Date();
-      
+
       // Transformar sesiones
       const sessions = cleanDistribution.map((slot, idx) => {
-         try {
-             // Normalizar fecha: reemplazar / y . por -
-             let cleanDate = (slot.dateStr || '').trim().replace(/[\/\.]/g, '-');
-             const cleanStart = (slot.startTime || '').trim();
-             const cleanEnd = (slot.endTime || '').trim();
+        try {
+          // Normalizar fecha: reemplazar / y . por -
+          let cleanDate = (slot.dateStr || '').trim().replace(/[\/\.]/g, '-');
+          const cleanStart = (slot.startTime || '').trim();
+          const cleanEnd = (slot.endTime || '').trim();
 
-             if (!cleanDate || !cleanStart || !cleanEnd) {
-                 console.warn(`⚠️ Slot ${idx} ignorado por falta de fecha/hora:`, slot);
-                 return null;
-             }
-             
-             // Intentar arreglar formatos de fecha raros
-             let dateParts = cleanDate.split('-').map(Number);
-             
-             // 1. Caso DD-MM-YYYY (año al final)
-             if (dateParts.length === 3 && dateParts[2] > 2000 && dateParts[0] <= 31) {
-                 // Convertir a YYYY-MM-DD
-                 const [d, m, y] = dateParts;
-                 cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                 dateParts = [y, m, d];
-             }
-             
-             // 2. REPARACIÓN EMERGENCIA: Caso texto "Lunes 5" o similar
-             if (dateParts.length !== 3 || dateParts.some(isNaN)) {
-                 const dayMatch = cleanDate.match(/(\d{1,2})/);
-                 if (dayMatch) {
-                     const day = parseInt(dayMatch[1], 10);
-                     if (day >= 1 && day <= 31) {
-                         // Adivinar mes y año (asumimos mes actual o siguiente)
-                         let year = now.getFullYear();
-                         let month = now.getMonth(); // 0-11
-                         
-                         // Creamos fecha candidata en mes actual
-                         let candidate = new Date(year, month, day);
-                         
-                         // Si el día es hoy o pasado (con margen de 5 días), asumimos mes siguiente
-                         if (day < now.getDate() - 5) {
-                             candidate = new Date(year, month + 1, day);
-                         }
-                         
-                         // Actualizar dateParts
-                         const y = candidate.getFullYear();
-                         const m = candidate.getMonth() + 1;
-                         const d = candidate.getDate();
-                         
-                         dateParts = [y, m, d];
-                         cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
-                         console.log(`🔧 Slot ${idx}: Fecha recuperada "${dayMatch[0]}" -> ${cleanDate}`);
-                     }
-                 }
-             }
-             
-             const startParts = cleanStart.split(':').map(Number);
-             const endParts = cleanEnd.split(':').map(Number);
-             
-             if (dateParts.length !== 3 || startParts.length < 2 || endParts.length < 2) {
-                 console.error(`❌ Formato inválido en slot ${idx}: Fecha=${cleanDate}, Hora=${cleanStart}-${cleanEnd}`);
-                 return null;
-             }
+          if (!cleanDate || !cleanStart || !cleanEnd) {
+            console.warn(`âš ï¸ Slot ${idx} ignorado por falta de fecha/hora:`, slot);
+            return null;
+          }
 
-             const [year, month, day] = dateParts;
-             const [startHour, startMin] = startParts;
-             const [endHour, endMin] = endParts;
+          // Intentar arreglar formatos de fecha raros
+          let dateParts = cleanDate.split('-').map(Number);
 
-             if ([year, month, day, startHour, startMin, endHour, endMin].some(n => isNaN(n))) {
-                  console.error(`❌ Datos no numéricos en slot ${idx} tras reparación`);
-                  return null;
-             }
+          // 1. Caso DD-MM-YYYY (año al final)
+          if (dateParts.length === 3 && dateParts[2] > 2000 && dateParts[0] <= 31) {
+            // Convertir a YYYY-MM-DD
+            const [d, m, y] = dateParts;
+            cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+            dateParts = [y, m, d];
+          }
 
-             const start = new Date(year, month - 1, day, startHour, startMin, 0);
-             const end = new Date(year, month - 1, day, endHour, endMin, 0);
-             
-             if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-                  console.error(`❌ Fecha inválida (Date obj) en slot ${idx}`);
-                  return null;
-             }
-             
-             validTimestamps.push(start.getTime());
-             daysSet.add(start.getDay());
+          // 2. REPARACIÓN EMERGENCIA: Caso texto "Lunes 5" o similar
+          if (dateParts.length !== 3 || dateParts.some(isNaN)) {
+            const dayMatch = cleanDate.match(/(\d{1,2})/);
+            if (dayMatch) {
+              const day = parseInt(dayMatch[1], 10);
+              if (day >= 1 && day <= 31) {
+                // Adivinar mes y año (asumimos mes actual o siguiente)
+                let year = now.getFullYear();
+                let month = now.getMonth(); // 0-11
 
-             // Descripción
-             const lessonsTitles = slot.lessons.map(l => l.lessonTitle).join(', ');
-             const description = `Lecciones: ${lessonsTitles}`.substring(0, 500); 
+                // Creamos fecha candidata en mes actual
+                let candidate = new Date(year, month, day);
 
-             // CourseId matchmaking
-             let courseId = null;
-             if (slot.lessons.length > 0 && assignedCourses.length > 0) {
-                const courseTitle = slot.lessons[0].courseTitle;
-                if (courseTitle) {
-                   const matchedCourse = assignedCourses.find(c => 
-                      c.title === courseTitle || 
-                      c.title?.includes(courseTitle) || 
-                      courseTitle.includes(c.title)
-                   );
-                   if (matchedCourse) {
-                      courseId = matchedCourse.courseId || matchedCourse.id;
-                   }
+                // Si el día es hoy o pasado (con margen de 5 días), asumimos mes siguiente
+                if (day < now.getDate() - 5) {
+                  candidate = new Date(year, month + 1, day);
                 }
-             }
 
-             return {
-               title: "Sesión de Estudio",
-               description,
-               startTime: start.toISOString(),
-               endTime: end.toISOString(),
-               courseId,
-               sessionType: 'medium',
-               isAiGenerated: true
-             };
-         } catch (e) {
-             console.error(`❌ Error inesperado procesando sesión ${idx}:`, e);
-             return null;
-         }
-      }).filter(Boolean); 
+                // Actualizar dateParts
+                const y = candidate.getFullYear();
+                const m = candidate.getMonth() + 1;
+                const d = candidate.getDate();
+
+                dateParts = [y, m, d];
+                cleanDate = `${y}-${m.toString().padStart(2, '0')}-${d.toString().padStart(2, '0')}`;
+                console.log(`ðŸ”§ Slot ${idx}: Fecha recuperada "${dayMatch[0]}" -> ${cleanDate}`);
+              }
+            }
+          }
+
+          const startParts = cleanStart.split(':').map(Number);
+          const endParts = cleanEnd.split(':').map(Number);
+
+          if (dateParts.length !== 3 || startParts.length < 2 || endParts.length < 2) {
+            console.error(`âŒ Formato inválido en slot ${idx}: Fecha=${cleanDate}, Hora=${cleanStart}-${cleanEnd}`);
+            return null;
+          }
+
+          const [year, month, day] = dateParts;
+          const [startHour, startMin] = startParts;
+          const [endHour, endMin] = endParts;
+
+          if ([year, month, day, startHour, startMin, endHour, endMin].some(n => isNaN(n))) {
+            console.error(`âŒ Datos no numéricos en slot ${idx} tras reparación`);
+            return null;
+          }
+
+          const start = new Date(year, month - 1, day, startHour, startMin, 0);
+          const end = new Date(year, month - 1, day, endHour, endMin, 0);
+
+          if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+            console.error(`âŒ Fecha inválida (Date obj) en slot ${idx}`);
+            return null;
+          }
+
+          validTimestamps.push(start.getTime());
+          daysSet.add(start.getDay());
+
+          // Descripción
+          const lessonsTitles = slot.lessons.map(l => l.lessonTitle).join(', ');
+          const description = `Lecciones: ${lessonsTitles}`.substring(0, 500);
+
+          // CourseId matchmaking
+          let courseId = null;
+          if (slot.lessons.length > 0 && assignedCourses.length > 0) {
+            const courseTitle = slot.lessons[0].courseTitle;
+            if (courseTitle) {
+              const matchedCourse = assignedCourses.find(c =>
+                c.title === courseTitle ||
+                c.title?.includes(courseTitle) ||
+                courseTitle.includes(c.title)
+              );
+              if (matchedCourse) {
+                courseId = matchedCourse.courseId || matchedCourse.id;
+              }
+            }
+          }
+
+          return {
+            title: "Sesión de Estudio",
+            description,
+            startTime: start.toISOString(),
+            endTime: end.toISOString(),
+            courseId,
+            sessionType: 'medium',
+            isAiGenerated: true
+          };
+        } catch (e) {
+          console.error(`âŒ Error inesperado procesando sesión ${idx}:`, e);
+          return null;
+        }
+      }).filter(Boolean);
 
       if (sessions.length === 0) {
-          console.error("❌ FATAL: Todas las sesiones fueron descartadas. Revise los logs anteriores.");
-          // Fallback de emergencia: Crear una sesión dummy para no bloquear warning
-          // O lanzar error explícito
-          throw new Error("No se pudieron generar sesiones válidas. Revisa el formato de fecha.");
+        console.error("âŒ FATAL: Todas las sesiones fueron descartadas. Revise los logs anteriores.");
+        // Fallback de emergencia: Crear una sesión dummy para no bloquear warning
+        // O lanzar error explícito
+        throw new Error("No se pudieron generar sesiones válidas. Revisa el formato de fecha.");
       }
 
       const minTime = validTimestamps.length > 0 ? Math.min(...validTimestamps) : Date.now();
@@ -9260,29 +9550,29 @@ Cuéntame:
       const preferredDays = Array.from(daysSet).sort();
 
       const config = {
-           name: `Plan Personalizado - ${new Date().toLocaleDateString('es-ES')}`,
-           description: `Plan generado por LIA el ${new Date().toLocaleString('es-ES')}`,
-           userType: userContext?.userType || 'b2b', 
-           timezone,
-           preferredDays: preferredDays.length > 0 ? preferredDays : [1, 2, 3, 4, 5], 
-           startDate,
-           endDate,
-           goalHoursPerWeek: 5, 
-           generationMode: 'ai_generated',
-           preferredTimeBlocks: [], 
-           courseIds: assignedCourses.map(c => c.courseId || c.id).filter(Boolean),
-           minSessionMinutes: 30,
-           maxSessionMinutes: 120,
-           breakDurationMinutes: 10,
-           preferredSessionType: 'medium',
-           calendarAnalyzed: !!connectedCalendar,
-           calendarProvider: connectedCalendar ? (connectedCalendar.toLowerCase().includes('google') ? 'google' : 'microsoft') : undefined
+        name: `Plan Personalizado - ${new Date().toLocaleDateString('es-ES')}`,
+        description: `Plan generado por LIA el ${new Date().toLocaleString('es-ES')}`,
+        userType: userContext?.userType || 'b2b',
+        timezone,
+        preferredDays: preferredDays.length > 0 ? preferredDays : [1, 2, 3, 4, 5],
+        startDate,
+        endDate,
+        goalHoursPerWeek: 5,
+        generationMode: 'ai_generated',
+        preferredTimeBlocks: [],
+        courseIds: assignedCourses.map(c => c.courseId || c.id).filter(Boolean),
+        minSessionMinutes: 30,
+        maxSessionMinutes: 120,
+        breakDurationMinutes: 10,
+        preferredSessionType: 'medium',
+        calendarAnalyzed: !!connectedCalendar,
+        calendarProvider: connectedCalendar ? (connectedCalendar.toLowerCase().includes('google') ? 'google' : 'microsoft') : undefined
       };
 
       const payload = { config, sessions };
 
-      console.log('📦 Enviando payload:', { 
-        sesiones: sessions.length, 
+      console.log('ðŸ“¦ Enviando payload:', {
+        sesiones: sessions.length,
         sample: sessions[0]
       });
 
@@ -9291,24 +9581,24 @@ Cuéntame:
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      
+
       const responseData = await response.json();
 
       if (response.ok && responseData.success) {
         console.log('✅ Plan guardado exitosamente:', responseData);
         if (currentUserId) {
-           const key = getStorageKey(currentUserId);
-           localStorage.removeItem(key);
+          const key = getStorageKey(currentUserId);
+          localStorage.removeItem(key);
         }
         router.push('/study-planner/dashboard');
       } else {
-        console.error('❌ Error API:', responseData.error);
+        console.error('âŒ Error API:', responseData.error);
         const errorText = `Error técnico al guardar: ${responseData.error}. Intenta confirmar de nuevo.`;
         setConversationHistory(prev => [...prev, { role: 'assistant', content: errorText }]);
         if (isAudioEnabled) await speakText('Hubo un error al guardar.');
       }
     } catch (error: any) {
-      console.error('❌ Error crítico en guardado:', error);
+      console.error('âŒ Error crítico en guardado:', error);
       const errorText = `Error inesperado: ${error.message || error}. Por favor contacta soporte.`;
       setConversationHistory(prev => [...prev, { role: 'assistant', content: errorText }]);
     } finally {
@@ -9353,36 +9643,36 @@ Cuéntame:
                 className="fixed inset-0 z-[10000] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
               >
                 <div className="bg-white dark:bg-[#0f172a] border border-gray-200 dark:border-purple-500/30 p-6 md:p-8 rounded-2xl shadow-2xl max-w-md w-full relative overflow-hidden">
-                   {/* Glow effect */}
-                   <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-                   <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
-                   
-                   <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
-                     <span className="text-2xl animate-pulse">💾</span> 
-                     <span>Recuperar conversación</span>
-                   </h3>
-                   
-                   <p className="text-gray-600 dark:text-slate-300 mb-6 text-[15px] leading-relaxed">
-                     Hemos detectado una sesión anterior guardada el <span className="text-purple-600 dark:text-purple-300 font-semibold">{savedSessionDate}</span>.
-                     <br/><br/>
-                     ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
-                   </p>
-                   
-                   <div className="flex gap-3 justify-end items-center">
-                     <button
-                       onClick={handleDiscardSession}
-                       className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 rounded-lg transition-all"
-                     >
-                       Empezar de nuevo
-                     </button>
-                     <button
-                       onClick={handleResumeSession}
-                       className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg shadow-lg shadow-purple-900/40 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
-                     >
-                       <Zap size={16} className="fill-current" />
-                       Continuar sesión
-                     </button>
-                   </div>
+                  {/* Glow effect */}
+                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
+                  <div className="absolute -top-20 -right-20 w-40 h-40 bg-purple-500/10 dark:bg-purple-500/20 blur-[50px] rounded-full pointing-events-none" />
+
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 flex items-center gap-3">
+                    <span className="text-2xl animate-pulse">ðŸ’¾</span>
+                    <span>Recuperar conversación</span>
+                  </h3>
+
+                  <p className="text-gray-600 dark:text-slate-300 mb-6 text-[15px] leading-relaxed">
+                    Hemos detectado una sesión anterior guardada el <span className="text-purple-600 dark:text-purple-300 font-semibold">{savedSessionDate}</span>.
+                    <br /><br />
+                    ¿Te gustaría restaurar el contexto y continuar donde lo dejaste, o prefieres empezar un nuevo plan desde cero?
+                  </p>
+
+                  <div className="flex gap-3 justify-end items-center">
+                    <button
+                      onClick={handleDiscardSession}
+                      className="px-4 py-2.5 text-sm font-medium text-gray-500 hover:text-gray-700 hover:bg-gray-100 dark:text-slate-400 dark:hover:text-white dark:hover:bg-white/5 rounded-lg transition-all"
+                    >
+                      Empezar de nuevo
+                    </button>
+                    <button
+                      onClick={handleResumeSession}
+                      className="px-6 py-2.5 text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-500 hover:to-blue-500 text-white rounded-lg shadow-lg shadow-purple-900/40 transition-all transform hover:scale-105 active:scale-95 flex items-center gap-2"
+                    >
+                      <Zap size={16} className="fill-current" />
+                      Continuar sesión
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -10044,11 +10334,11 @@ Cuéntame:
               </div>
             </div>
 
-            {/* Área de mensajes */}
+            {/* Ãrea de mensajes */}
             <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 min-h-0 bg-[#F8F9FA] dark:bg-[#0F1419]/50">
               <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
                 {/* Welcome message removed as per user request */}
-                
+
                 {conversationHistory.map((msg, idx) => (
                   <motion.div
                     key={idx}
@@ -10083,7 +10373,7 @@ Cuéntame:
                           />
                         </motion.div>
                       )}
-                      
+
                       {/* Avatar pequeño para móvil */}
                       {msg.role === 'assistant' && (
                         <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
@@ -10114,7 +10404,7 @@ Cuéntame:
                             : 'shadow-sm rounded-bl-[6px]'
                           } overflow-hidden max-w-full`}
                       >
-                       
+
 
                         {/* Contenido del mensaje */}
                         <div className="relative z-10 break-words">
@@ -10141,7 +10431,7 @@ Cuéntame:
                   >
                     <div className="flex items-end gap-2 sm:gap-2.5">
                       <div className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 shadow-lg flex-shrink-0">
-                         <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
+                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
                       </div>
                       <motion.div
                         className="relative bg-[#FFFFFF] dark:bg-[#1E2329] px-4 py-3 sm:px-5 sm:py-3.5 rounded-[20px] shadow-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-bl-[6px] overflow-hidden"
@@ -10170,9 +10460,10 @@ Cuéntame:
                     </div>
                   </motion.div>
                 )}
-                
+
                 {/* Spacer invisible para asegurar que el último mensaje no quede tapado por el input */}
                 <div className="h-2 sm:h-4"></div>
+
 
                 {/* Indicador de escucha */}
                 {isListening && (
@@ -10489,17 +10780,22 @@ Cuéntame:
 
                       {/* Opciones de calendario */}
                       <div className="space-y-4 mb-6">
-                        <div className="relative group grayscale">
+                        <div className="relative group">
                           <motion.button
-                            disabled={true}
-                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
+                            onClick={() => handleCalendarConnect('google')}
+                            disabled={isConnectingCalendar}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-white dark:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-md"
                           >
-                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Próximamente
-                            </div>
+                            {isConnectingCalendar && (
+                              <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-10">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#0A2540] dark:text-white" />
+                              </div>
+                            )}
 
                             {/* Icono de Google */}
-                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white">
                               <GoogleIcon />
                             </div>
 
@@ -10514,17 +10810,23 @@ Cuéntame:
                         </div>
 
                         {/* Microsoft Calendar - TEMPORALMENTE DESHABILITADO */}
-                        <div className="relative group grayscale">
+                        {/* Microsoft Calendar */}
+                        <div className="relative group">
                           <motion.button
-                            disabled={true}
-                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border border-[#E9ECEF] dark:border-[#6C757D]/30 opacity-60 cursor-not-allowed"
+                            onClick={() => handleCalendarConnect('microsoft')}
+                            disabled={isConnectingCalendar}
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            className="w-full flex items-center gap-3 p-4 rounded-xl transition-all relative overflow-hidden bg-white dark:bg-[#0A2540]/20 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-blue-500 dark:hover:border-blue-500 shadow-sm hover:shadow-md"
                           >
-                            <div className="absolute top-2 right-2 px-2 py-0.5 bg-gray-200 dark:bg-gray-700 rounded text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                              Próximamente
-                            </div>
+                            {isConnectingCalendar && (
+                              <div className="absolute inset-0 bg-white/50 dark:bg-black/50 flex items-center justify-center z-10">
+                                <Loader2 className="w-6 h-6 animate-spin text-[#0A2540] dark:text-white" />
+                              </div>
+                            )}
 
                             {/* Icono de Microsoft */}
-                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white opacity-50">
+                            <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm bg-white">
                               <svg viewBox="0 0 23 23" className="w-8 h-8">
                                 <path fill="#f25022" d="M1 1h10v10H1z" />
                                 <path fill="#00a4ef" d="M12 1h10v10H12z" />
@@ -10564,9 +10866,9 @@ Cuéntame:
                             setShowCalendarModal(false);
                             // Continuar con el calendario conectado - disparar flujo de éxito
                             const calendarType = connectedCalendar === 'google' ? 'Google Calendar' : 'Microsoft Outlook';
-                            setConversationHistory(prev => [...prev, { 
-                              role: 'assistant', 
-                              content: `¡Perfecto! Tu calendario de ${calendarType} está conectado. Continuemos con tu planificación.` 
+                            setConversationHistory(prev => [...prev, {
+                              role: 'assistant',
+                              content: `¡Perfecto! Tu calendario de ${calendarType} está conectado. Continuemos con tu planificación.`
                             }]);
                           } else {
                             // Si no hay calendario conectado, solo cerrar el modal
@@ -10654,8 +10956,8 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Quiero terminar rápido</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Más lecciones por día para completar el curso lo antes posible</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Ritmo intensivo</span>
-                                <span>• Máximo avance diario</span>
+                                <span>â€¢ Ritmo intensivo</span>
+                                <span>â€¢ Máximo avance diario</span>
                               </div>
                             </div>
                             {studyApproach === 'rapido' && (
@@ -10691,8 +10993,8 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tiempo razonable</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Distribución equilibrada para un ritmo cómodo y efectivo</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Ritmo equilibrado</span>
-                                <span>• Recomendado</span>
+                                <span>â€¢ Ritmo equilibrado</span>
+                                <span>â€¢ Recomendado</span>
                               </div>
                             </div>
                             {studyApproach === 'normal' && (
@@ -10728,8 +11030,8 @@ Cuéntame:
                               <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tomar mi tiempo</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Menos lecciones por día, usando todo el tiempo hasta la fecha límite</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>• Ritmo relajado</span>
-                                <span>• Máxima flexibilidad</span>
+                                <span>â€¢ Ritmo relajado</span>
+                                <span>â€¢ Máxima flexibilidad</span>
                               </div>
                             </div>
                             {studyApproach === 'largo' && (
@@ -10866,7 +11168,7 @@ Cuéntame:
 
                             // Validación crítica: si startingDayOfWeek es siempre 0, hay un problema
                             if (startingDayOfWeek < 0 || startingDayOfWeek > 6) {
-                              console.error('❌ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
+                              console.error('âŒ ERROR: startingDayOfWeek fuera de rango:', startingDayOfWeek);
                             }
 
                             const today = new Date();
@@ -10986,7 +11288,7 @@ Cuéntame:
               )}
             </AnimatePresence>
 
-            {/* Área de input */}
+            {/* Ãrea de input */}
             <div className="flex-shrink-0 bg-white dark:bg-[#0F1419] backdrop-blur-xl border-t border-[#E9ECEF] dark:border-[#6C757D]/30 px-3 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))] sm:px-4 sm:py-4">
               <div className="max-w-4xl mx-auto w-full">
                 <div className="flex items-center gap-2 sm:gap-3 w-full">

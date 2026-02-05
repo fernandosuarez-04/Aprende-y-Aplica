@@ -34,7 +34,7 @@ import { AdminCommunity } from '../services/adminCommunities.service'
 import { useRouter } from 'next/navigation'
 
 // ============================================
-// SOFIA DESIGN SYSTEM COLORS
+// SOFLIA DESIGN SYSTEM COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',

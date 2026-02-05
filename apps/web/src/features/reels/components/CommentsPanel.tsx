@@ -130,7 +130,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
           onClick={(e) => e.stopPropagation()}
           onWheel={(e) => e.stopPropagation()}
         >
-          {/* Header - Minimalista con SOFIA */}
+          {/* Header - Minimalista con SOFLIA */}
           <div className="bg-[#0A2540] dark:bg-[#0A2540] px-6 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -244,7 +244,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
             )}
           </div>
 
-          {/* Input de comentario - Minimalista SOFIA */}
+          {/* Input de comentario - Minimalista SOFLIA */}
           <div className="p-4 bg-white dark:bg-[#0F1419] border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
             <form onSubmit={handleSubmitComment} className="flex gap-3">
               <div className="flex-1">

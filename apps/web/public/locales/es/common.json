@@ -1,5 +1,5 @@
 {
-  "appName": "SOFIA",
+  "appName": "SOFLIA",
   "welcome": "Bienvenido",
   "language": "Idioma",
   "change_language": "Cambiar idioma",
@@ -44,7 +44,7 @@
     "helpPrompt": "¿Qué puedo hacer aquí? Ayúdame",
     "helpFallback": "Lo siento, no pude generar una respuesta.",
     "helpError": "Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.",
-    "initialMessage": "¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.",
+    "initialMessage": "¡Hola! ðŸ‘‹ Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.",
     "clearConversation": "Limpiar conversación",
     "changeMode": "Cambiar modo de Lia",
     "clearContext": "Limpiar contexto",
@@ -65,7 +65,7 @@
       "title": "NanoBanana Pro",
       "description": "Genera JSON estructurado para renderizado visual preciso.",
       "emptyDescription": "Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografías o diagramas y obtén esquemas precisos y reproducibles.",
-      "welcome": "🎨 ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografías (productos, marketing, lifestyle)\n• 📊 Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
+      "welcome": "ðŸŽ¨ ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\nâ€¢ 📱 UI/Wireframes (apps, dashboards, landing pages)\nâ€¢ ðŸ“¸ Fotografías (productos, marketing, lifestyle)\nâ€¢ ðŸ“Š Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
       "viewJson": "Ver JSON NanoBanana"
     },
     "contextMode": {
@@ -195,7 +195,7 @@
       "title": "Capacitación en IA con",
       "highlight": "impacto medible",
       "titleEnd": "para tu organización",
-      "description": "SOFIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.",
+      "description": "SOFLIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.",
       "ctaPrimary": "Agendar demo ejecutiva",
       "ctaSecondary": "Solicitar diagnóstico",
       "benefits": {
@@ -205,7 +205,7 @@
       }
     },
     "logoWall": {
-      "title": "Organizaciones que confían en SOFIA"
+      "title": "Organizaciones que confían en SOFLIA"
     },
     "lia": {
       "badge": "Inteligencia Artificial",
@@ -262,7 +262,7 @@
     "platform": {
       "tag": "La Plataforma",
       "title": "Capacitación corporativa potenciada por inteligencia artificial",
-      "description": "SOFIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.",
+      "description": "SOFLIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.",
       "features": {
         "aiTraining": {
           "title": "Capacitación en IA",
@@ -384,7 +384,7 @@
     "roi": {
       "tag": "Impacto Medible",
       "title": "ROI que habla por sí mismo",
-      "subtitle": "Resultados reales de organizaciones que transformaron su capacitación con SOFIA",
+      "subtitle": "Resultados reales de organizaciones que transformaron su capacitación con SOFLIA",
       "metrics": {
         "onboarding": "Reducción tiempo de onboarding",
         "savings": "Ahorro anual estimado",
@@ -396,7 +396,7 @@
     "integrations": {
       "tag": "Integraciones",
       "title": "Se integra con tu stack corporativo",
-      "description": "Conecta SOFIA con tus herramientas existentes para una experiencia sin fricciones. Despliegue ágil con sincronización de calendarios, compatibilidad e-learning y opciones para integraciones personalizadas.",
+      "description": "Conecta SOFLIA con tus herramientas existentes para una experiencia sin fricciones. Despliegue ágil con sincronización de calendarios, compatibilidad e-learning y opciones para integraciones personalizadas.",
       "features": {
         "calendar": "Sincronización con Google Calendar y Microsoft Outlook",
         "elearning": "Compatible con SCORM",
@@ -442,7 +442,7 @@
       },
       "preview": {
         "online": "En línea",
-        "message": "¡Hola! 👋 Soy LIA, tu asistente de aprendizaje. Estoy aquí para ayudarte a alcanzar tus metas de capacitación. ¿En qué puedo ayudarte hoy?",
+        "message": "¡Hola! ðŸ‘‹ Soy LIA, tu asistente de aprendizaje. Estoy aquí para ayudarte a alcanzar tus metas de capacitación. ¿En qué puedo ayudarte hoy?",
         "placeholder": "Escribe tu pregunta..."
       }
     },
@@ -501,7 +501,7 @@
       "items": {
         "roi": {
           "question": "¿Cómo se mide el ROI de la capacitación?",
-          "answer": "SOFIA proporciona dashboards con métricas clave: tasa de completitud, tiempo de capacitación, certificaciones obtenidas y correlación con indicadores de negocio. Puedes exportar reportes para justificar la inversión ante dirección."
+          "answer": "SOFLIA proporciona dashboards con métricas clave: tasa de completitud, tiempo de capacitación, certificaciones obtenidas y correlación con indicadores de negocio. Puedes exportar reportes para justificar la inversión ante dirección."
         },
         "implementation": {
           "question": "¿Cuál es el tiempo de implementación?",
@@ -509,7 +509,7 @@
         },
         "integration": {
           "question": "¿Cómo se integra con sistemas existentes?",
-          "answer": "SOFIA ofrece integración nativa con Google Calendar y Microsoft Outlook. Para CRM, HRIS y otros sistemas, proporcionamos integración documentada para sincronización."
+          "answer": "SOFLIA ofrece integración nativa con Google Calendar y Microsoft Outlook. Para CRM, HRIS y otros sistemas, proporcionamos integración documentada para sincronización."
         },
         "governance": {
           "question": "¿Cómo se gobierna el acceso y la trazabilidad?",
@@ -517,7 +517,7 @@
         },
         "multilingual": {
           "question": "¿Cómo soporta multi-idioma?",
-          "answer": "SOFIA está disponible en español, inglés y portugués. LIA detecta automáticamente el idioma del usuario y responde en ese idioma. El contenido puede estar disponible en múltiples idiomas."
+          "answer": "SOFLIA está disponible en español, inglés y portugués. LIA detecta automáticamente el idioma del usuario y responde en ese idioma. El contenido puede estar disponible en múltiples idiomas."
         },
         "certificates": {
           "question": "¿Cómo funciona la certificación verificable?",
@@ -536,7 +536,7 @@
     "cta": {
       "tag": "Comienza Hoy",
       "title": "Transforma la capacitación de tu organización",
-      "subtitle": "Agenda una demo ejecutiva y descubre cómo SOFIA puede impulsar el desarrollo de tu equipo con resultados medibles.",
+      "subtitle": "Agenda una demo ejecutiva y descubre cómo SOFLIA puede impulsar el desarrollo de tu equipo con resultados medibles.",
       "form": {
         "name": "Tu nombre",
         "email": "tu@empresa.com",

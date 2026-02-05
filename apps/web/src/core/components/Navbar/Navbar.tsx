@@ -27,11 +27,10 @@ export function Navbar() {
 
   return (
     <motion.nav
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
           ? 'backdrop-blur-md border-b navbar-scrolled'
           : 'bg-transparent'
-      }`}
+        }`}
       initial={{ y: -100 }}
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.25, 0.46, 0.45, 0.94] }}
@@ -48,9 +47,9 @@ export function Navbar() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <motion.div 
+            <motion.div
               className="w-14 h-14 rounded-xl flex items-center justify-center overflow-hidden relative"
-              animate={isActivated ? { 
+              animate={isActivated ? {
                 rotate: [0, 360, 0],
                 scale: [1, 1.2, 1]
               } : {}}
@@ -73,10 +72,10 @@ export function Navbar() {
                 />
               )}
             </motion.div>
-            <span 
-              className="font-bold text-xl hidden sm:block text-[#0A2540] dark:text-white uppercase tracking-tight" 
-              style={{ 
-                fontFamily: 'Inter, sans-serif', 
+            <span
+              className="font-bold text-xl hidden sm:block text-[#0A2540] dark:text-white uppercase tracking-tight"
+              style={{
+                fontFamily: 'Inter, sans-serif',
                 fontWeight: 800,
                 letterSpacing: '-0.02em'
               }}
@@ -86,7 +85,7 @@ export function Navbar() {
                 Learning
               </span>
             </span>
-            
+
             {/* Contador oculto - solo para debugging */}
             {clickCount > 0 && clickCount < 5 && (
               <div className="sr-only">

@@ -66,7 +66,7 @@
 }
 
 :root {
-  /* Nueva Paleta SOFIA - Colores Principales */
+  /* Nueva Paleta SOFLIA - Colores Principales */
   --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
@@ -75,7 +75,7 @@
   
   /* Colores Secundarios */
   --color-success: #10B981; /* Verde Suave - Logro y progreso */
-  --color-warning: #F59E0B; /* Amarillo Ámbar Suave - Alerta y foco */
+  --color-warning: #F59E0B; /* Amarillo Ãmbar Suave - Alerta y foco */
   --color-error: #ef4444;
   --color-secondary: #8b5cf6; /* Mantener para compatibilidad */
   
@@ -100,7 +100,7 @@
 
 /* Light mode variables */
 .light {
-  /* Nueva Paleta SOFIA - Modo Claro */
+  /* Nueva Paleta SOFLIA - Modo Claro */
   --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #ffffff; /* Fondo claro en modo light */
@@ -109,7 +109,7 @@
   
   /* Colores Secundarios */
   --color-success: #10B981; /* Verde Suave */
-  --color-warning: #F59E0B; /* Amarillo Ámbar Suave */
+  --color-warning: #F59E0B; /* Amarillo Ãmbar Suave */
   --color-error: #ef4444;
   --color-secondary: #8b5cf6;
   
@@ -134,7 +134,7 @@
 
 /* Dark mode variables (explicit) */
 .dark {
-  /* Nueva Paleta SOFIA - Modo Oscuro */
+  /* Nueva Paleta SOFLIA - Modo Oscuro */
   --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
@@ -143,7 +143,7 @@
   
   /* Colores Secundarios */
   --color-success: #10B981; /* Verde Suave */
-  --color-warning: #F59E0B; /* Amarillo Ámbar Suave */
+  --color-warning: #F59E0B; /* Amarillo Ãmbar Suave */
   --color-error: #ef4444;
   --color-secondary: #8b5cf6;
   
@@ -283,7 +283,7 @@ a {
 }
 
 .navbar-logo-text {
-  background: linear-gradient(135deg, #0A2540 0%, #0A2540 100%); /* SOFIA Deep Blue */
+  background: linear-gradient(135deg, #0A2540 0%, #0A2540 100%); /* SOFLIA Deep Blue */
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -464,7 +464,7 @@ a {
   }
 }
 
-/* Gradient text - Nueva Paleta SOFIA */
+/* Gradient text - Nueva Paleta SOFLIA */
 .gradient-text {
   background: linear-gradient(135deg, #0A2540 0%, #00D4B3 50%, #00D4B3 100%); /* Azul Profundo a Aqua */
   -webkit-background-clip: text;
@@ -1232,7 +1232,7 @@ a {
   border: 1px solid rgba(71, 85, 105, 0.5);
 }
 
-/* Button enhancements - Nueva Paleta SOFIA */
+/* Button enhancements - Nueva Paleta SOFLIA */
 .btn-primary {
   @apply bg-[#0A2540] hover:bg-[#0d2f4d] text-white shadow-lg shadow-[#0A2540]/25 rounded-xl py-3 px-6 font-medium transition-all duration-300; /* Azul Profundo */
 }
@@ -1249,7 +1249,7 @@ a {
   @apply bg-[#00D4B3] hover:bg-[#00b89a] text-white shadow-lg shadow-[#00D4B3]/25 rounded-xl py-3 px-6 font-medium transition-all duration-300; /* Aqua */
 }
 
-/* Text gradients - Nueva Paleta SOFIA */
+/* Text gradients - Nueva Paleta SOFLIA */
 .text-gradient-blue {
   background: linear-gradient(135deg, #0A2540 0%, #00D4B3 100%); /* Azul Profundo a Aqua */
   -webkit-background-clip: text;

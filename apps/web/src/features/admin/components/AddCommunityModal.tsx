@@ -24,7 +24,7 @@ import {
 import { ImageUpload } from './ImageUpload'
 
 // ============================================
-// SOFIA DESIGN SYSTEM COLORS
+// SOFLIA DESIGN SYSTEM COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',
@@ -590,7 +590,7 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                     onChange={handleChange}
                     icon={<Globe className="w-5 h-5" />}
                     options={[
-                      { value: 'public', label: '🌐 Pública - Visible para todos' },
+                      { value: 'public', label: 'ðŸŒ Pública - Visible para todos' },
                       { value: 'private', label: '🔒 Privada - Solo miembros' }
                     ]}
                     required
@@ -604,8 +604,8 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                     icon={<Lock className="w-5 h-5" />}
                     options={[
                       { value: 'open', label: '✅ Abierto - Cualquiera puede unirse' },
-                      { value: 'moderated', label: '👀 Moderado - Requiere aprobación' },
-                      { value: 'invite_only', label: '✉️ Solo invitación' }
+                      { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobación' },
+                      { value: 'invite_only', label: 'âœ‰ï¸ Solo invitación' }
                     ]}
                     required
                   />

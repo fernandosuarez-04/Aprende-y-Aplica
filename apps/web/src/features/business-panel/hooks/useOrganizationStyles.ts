@@ -55,15 +55,15 @@ export function useOrganizationStyles() {
       }
     }
 
-    // Si styles es null pero tenemos tema por defecto, usar SOFIA con el modo actual
+    // Si styles es null pero tenemos tema por defecto, usar SOFLIA con el modo actual
     if (!styles) {
-      const defaultModeStyles = getThemeStylesForMode('sofia', resolvedTheme);
+      const defaultModeStyles = getThemeStylesForMode('SOFLIA', resolvedTheme);
       if (defaultModeStyles) {
         return {
           panel: defaultModeStyles.panel,
           userDashboard: defaultModeStyles.userDashboard,
           login: defaultModeStyles.login,
-          selectedTheme: 'sofia',
+          selectedTheme: 'SOFLIA',
           supportsDualMode: true,
         };
       }

@@ -68,18 +68,23 @@ export async function PUT(
       // Intentar actualizarlo directamente en Google Calendar
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, provider')
+        .select('access_token, provider, metadata')
         .eq('user_id', user.id)
         .eq('provider', 'google')
         .single();
 
       if (integration?.access_token) {
         try {
-          // Actualizar en Google Calendar
+          // Obtener el ID del calendario secundario donde se crean los eventos
+          const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+          const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+          // Actualizar en Google Calendar usando el calendario secundario
           await updateGoogleCalendarEvent(
             integration.access_token,
             id, // Usar el ID como google_event_id
-            { title, description, start, end, location, isAllDay }
+            { title, description, start, end, location, isAllDay },
+            secondaryCalendarId
           );
 
           // Crear o actualizar entrada local para sincronización futura
@@ -157,18 +162,23 @@ export async function PUT(
       // Obtener integración de Google
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, refresh_token, provider')
+        .select('access_token, refresh_token, provider, metadata')
         .eq('user_id', user.id)
         .eq('provider', 'google')
         .single();
 
       if (integration?.access_token) {
         try {
-          // Actualizar en Google Calendar usando el google_event_id
+          // Obtener el ID del calendario secundario donde se crean los eventos
+          const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+          const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+          // Actualizar en Google Calendar usando el calendario secundario
           await updateGoogleCalendarEvent(
             integration.access_token,
             existingEvent.google_event_id,
-            { title, description, start, end, location, isAllDay }
+            { title, description, start, end, location, isAllDay },
+            secondaryCalendarId
           );
         } catch (error) {
           console.error('Error actualizando en Google Calendar:', error);
@@ -246,7 +256,7 @@ export async function DELETE(
       // Intentar eliminarlo directamente de Google Calendar
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, refresh_token, provider, expires_at')
+        .select('access_token, refresh_token, provider, expires_at, metadata')
         .eq('user_id', user.id)
         .eq('provider', 'google')
         .single();
@@ -256,7 +266,7 @@ export async function DELETE(
           // Verificar si el token está expirado y refrescarlo si es necesario
           let accessToken = integration.access_token;
           const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
-          
+
           if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
 
             const refreshResult = await refreshAccessToken(integration);
@@ -274,8 +284,12 @@ export async function DELETE(
             }
           }
 
-          // Eliminar de Google Calendar usando el ID como google_event_id
-          await deleteGoogleCalendarEvent(accessToken, id);
+          // Obtener el ID del calendario secundario donde se crean los eventos
+          const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+          const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+          // Eliminar de Google Calendar usando el calendario secundario
+          await deleteGoogleCalendarEvent(accessToken, id, secondaryCalendarId);
           return NextResponse.json({
             success: true,
             message: 'Evento eliminado exitosamente',
@@ -300,7 +314,7 @@ export async function DELETE(
     if (existingEvent.provider === 'google' && existingEvent.google_event_id) {
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, refresh_token, provider, expires_at')
+        .select('access_token, refresh_token, provider, expires_at, metadata')
         .eq('user_id', user.id)
         .eq('provider', 'google')
         .single();
@@ -310,7 +324,7 @@ export async function DELETE(
           // Verificar si el token está expirado y refrescarlo si es necesario
           let accessToken = integration.access_token;
           const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
-          
+
           if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
 
             const refreshResult = await refreshAccessToken(integration);
@@ -328,10 +342,15 @@ export async function DELETE(
             }
           }
 
-          // Eliminar de Google Calendar
+          // Obtener el ID del calendario secundario donde se crean los eventos
+          const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+          const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+          // Eliminar de Google Calendar usando el calendario secundario
           await deleteGoogleCalendarEvent(
             accessToken,
-            existingEvent.google_event_id
+            existingEvent.google_event_id,
+            secondaryCalendarId
           );
         } catch (error: any) {
           console.error('Error eliminando de Google Calendar:', error);
@@ -370,6 +389,10 @@ export async function DELETE(
 
 /**
  * Actualiza un evento en Google Calendar
+ * @param accessToken - Token de acceso de Google
+ * @param eventId - ID del evento a actualizar
+ * @param eventData - Datos del evento a actualizar
+ * @param calendarId - ID del calendario (si no se proporciona, usa 'primary')
  */
 async function updateGoogleCalendarEvent(
   accessToken: string,
@@ -381,10 +404,14 @@ async function updateGoogleCalendarEvent(
     end: string;
     location?: string;
     isAllDay?: boolean;
-  }
+  },
+  calendarId?: string | null
 ) {
+  // Usar el calendario secundario si se proporciona, si no usar 'primary'
+  const targetCalendarId = calendarId || 'primary';
+
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${eventId}`,
     {
       method: 'PUT',
       headers: {
@@ -490,16 +517,22 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
 /**
  * Elimina un evento de Google Calendar
+ * @param accessToken - Token de acceso de Google
+ * @param googleEventId - ID del evento a eliminar
+ * @param calendarId - ID del calendario (si no se proporciona, usa 'primary')
  */
 async function deleteGoogleCalendarEvent(
   accessToken: string,
-  googleEventId: string
+  googleEventId: string,
+  calendarId?: string | null
 ) {
   // Limpiar el ID del evento (puede venir con formato de recurrencia)
   const cleanEventId = googleEventId.split('_')[0];
-  
+  // Usar el calendario secundario si se proporciona, si no usar 'primary'
+  const targetCalendarId = calendarId || 'primary';
+
   const response = await fetch(
-    `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(cleanEventId)}`,
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${encodeURIComponent(cleanEventId)}`,
     {
       method: 'DELETE',
       headers: {

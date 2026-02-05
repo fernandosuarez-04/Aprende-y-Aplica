@@ -493,7 +493,8 @@
       "assigning": "Asignando...",
       "cancel": "Cancelar",
       "suggestDate": "Sugerir con LIA",
-      "suggesting": "Sugiriendo..."
+      "suggesting": "Sugiriendo...",
+      "confirmAssign": "Confirmar Asignación"
     },
     "errors": {
       "selectUser": "Debes seleccionar al menos un usuario",

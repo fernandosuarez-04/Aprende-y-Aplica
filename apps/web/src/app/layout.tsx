@@ -30,7 +30,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  title: 'SOFLIA Learning',
+  title: 'SOFLIA',
   description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
   keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
   authors: [{ name: 'Equipo SOFLIA' }],
@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang="es" className={`${inter.variable} ${montserrat.variable}`} suppressHydrationWarning>
       <head>
-        {/* 🔧 Script para manejar errores de chunks (ChunkLoadError) */}
+        {/* ðŸ”§ Script para manejar errores de chunks (ChunkLoadError) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -91,7 +91,7 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('❌ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                     return true;
@@ -118,7 +118,7 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('❌ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                   }
@@ -133,7 +133,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* 🎨 Script para aplicar tema antes del render (evita flash) */}
+        {/* ðŸŽ¨ Script para aplicar tema antes del render (evita flash) */}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -202,7 +202,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="theme-color" content="#3b82f6" />
 
-        {/* 🎨 Splash Screens iOS */}
+        {/* ðŸŽ¨ Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
       <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`} suppressHydrationWarning>
@@ -215,19 +215,19 @@ export default function RootLayout({
                     <OrganizationProvider>
                       <OrganizationStylesProvider>
                         <LiaPanelProvider>
-                        <PrefetchManager />
-                        <AuthSecurityGuard>
-                          <ContentWrapper>
-                            {children}
-                          </ContentWrapper>
-                        </AuthSecurityGuard>
-                        {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons - Removed
+                          <PrefetchManager />
+                          <AuthSecurityGuard>
+                            <ContentWrapper>
+                              {children}
+                            </ContentWrapper>
+                          </AuthSecurityGuard>
+                          {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons - Removed
                         <ConditionalAIChatAgent /> */}
-                        {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
-                        <OnboardingAgent />
-                        
+                          {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
+                          <OnboardingAgent />
 
-                      </LiaPanelProvider>
+
+                        </LiaPanelProvider>
                       </OrganizationStylesProvider>
                     </OrganizationProvider>
                   </NotificationProvider>

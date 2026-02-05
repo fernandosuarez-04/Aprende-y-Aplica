@@ -28,7 +28,7 @@ import { AdminEditCompanyModal } from './AdminEditCompanyModal'
 import { AdminCreateCompanyModal, CreateCompanyData } from './AdminCreateCompanyModal'
 
 // ============================================
-// DESIGN SYSTEM - SOFIA COLORS
+// DESIGN SYSTEM - SOFLIA COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',
@@ -293,7 +293,7 @@ function CompanyCard({ company, onView, onEdit, onToggle, isUpdating }: CompanyC
         <div className="mb-5">
           <div className="flex justify-between text-xs mb-1.5" style={{ color: colors.grayMedium }}>
             <span>Uso de licencias</span>
-            <span>{company.active_users} / {company.max_users || '∞'}</span>
+            <span>{company.active_users} / {company.max_users || 'âˆž'}</span>
           </div>
           <div
             className="h-2 rounded-full overflow-hidden"
@@ -673,7 +673,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
                 className="text-center p-3 rounded-lg"
                 style={{ backgroundColor: `${colors.accent}15` }}
               >
-                <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || '∞'}</p>
+                <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || 'âˆž'}</p>
                 <p className="text-[10px]" style={{ color: colors.grayMedium }}>Máximo</p>
               </div>
             </div>

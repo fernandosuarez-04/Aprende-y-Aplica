@@ -47,7 +47,7 @@ import { useAuth } from '@/features/auth/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
 
 // ============================================
-// REPORTE DE ANÁLISIS LIA (NUEVO)
+// REPORTE DE ANÃLISIS LIA (NUEVO)
 // ============================================
 function LiaAnalysisReport({ data }: { data: any }) {
   const { styles } = useOrganizationStylesContext()
@@ -253,7 +253,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
             </div>
             <div style={{ textAlign: 'right', fontSize: '11px', color: '#64748b', lineHeight: '1.5' }}>
                 <p style={{ margin: 0 }}><strong>Organización:</strong> {orgName}</p>
-                <p style={{ margin: 0 }}><strong>Generado por:</strong> {user?.display_name || 'Sistema SOFIA'}</p>
+                <p style={{ margin: 0 }}><strong>Generado por:</strong> {user?.display_name || 'Sistema SOFLIA'}</p>
                 <p style={{ margin: 0 }}><strong>Fecha de Emisión:</strong> {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
         </div>
@@ -281,7 +281,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
         {/* Footer */}
         <div style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', paddingTop: '15px', fontSize: '10px', color: '#94a3b8', textAlign: 'center', display: 'flex', justifyContent: 'space-between' }}>
             <span>Confidencial - Uso exclusivo de {orgName}</span>
-            <span>SOFIA | {new Date().getFullYear()}</span>
+            <span>SOFLIA | {new Date().getFullYear()}</span>
         </div>
       </div>
 
@@ -306,7 +306,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-500">
-                                Análisis Predictivo SOFIA LIA
+                                Análisis Predictivo SOFLIA LIA
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Reporte ejecutivo generado con Inteligencia Artificial
@@ -358,7 +358,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
                 </div>
                 
                 <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-gray-400">
-                    <span>Generado por SOFIA AI Engine</span>
+                    <span>Generado por SOFLIA AI Engine</span>
                     <span>{new Date().toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                 </div>
             </div>

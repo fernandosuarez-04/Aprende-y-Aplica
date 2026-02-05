@@ -88,6 +88,7 @@ class EmailService {
     return this.isConfigured(config);
   }
 
+
   /**
    * Envía email de recuperación de contraseña
    *
@@ -113,9 +114,9 @@ class EmailService {
 
     try {
       const info = await this.transporter.sendMail({
-        from: `"SOFIA" <${process.env.SMTP_USER}>`,
+        from: `"SOFLIA" <noreply@soflia.com>`,
         to,
-        subject: 'Recuperación de Contraseña - SOFIA',
+        subject: 'Recuperación de Contraseña - SOFLIA',
         text: textContent,
         html: htmlContent,
       });
@@ -218,7 +219,7 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">🔐 Aprende y Aplica</div>
+            <div class="logo">ðŸ” Aprende y Aplica</div>
             <h1>Recuperación de Contraseña</h1>
           </div>
 
@@ -228,7 +229,7 @@ class EmailService {
 
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" class="button">
-              🔓 Restablecer mi contraseña
+              ðŸ”“ Restablecer mi contraseña
             </a>
           </div>
 
@@ -241,7 +242,7 @@ class EmailService {
           </div>
 
           <div class="warning">
-            <strong>⚠️ Importante:</strong>
+            <strong>âš ï¸ Importante:</strong>
             <ul>
               <li>Este enlace expira en <strong>1 hora</strong></li>
               <li>Solo puedes usar este enlace una vez</li>
@@ -330,7 +331,7 @@ Este es un email automático, por favor no respondas a este mensaje.
 
     try {
       const info = await this.transporter.sendMail({
-        from: `"${organizationName}" <${process.env.SMTP_USER}>`,
+        from: `"${organizationName}" <noreply@soflia.com>`,
         to,
         subject: `Invitación a ${organizationName}`,
         text: textContent,
@@ -362,8 +363,8 @@ Este es un email automático, por favor no respondas a este mensaje.
     organizationLogoUrl?: string
   ): string {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-    const sofiaLogoUrl = `${appUrl}/Logo.png`;
-    
+    const SOFLIALogoUrl = `${appUrl}/Logo.png`;
+
     return `
       <!DOCTYPE html>
       <html lang="es">
@@ -392,7 +393,7 @@ Este es un email automático, por favor no respondas a este mensaje.
             padding: 28px 40px;
             text-align: center;
           }
-          .sofia-logo {
+          .SOFLIA-logo {
             height: 60px;
             width: auto;
             margin-bottom: 0;
@@ -451,7 +452,7 @@ Este es un email automático, por favor no respondas a este mensaje.
             font-weight: 500;
             font-size: 15px;
             letter-spacing: 0.3px;
-          }
+            }
           .divider {
             height: 1px;
             background-color: #e5e5e5;
@@ -526,7 +527,7 @@ Este es un email automático, por favor no respondas a este mensaje.
       <body>
         <div class="container">
           <div class="header">
-            <img src="${sofiaLogoUrl}" alt="SOFIA" class="sofia-logo" />
+            <img src="${SOFLIALogoUrl}" alt="SOFLIA" class="SOFLIA-logo" />
           </div>
 
           <div class="org-section">
@@ -569,9 +570,9 @@ Este es un email automático, por favor no respondas a este mensaje.
           </div>
 
           <div class="footer">
-            <img src="${sofiaLogoUrl}" alt="SOFIA" class="footer-logo" />
+            <img src="${SOFLIALogoUrl}" alt="SOFLIA" class="footer-logo" />
             <p class="footer-text">Este es un mensaje automático. Por favor, no responda a este correo.</p>
-            <p class="footer-copyright">&copy; ${new Date().getFullYear()} SOFIA. Todos los derechos reservados.</p>
+            <p class="footer-copyright">&copy; ${new Date().getFullYear()} SOFLIA. Todos los derechos reservados.</p>
           </div>
         </div>
       </body>

@@ -125,12 +125,12 @@ export function generateBrandingTheme(branding: BrandingColors): ThemeConfig {
 }
 
 export const PRESET_THEMES: Record<string, ThemeConfig> = {
-  // SOFIA - Tema oficial unificado con soporte para modo claro y oscuro
-  sofia: {
-    id: "sofia",
-    name: "SOFIA",
+  // SOFLIA - Tema oficial unificado con soporte para modo claro y oscuro
+  SOFLIA: {
+    id: "SOFLIA",
+    name: "SOFLIA",
     description:
-      "Tema oficial basado en el Sistema de Diseño SOFIA con soporte para modo claro y oscuro",
+      "Tema oficial basado en el Sistema de Diseño SOFLIA con soporte para modo claro y oscuro",
     supportsDualMode: true,
     // Modo oscuro (configuración por defecto)
     panel: {
@@ -223,12 +223,12 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
   },
 };
 
-export const DEFAULT_THEME = "sofia";
+export const DEFAULT_THEME = "SOFLIA";
 
 export function getThemeById(themeId: string): ThemeConfig | null {
   // Compatibilidad con temas legacy
-  if (themeId === 'sofia-predeterminado' || themeId === 'sofia-claro') {
-    return PRESET_THEMES['sofia'] || null;
+  if (themeId === 'SOFLIA-predeterminado' || themeId === 'SOFLIA-claro') {
+    return PRESET_THEMES['SOFLIA'] || null;
   }
   return PRESET_THEMES[themeId] || null;
 }
@@ -248,8 +248,8 @@ export function getThemeStylesForMode(
   mode: 'light' | 'dark'
 ): ThemeModeStyles | null {
   // Compatibilidad con temas legacy
-  const effectiveThemeId = (themeId === 'sofia-predeterminado' || themeId === 'sofia-claro') 
-    ? 'sofia' 
+  const effectiveThemeId = (themeId === 'SOFLIA-predeterminado' || themeId === 'SOFLIA-claro') 
+    ? 'SOFLIA' 
     : themeId;
     
   const theme = PRESET_THEMES[effectiveThemeId];

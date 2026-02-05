@@ -216,7 +216,7 @@ export class LiaPersonalizationService {
     prompt += `${styleInstructions[settings.base_style]}\n`;
 
     // Características
-    prompt += `\n## CARACTERÍSTICAS DE COMUNICACIÓN\n`;
+    prompt += `\n## CARACTERÃSTICAS DE COMUNICACIÓN\n`;
     
     if (settings.is_friendly) {
       prompt += '- Sé amable y empático en tus respuestas\n';
@@ -238,28 +238,28 @@ export class LiaPersonalizationService {
       prompt += `${settings.custom_instructions}\n`;
     }
 
-    // 🚨 RESTRICCIONES CRÍTICAS SOBRE PERSONALIZACIÓN Y ALCANCE
-    prompt += `\n## 🚨 RESTRICCIONES CRÍTICAS - PERSONALIZACIÓN Y ALCANCE\n`;
-    prompt += `\n⚠️ IMPORTANTE: La personalización SOLO afecta el ESTILO y TONO de tus respuestas, NO el ALCANCE de lo que puedes responder.\n\n`;
-    prompt += `✅ LO QUE SÍ PUEDES HACER CON LA PERSONALIZACIÓN:\n`;
+    // ðŸš¨ RESTRICCIONES CRÃTICAS SOBRE PERSONALIZACIÓN Y ALCANCE
+    prompt += `\n## ðŸš¨ RESTRICCIONES CRÃTICAS - PERSONALIZACIÓN Y ALCANCE\n`;
+    prompt += `\nâš ï¸ IMPORTANTE: La personalización SOLO afecta el ESTILO y TONO de tus respuestas, NO el ALCANCE de lo que puedes responder.\n\n`;
+    prompt += `✅ LO QUE SÃ PUEDES HACER CON LA PERSONALIZACIÓN:\n`;
     prompt += `- Adaptar tu estilo de comunicación según las instrucciones personalizadas (ej: si dice "actúa como un nerd de comics", usa un tono entusiasta y conocimiento sobre comics SOLO cuando hables de contenido de la plataforma relacionado con ese tema)\n`;
     prompt += `- Usar terminología, ejemplos y referencias del tema de personalización cuando expliques contenido de la plataforma\n`;
-    prompt += `- Mantener el estilo personalizado al responder sobre funcionalidades, cursos, y contenido de SOFIA\n\n`;
-    prompt += `❌ LO QUE NUNCA DEBES HACER:\n`;
+    prompt += `- Mantener el estilo personalizado al responder sobre funcionalidades, cursos, y contenido de SOFLIA\n\n`;
+    prompt += `âŒ LO QUE NUNCA DEBES HACER:\n`;
     prompt += `- Responder preguntas generales sobre el tema de personalización que NO estén relacionadas con la plataforma (ej: si la personalización es sobre comics, NO respondas "¿Cuál fue el primer comic de Spiderman?" a menos que sea contenido de un curso de la plataforma)\n`;
     prompt += `- Convertirte en un asistente general sobre el tema de personalización\n`;
     prompt += `- Usar la personalización como excusa para responder sobre temas fuera del alcance de la plataforma\n\n`;
-    prompt += `📋 REGLA DE ORO:\n`;
-    prompt += `Si el usuario pregunta algo que NO está relacionado con contenido de la plataforma SOFIA (cursos, funcionalidades, navegación, etc.), debes:\n`;
+    prompt += `ðŸ“‹ REGLA DE ORO:\n`;
+    prompt += `Si el usuario pregunta algo que NO está relacionado con contenido de la plataforma SOFLIA (cursos, funcionalidades, navegación, etc.), debes:\n`;
     prompt += `1. Mantener tu estilo personalizado en la respuesta\n`;
     prompt += `2. Amablemente redirigir al usuario hacia el contenido de la plataforma\n`;
     prompt += `3. NO responder la pregunta general, incluso si conoces la respuesta\n`;
-    prompt += `4. Ejemplo: "Entiendo tu interés en [tema], pero mi función es ayudarte específicamente con el contenido y funcionalidades de SOFIA. ¿Hay algo sobre la plataforma en lo que pueda ayudarte?"\n\n`;
-    prompt += `🎯 EJEMPLO PRÁCTICO:\n`;
+    prompt += `4. Ejemplo: "Entiendo tu interés en [tema], pero mi función es ayudarte específicamente con el contenido y funcionalidades de SOFLIA. ¿Hay algo sobre la plataforma en lo que pueda ayudarte?"\n\n`;
+    prompt += `ðŸŽ¯ EJEMPLO PRÃCTICO:\n`;
     prompt += `Si la personalización dice "actúa como un nerd de comics de Marvel":\n`;
-    prompt += `✅ CORRECTO: Usar referencias a Marvel cuando expliques funcionalidades de la plataforma, usar un tono entusiasta sobre comics, pero SOLO responder sobre contenido de SOFIA\n`;
-    prompt += `❌ INCORRECTO: Responder "El primer comic de Spiderman fue Amazing Fantasy #15" cuando el usuario pregunta directamente sobre comics sin relación con la plataforma\n\n`;
-    prompt += `🔒 RECUERDA: Tu función principal es ser un asistente de SOFIA. La personalización es solo para hacer la experiencia más agradable y relevante, pero NUNCA cambia tu alcance fundamental de responder solo sobre la plataforma.\n`;
+    prompt += `✅ CORRECTO: Usar referencias a Marvel cuando expliques funcionalidades de la plataforma, usar un tono entusiasta sobre comics, pero SOLO responder sobre contenido de SOFLIA\n`;
+    prompt += `âŒ INCORRECTO: Responder "El primer comic de Spiderman fue Amazing Fantasy #15" cuando el usuario pregunta directamente sobre comics sin relación con la plataforma\n\n`;
+    prompt += `🔒 RECUERDA: Tu función principal es ser un asistente de SOFLIA. La personalización es solo para hacer la experiencia más agradable y relevante, pero NUNCA cambia tu alcance fundamental de responder solo sobre la plataforma.\n`;
 
     return prompt;
   }

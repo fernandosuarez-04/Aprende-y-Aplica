@@ -3,16 +3,16 @@ import { LandingPageContent, BusinessPageContent } from '@aprende-y-aplica/share
 // Mock data - En el futuro esto vendrá de una API
 const mockLandingPageContent: LandingPageContent = {
   hero: {
-    tag: "➤ SOFIA",
-    title: "SOFIA: Domina la IA que transformará tu",
+    tag: "âž¤ SOFLIA",
+    title: "SOFLIA: Domina la IA que transformará tu",
     highlightWord: "futuro",
     description: "Conviértete en experto aplicado: fundamentos claros, herramientas que importan, y hábitos de aprendizaje continuo para destacar en la era de la inteligencia artificial.",
     ctaText: "Iniciar Sesión",
     benefits: [
-      "✓ Fundamentos de IA sin complicarte",
-      "✓ Herramientas que realmente importan",
-      "✓ Experiencia personalizada a tu perfil",
-      "✓ Hábitos de aprendizaje continuo"
+      "âœ“ Fundamentos de IA sin complicarte",
+      "âœ“ Herramientas que realmente importan",
+      "âœ“ Experiencia personalizada a tu perfil",
+      "âœ“ Hábitos de aprendizaje continuo"
     ]
   },
   features: {
@@ -84,16 +84,16 @@ const mockLandingPageContent: LandingPageContent = {
 // Mock data para Business Page
 const mockBusinessPageContent: BusinessPageContent = {
   hero: {
-    tag: "🚀 SOFIA Business",
+    tag: "🚀 SOFLIA Business",
     title: "Soluciones IA para",
     highlightWord: "tu organización",
     description: "Ya seas una empresa buscando capacitar a tu equipo o un instructor profesional, tenemos la plataforma perfecta para ti.",
     ctaText: "Contactar Ventas",
     benefits: [
-      "✓ Soluciones personalizadas para empresas",
-      "✓ Herramientas profesionales para instructores",
-      "✓ Analytics y reportes detallados",
-      "✓ Soporte dedicado"
+      "âœ“ Soluciones personalizadas para empresas",
+      "âœ“ Herramientas profesionales para instructores",
+      "âœ“ Analytics y reportes detallados",
+      "âœ“ Soporte dedicado"
     ]
   },
   benefits: {
@@ -567,11 +567,11 @@ const mockBusinessPageContent: BusinessPageContent = {
       }
     ],
     benefits: [
-      "✓ Retención alta: hasta 80% de comisiones",
-      "✓ Crea cursos ilimitados sin restricciones",
-      "✓ Promoción automática a nuestra audiencia",
-      "✓ Pagos seguros y puntuales cada mes",
-      "✓ Herramientas de marketing incluidas"
+      "âœ“ Retención alta: hasta 80% de comisiones",
+      "âœ“ Crea cursos ilimitados sin restricciones",
+      "âœ“ Promoción automática a nuestra audiencia",
+      "âœ“ Pagos seguros y puntuales cada mes",
+      "âœ“ Herramientas de marketing incluidas"
     ],
     process: {
       title: "Cómo Convertirte en Instructor",

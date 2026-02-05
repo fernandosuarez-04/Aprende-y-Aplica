@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
-// ⚡ OPTIMIZACIÓN: Lazy load de AuthTabs (contiene RegisterForm pesado)
+// âš¡ OPTIMIZACIÓN: Lazy load de AuthTabs (contiene RegisterForm pesado)
 const AuthTabs = dynamic(
   () => import('../../features/auth/components/AuthTabs').then(mod => ({ default: mod.AuthTabs })),
   {

@@ -142,7 +142,7 @@ export function BusinessThemeCustomizer() {
     setSaveSuccess(null);
 
     try {
-      // console.log('💾 Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
+      // console.log('ðŸ’¾ Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
 
       const success = await updateStyles(
         panelStyles || undefined,
@@ -161,7 +161,7 @@ export function BusinessThemeCustomizer() {
         setTimeout(() => setSaveError(null), 3000);
       }
     } catch (err: any) {
-      // console.error('❌ Error al guardar estilos:', err);
+      // console.error('âŒ Error al guardar estilos:', err);
       setSaveError(err.message || 'Error al guardar estilos');
       setTimeout(() => setSaveError(null), 3000);
     } finally {
@@ -327,9 +327,9 @@ export function BusinessThemeCustomizer() {
   // Obtener icono para cada tema
   const getThemeIcon = (themeId: string) => {
     const icons: Record<string, string> = {
-      'sofia': 'T', // Tema SOFIA unificado
-      'sofia-predeterminado': 'T', // Compatibilidad legacy
-      'sofia-claro': 'T', // Compatibilidad legacy
+      'SOFLIA': 'T', // Tema SOFLIA unificado
+      'SOFLIA-predeterminado': 'T', // Compatibilidad legacy
+      'SOFLIA-claro': 'T', // Compatibilidad legacy
       'corporativo-azul': 'A',
       'ejecutivo-oscuro': 'D',
       'premium-dorado': 'B',
@@ -338,7 +338,7 @@ export function BusinessThemeCustomizer() {
       'tecnologia-verde': 'B',
       'financiero-proceso': 'B',
       'recursos-procesado': 'K',
-      'branding-personalizado': '★'
+      'branding-personalizado': 'â˜…'
     }
     return icons[themeId] || 'T'
   }
@@ -360,7 +360,7 @@ export function BusinessThemeCustomizer() {
     if (selectedTheme === themeId) return true;
     
     // Compatibilidad con temas legacy
-    if (themeId === 'sofia' && (selectedTheme === 'sofia-predeterminado' || selectedTheme === 'sofia-claro')) {
+    if (themeId === 'SOFLIA' && (selectedTheme === 'SOFLIA-predeterminado' || selectedTheme === 'SOFLIA-claro')) {
       return true;
     }
     
@@ -490,7 +490,7 @@ export function BusinessThemeCustomizer() {
               {/* Dual Mode Theme Badge */}
               {theme.supportsDualMode && theme.id !== 'branding-personalizado' && (
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center gap-0.5">
-                  <span>☀️</span><span>/</span><span>🌙</span>
+                  <span>â˜€ï¸</span><span>/</span><span>ðŸŒ™</span>
                 </div>
               )}
             </motion.button>
@@ -531,10 +531,10 @@ export function BusinessThemeCustomizer() {
                   Gradiente
                 </label>
                 <div className="space-y-4">
-                  {/* Selector de Ángulo */}
+                  {/* Selector de Ãngulo */}
                   <div>
                     <label className="block text-xs mb-2" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      Ángulo: {gradientAngle}°
+                      Ãngulo: {gradientAngle}Â°
                     </label>
                     <input
                       type="range"
@@ -547,8 +547,8 @@ export function BusinessThemeCustomizer() {
                       style={{
                         accentColor: 'var(--org-primary-button-color, #3b82f6)'
                       }}
-                      title={`Ángulo del gradiente: ${gradientAngle}°`}
-                      aria-label={`Ángulo del gradiente: ${gradientAngle}°`}
+                      title={`Ãngulo del gradiente: ${gradientAngle}Â°`}
+                      aria-label={`Ãngulo del gradiente: ${gradientAngle}Â°`}
                     />
                   </div>
 
@@ -579,7 +579,7 @@ export function BusinessThemeCustomizer() {
                                 className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
                                 style={{ fontSize: '10px' }}
                               >
-                                ×
+                                Ã—
                               </button>
                             )}
                           </div>

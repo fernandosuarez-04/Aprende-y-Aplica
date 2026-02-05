@@ -1,15 +1,15 @@
 /**
- * 🤖 Proactive LIA Assistant Component
+ * ðŸ¤– Proactive LIA Assistant Component
  * 
  * Componente que muestra intervenciones proactivas de LIA cuando
  * se detectan patrones de dificultad en la sesión del usuario.
  * 
  * Características:
  * - ✨ Animación suave de entrada
- * - 💬 Mensaje contextual de LIA
+ * - ðŸ’¬ Mensaje contextual de LIA
  * - ✅ Botón para aceptar ayuda
- * - ❌ Botón para dismissar
- * - 🔔 Notificación no intrusiva
+ * - âŒ Botón para dismissar
+ * - ðŸ”” Notificación no intrusiva
  */
 
 'use client';
@@ -151,11 +151,11 @@ export function ProactiveLIAAssistant({
     }
   };
 
-  // Icono según severidad - usando colores del sistema SOFIA
+  // Icono según severidad - usando colores del sistema SOFLIA
   const getSeverityIcon = () => {
     const highSeverityPattern = analysis.patterns.find((p: any) => p.severity === 'high');
     if (highSeverityPattern) {
-      return <AlertCircle className="w-5 h-5" style={{ color: '#F59E0B' }} />; // Ámbar suave
+      return <AlertCircle className="w-5 h-5" style={{ color: '#F59E0B' }} />; // Ãmbar suave
     }
     return <HelpCircle className="w-5 h-5" style={{ color: themeColors.primary }} />;
   };
@@ -163,7 +163,7 @@ export function ProactiveLIAAssistant({
   // Color de la barra de progreso según el score
   const getProgressColor = () => {
     if (analysis.overallScore >= 0.7) {
-      return '#F59E0B'; // Ámbar para alta dificultad
+      return '#F59E0B'; // Ãmbar para alta dificultad
     } else if (analysis.overallScore >= 0.4) {
       return themeColors.accent; // Aqua para dificultad media
     }
@@ -251,7 +251,7 @@ export function ProactiveLIAAssistant({
                 </div>
               </div>
 
-              {/* Botones de acción - estilo SOFIA */}
+              {/* Botones de acción - estilo SOFLIA */}
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleAccept}

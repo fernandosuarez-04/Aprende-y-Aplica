@@ -1,7 +1,7 @@
 /**
  * PlatformContextProvider
  * 
- * Provee contexto general sobre la plataforma SOFIA a LIA.
+ * Provee contexto general sobre la plataforma SOFLIA a LIA.
  * Incluye información de funcionalidades, módulos activos y capacidades.
  */
 
@@ -104,9 +104,9 @@ export class PlatformContextProvider extends BaseContextProvider {
   private buildPlatformContext(contextType: string, currentPage?: string): string {
     const sections: string[] = [];
 
-    sections.push('## CONTEXTO DE LA PLATAFORMA SOFIA');
+    sections.push('## CONTEXTO DE LA PLATAFORMA SOFLIA');
     sections.push('');
-    sections.push('SOFIA es una plataforma de aprendizaje corporativo con IA integrada.');
+    sections.push('SOFLIA es una plataforma de aprendizaje corporativo con IA integrada.');
     sections.push('');
 
     // Módulos relevantes según la página actual

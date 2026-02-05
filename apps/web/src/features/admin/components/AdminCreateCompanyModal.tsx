@@ -17,7 +17,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 // ============================================
-// DESIGN SYSTEM - SOFIA COLORS
+// DESIGN SYSTEM - SOFLIA COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',
@@ -303,7 +303,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                     </div>
                     <h2 className="text-2xl font-bold text-white">Nueva Organización</h2>
                   </div>
-                  <p className="text-sm text-gray-400 ml-12">Crea una nueva empresa en la plataforma SOFIA</p>
+                  <p className="text-sm text-gray-400 ml-12">Crea una nueva empresa en la plataforma SOFLIA</p>
                 </div>
                 <button 
                   onClick={onClose} 
@@ -346,7 +346,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                  <div>
                                     <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">Slug (URL) <span className="text-xs text-gray-500">- auto-generado</span></label>
                                     <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-4 py-3 transition-colors focus-within:border-white/20 focus-within:ring-1 focus-within:ring-white/20">
-                                       <span className="text-gray-500 text-sm select-none mr-1">app.sofia.com/</span>
+                                       <span className="text-gray-500 text-sm select-none mr-1">app.SOFLIA.com/</span>
                                        <input 
                                          type="text" 
                                          value={formData.slug} 
@@ -637,10 +637,10 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                               <div className="text-sm text-gray-400">
                                  <p className="mb-2"><strong className="text-white">¿Qué sucederá después?</strong></p>
                                  <ul className="space-y-1 text-xs">
-                                    <li>• Se creará la organización con la configuración especificada</li>
-                                    <li>• El propietario recibirá un email con un enlace para registrarse</li>
-                                    <li>• La invitación expira en 7 días</li>
-                                    <li>• Podrás ver el estado de la invitación en el panel de administración</li>
+                                    <li>â€¢ Se creará la organización con la configuración especificada</li>
+                                    <li>â€¢ El propietario recibirá un email con un enlace para registrarse</li>
+                                    <li>â€¢ La invitación expira en 7 días</li>
+                                    <li>â€¢ Podrás ver el estado de la invitación en el panel de administración</li>
                                  </ul>
                               </div>
                            </div>

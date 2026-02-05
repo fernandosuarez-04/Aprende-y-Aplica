@@ -53,10 +53,10 @@ export async function loginAction(formData: FormData) {
       cargo_rol: user.cargo_rol
     });
 
-    // ⭐ MODERACIÓN: Verificar si el usuario está baneado
+    // â­ MODERACIÓN: Verificar si el usuario está baneado
     if ((user as any).is_banned) {
       return {
-        error: `❌ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
+        error: `âŒ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
         banned: true
       }
     }
@@ -187,7 +187,7 @@ export async function loginAction(formData: FormData) {
         headersList.get('x-real-ip') ||
         'unknown'
 
-      console.log('📋 [loginAction] Contexto obtenido:', {
+      console.log('ðŸ“‹ [loginAction] Contexto obtenido:', {
         hasHeaders: !!headersList,
         userAgent: userAgent.substring(0, 50),
         ip
@@ -241,7 +241,7 @@ export async function loginAction(formData: FormData) {
 
       // Crear notificación de login (con timeout para no bloquear demasiado)
       try {
-        logger.info('🔔 Iniciando creación de notificación de login', { userId: user.id })
+        logger.info('ðŸ”” Iniciando creación de notificación de login', { userId: user.id })
         const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
 
         // Usar Promise.race con timeout para no bloquear el login más de 2 segundos
@@ -256,9 +256,9 @@ export async function loginAction(formData: FormData) {
         ]).catch((error) => {
           // Si es timeout, continuar sin bloquear
           if (error instanceof Error && error.message === 'Timeout') {
-            logger.warn('⏱️ Timeout en notificación de login, continuando', { userId: user.id })
+            logger.warn('â±ï¸ Timeout en notificación de login, continuando', { userId: user.id })
           } else {
-            logger.error('❌ Error en notificación de login:', {
+            logger.error('âŒ Error en notificación de login:', {
               userId: user.id,
               error: error instanceof Error ? error.message : String(error)
             })
@@ -267,7 +267,7 @@ export async function loginAction(formData: FormData) {
         logger.info('✅ Notificación de login procesada', { userId: user.id })
       } catch (notificationError) {
         // Log del error pero no bloquear el login
-        logger.error('❌ Error en notificación de login:', {
+        logger.error('âŒ Error en notificación de login:', {
           userId: user.id,
           error: notificationError instanceof Error ? notificationError.message : String(notificationError)
         })
@@ -275,7 +275,7 @@ export async function loginAction(formData: FormData) {
 
     } catch (sessionError) {
       // Log del error para debugging
-      console.error('❌ [loginAction] Error crítico creando sesión:', {
+      console.error('âŒ [loginAction] Error crítico creando sesión:', {
         error: sessionError,
         message: (sessionError as any)?.message,
         stack: (sessionError as any)?.stack
@@ -298,21 +298,21 @@ export async function loginAction(formData: FormData) {
         .eq('id', user.id)
       
       if (updateLoginError) {
-        console.warn('⚠️ No se pudo actualizar last_login_at:', updateLoginError)
+        console.warn('âš ï¸ No se pudo actualizar last_login_at:', updateLoginError)
       }
     } catch (loginUpdateError) {
       // No fallar el login si falla la actualización del timestamp
     }
 
     // 8. REDIRECCIÓN BASADA EN CARGO_ROL (Enfoque B2B)
-    // - Administrador → /admin/dashboard
-    // - Instructor → /instructor/dashboard (Panel de Instructor)
-    // - Business → /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organización
-    // - Business User → /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
-    // - Usuario (o cualquier otro) → /dashboard (Tour SOFIA + Planes)
+    // - Administrador â†’ /admin/dashboard
+    // - Instructor â†’ /instructor/dashboard (Panel de Instructor)
+    // - Business â†’ /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organización
+    // - Business User â†’ /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
+    // - Usuario (o cualquier otro) â†’ /dashboard (Tour SOFLIA + Planes)
 
     const normalizedRole = user.cargo_rol?.toLowerCase().trim();
-    console.log('🎯 [loginAction] Determinando redirección según cargo_rol:', {
+    console.log('ðŸŽ¯ [loginAction] Determinando redirección según cargo_rol:', {
       cargo_rol: user.cargo_rol,
       normalizedRole
     });
@@ -336,7 +336,7 @@ export async function loginAction(formData: FormData) {
         .order('joined_at', { ascending: true })
 
       if (orgError || !userOrgs || userOrgs.length === 0) {
-        console.log('⚠️ [loginAction] Usuario Business sin organización activa:', {
+        console.log('âš ï¸ [loginAction] Usuario Business sin organización activa:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           error: orgError?.message
@@ -344,7 +344,7 @@ export async function loginAction(formData: FormData) {
         redirectTo = '/dashboard'; // Sin organización, ir al dashboard normal
       } else if (userOrgs.length > 1) {
         // Usuario pertenece a MÚLTIPLES organizaciones - mostrar selector
-        console.log('🏢 [loginAction] Usuario Business con múltiples organizaciones:', {
+        console.log('ðŸ¢ [loginAction] Usuario Business con múltiples organizaciones:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationCount: userOrgs.length

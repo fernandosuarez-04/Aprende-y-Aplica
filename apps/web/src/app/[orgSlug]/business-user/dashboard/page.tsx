@@ -97,13 +97,13 @@ export default function BusinessUserDashboardPage() {
   // Colores personalizados de la organización con detección de modo
   const { resolvedTheme } = useThemeStore()
   const isSystemLightMode = resolvedTheme === 'light'
-  
+
   const orgColors = useMemo(() => {
     const cardBg = userDashboardStyles?.card_background || (isSystemLightMode ? '#FFFFFF' : '#1E2329')
-    const isLightMode = cardBg.toLowerCase() === '#ffffff' || 
-                        cardBg.toLowerCase() === '#f8fafc' ||
-                        isSystemLightMode
-    
+    const isLightMode = cardBg.toLowerCase() === '#ffffff' ||
+      cardBg.toLowerCase() === '#f8fafc' ||
+      isSystemLightMode
+
     return {
       primary: userDashboardStyles?.primary_button_color || '#0A2540',
       accent: userDashboardStyles?.accent_color || '#00D4B3',
@@ -115,11 +115,11 @@ export default function BusinessUserDashboardPage() {
       // Colores secundarios que se adaptan al modo
       textSecondary: isLightMode ? '#64748B' : '#9CA3AF',
       textMuted: isLightMode ? '#94A3B8' : '#6B7280',
-      // Color de iconos: aqua en modo oscuro para visibilidad (SOFIA Design System)
-      iconColor: isLightMode 
+      // Color de iconos: aqua en modo oscuro para visibilidad (SOFLIA Design System)
+      iconColor: isLightMode
         ? (userDashboardStyles?.primary_button_color || '#0A2540')
         : (userDashboardStyles?.accent_color || '#00D4B3'),
-      heroBg: isLightMode 
+      heroBg: isLightMode
         ? 'linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 50%, #F8FAFC 100%)'
         : 'linear-gradient(135deg, #0a1628 0%, #0f1e30 50%, #0d1a2a 100%)',
       heroOverlay: isLightMode
@@ -371,9 +371,9 @@ export default function BusinessUserDashboardPage() {
     >
       {/* Modern Navbar - Siempre ocupa el ancho completo, NO se desplaza */}
       <Suspense fallback={
-        <nav 
-          className="sticky top-0 z-50 w-full backdrop-blur-xl h-16" 
-          style={{ 
+        <nav
+          className="sticky top-0 z-50 w-full backdrop-blur-xl h-16"
+          style={{
             backgroundColor: orgColors.sidebarBg,
             borderBottom: `1px solid ${orgColors.border}`
           }}
@@ -397,7 +397,7 @@ export default function BusinessUserDashboardPage() {
         className="relative overflow-hidden min-h-[calc(100vh-4rem)]"
       >
         {/* Background gradient - static, no heavy effects */}
-        <div 
+        <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background: `radial-gradient(ellipse at 50% 0%, ${orgColors.primary}08 0%, transparent 50%)`,
@@ -417,10 +417,10 @@ export default function BusinessUserDashboardPage() {
               className="relative overflow-hidden rounded-3xl p-8 group"
             >
               {/* Background with layered gradients - no image dependency */}
-              <div className="absolute inset-0 z-0 overflow-hidden" 
-                   style={{ 
-                     backgroundColor: orgColors.primary !== '#FFFFFF' ? orgColors.primary : '#0A2540' 
-                   }}
+              <div className="absolute inset-0 z-0 overflow-hidden"
+                style={{
+                  backgroundColor: orgColors.primary !== '#FFFFFF' ? orgColors.primary : '#0A2540'
+                }}
               >
                 {/* Background Image */}
                 <Image
@@ -430,14 +430,14 @@ export default function BusinessUserDashboardPage() {
                   className="object-cover opacity-50"
                   priority
                 />
-                
+
                 {/* Gradient Overlay for Depth & Text Contrast */}
-                <div 
-                    className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/20 to-transparent pointer-events-none z-0"
+                <div
+                  className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/20 to-transparent pointer-events-none z-0"
                 />
 
                 {/* Subtle grid pattern */}
-                <div 
+                <div
                   className="absolute inset-0 opacity-[0.1]"
                   style={{
                     backgroundImage: `
@@ -447,15 +447,15 @@ export default function BusinessUserDashboardPage() {
                     backgroundSize: '50px 50px'
                   }}
                 />
-                
+
                 {/* Accent glow on right side */}
-                <div 
+                <div
                   className="absolute -right-20 top-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-[120px]"
                   style={{ backgroundColor: `${orgColors.accent}20` }}
                 />
-                
+
                 {/* Secondary glow */}
-                <div 
+                <div
                   className="absolute right-1/4 bottom-0 w-64 h-64 rounded-full blur-[100px]"
                   style={{ backgroundColor: `${orgColors.primary}15` }}
                 />
@@ -474,7 +474,7 @@ export default function BusinessUserDashboardPage() {
                 className="absolute top-1/2 right-16 w-1 h-1 rounded-full z-10 opacity-40"
                 style={{ backgroundColor: orgColors.primary }}
               />
-              <div 
+              <div
                 className="absolute bottom-12 right-32 w-3 h-3 rounded-full"
                 style={{ backgroundColor: `${orgColors.primary}40` }}
               />
@@ -517,7 +517,7 @@ export default function BusinessUserDashboardPage() {
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.5 }}
                 >
-                  <div 
+                  <div
                     className="flex items-center gap-2 text-sm"
                     style={{ color: 'rgba(255,255,255,0.7)' }}
                   >
@@ -589,9 +589,9 @@ export default function BusinessUserDashboardPage() {
                       <div
                         key={stat.label}
                         className="rounded-2xl p-5 animate-pulse h-32"
-                        style={{ 
+                        style={{
                           backgroundColor: orgColors.cardBg,
-                          border: `1px solid ${orgColors.border}` 
+                          border: `1px solid ${orgColors.border}`
                         }}
                       />
                     ))}
@@ -651,7 +651,7 @@ export default function BusinessUserDashboardPage() {
                 initial={{ opacity: 0, scale: 0.98 }}
                 animate={{ opacity: 1, scale: 1 }}
                 className="relative overflow-hidden rounded-2xl backdrop-blur-xl p-12 text-center"
-                style={{ 
+                style={{
                   backgroundColor: orgColors.cardBg,
                   border: `1px solid ${orgColors.border}`
                 }}
@@ -713,7 +713,7 @@ export default function BusinessUserDashboardPage() {
                       <div
                         key={index}
                         className="rounded-2xl animate-pulse h-80"
-                        style={{ 
+                        style={{
                           backgroundColor: orgColors.cardBg,
                           border: `1px solid ${orgColors.border}`
                         }}

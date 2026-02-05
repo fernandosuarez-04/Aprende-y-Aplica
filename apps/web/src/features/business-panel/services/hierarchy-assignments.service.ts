@@ -66,7 +66,7 @@ async function fetchApi<T>(
 }
 
 export class HierarchyAssignmentsService {
-  private static basePath = '/api/business/hierarchy/courses'
+
 
   /**
    * Crea una nueva asignación jerárquica de cursos
@@ -74,7 +74,7 @@ export class HierarchyAssignmentsService {
   static async createAssignment(
     request: CreateHierarchyAssignmentRequest
   ): Promise<CreateHierarchyAssignmentResponse> {
-    return fetchApi(`${this.basePath}/assign`, {
+    return fetchApi(`/assign`, {
       method: 'POST',
       body: JSON.stringify(request)
     })
@@ -87,7 +87,7 @@ export class HierarchyAssignmentsService {
     filters?: HierarchyAssignmentFilters
   ): Promise<HierarchyCourseAssignment[]> {
     const params = new URLSearchParams()
-    
+
     if (filters?.entity_type) params.append('entity_type', filters.entity_type)
     if (filters?.entity_id) params.append('entity_id', filters.entity_id)
     if (filters?.course_id) params.append('course_id', filters.course_id)
@@ -95,8 +95,8 @@ export class HierarchyAssignmentsService {
     if (filters?.limit) params.append('limit', filters.limit.toString())
     if (filters?.offset) params.append('offset', filters.offset.toString())
 
-    const result = await fetchApi<ListHierarchyAssignmentsResponse>(
-      `${this.basePath}/assignments?${params.toString()}`
+    const result = await fetchApi<HierarchyCourseAssignment[]>(
+      `/assignments?${params.toString()}`
     )
 
     return result.success && result.data ? result.data : []
@@ -108,8 +108,8 @@ export class HierarchyAssignmentsService {
   static async getAssignment(
     assignmentId: string
   ): Promise<HierarchyCourseAssignment | null> {
-    const result = await fetchApi<GetHierarchyAssignmentResponse>(
-      `${this.basePath}/assignments/${assignmentId}`
+    const result = await fetchApi<HierarchyCourseAssignment>(
+      `/assignments/${assignmentId}`
     )
 
     return result.success && result.data ? result.data : null
@@ -122,8 +122,8 @@ export class HierarchyAssignmentsService {
     assignmentId: string,
     request: UpdateHierarchyAssignmentRequest
   ): Promise<HierarchyCourseAssignment | null> {
-    const result = await fetchApi<GetHierarchyAssignmentResponse>(
-      `${this.basePath}/assignments/${assignmentId}`,
+    const result = await fetchApi<HierarchyCourseAssignment>(
+      `/assignments/${assignmentId}`,
       {
         method: 'PUT',
         body: JSON.stringify(request)
@@ -138,7 +138,7 @@ export class HierarchyAssignmentsService {
    */
   static async cancelAssignment(assignmentId: string): Promise<boolean> {
     const result = await fetchApi<{ success: boolean; message?: string }>(
-      `${this.basePath}/assignments/${assignmentId}`,
+      `/assignments/${assignmentId}`,
       {
         method: 'DELETE'
       }

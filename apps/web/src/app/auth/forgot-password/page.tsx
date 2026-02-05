@@ -2,7 +2,7 @@ import { Suspense } from 'react';
 import { ForgotPasswordForm } from '../../../features/auth/components/ForgotPasswordForm';
 
 export const metadata = {
-  title: 'Recuperar Contraseña | SOFIA',
+  title: 'Recuperar Contraseña | SOFLIA',
   description: 'Solicita un enlace para restablecer tu contraseña',
 };
 
