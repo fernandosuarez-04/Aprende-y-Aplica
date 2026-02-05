@@ -66,7 +66,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     
     const supabase = createAdminClient();
     
-    // âœ… CORRECCIÓN URGENTE: Obtener las sesiones con el plan para obtener la zona horaria
+    // ✅ CORRECCIÓN URGENTE: Obtener las sesiones con el plan para obtener la zona horaria
 
     const { data: sessions, error: sessionsError } = await supabase
       .from('study_sessions')
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       );
     }
 
-    // âœ… CORRECCIÓN: Obtener la zona horaria del plan directamente
+    // ✅ CORRECCIÓN: Obtener la zona horaria del plan directamente
     // Todas las sesiones deben pertenecer al mismo plan
     let planTimezone = 'UTC';
     const firstSession = sessions[0];
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       }
     }
 
-    // âœ… CORRECCIÓN: Verificar si el token ha expirado y refrescarlo si es necesario
+    // ✅ CORRECCIÓN: Verificar si el token ha expirado y refrescarlo si es necesario
     let accessToken = integration.access_token;
     let tokenExpiry: Date | null = null;
     
@@ -203,13 +203,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
           .eq('user_id', user.id)
           .eq('provider', 'google');
 
-        console.log('[Sync Sessions] âœ… Calendario secundario creado/obtenido:', secondaryCalendarId);
+        console.log('[Sync Sessions] ✅ Calendario secundario creado/obtenido:', secondaryCalendarId);
       } else {
         console.warn('[Sync Sessions] âš ï¸ No se pudo crear el calendario secundario, se usará el principal');
       }
     }
 
-    // âœ… CORRECCIÓN: Sincronizar sesiones según el proveedor con mejor logging
+    // ✅ CORRECCIÓN: Sincronizar sesiones según el proveedor con mejor logging
     let syncedCount = 0;
     let failedCount = 0;
     const errors: string[] = [];
@@ -324,7 +324,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
       const tokens = await response.json();
       
-      // âœ… CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
+      // ✅ CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
       // Preservar el existente si no viene uno nuevo (Google no siempre devuelve uno nuevo)
       const refreshTokenToSave = tokens.refresh_token || integration.refresh_token;
       
@@ -415,8 +415,8 @@ function formatDateTimeInTimezone(date: Date, timezone: string): string {
 
 /**
  * Crea un evento en Google Calendar
- * âœ… CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
- * âœ… MEJORA: Crea eventos en el calendario secundario de la plataforma si está disponible
+ * ✅ CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
+ * ✅ MEJORA: Crea eventos en el calendario secundario de la plataforma si está disponible
  */
 async function createGoogleCalendarEvent(
   accessToken: string,
@@ -452,7 +452,7 @@ async function createGoogleCalendarEvent(
       description = `Sesión de estudio${session.course_id ? ` - Curso: ${session.course_id}` : ''}`;
     }
     
-    // âœ… CORRECCIÓN: Las fechas en la BD están en formato ISO string
+    // ✅ CORRECCIÓN: Las fechas en la BD están en formato ISO string
     // Interpretarlas y formatearlas en la zona horaria del plan sin convertir a UTC
     const startTime = new Date(session.start_time);
     const endTime = new Date(session.end_time);
@@ -467,7 +467,7 @@ async function createGoogleCalendarEvent(
       return null;
     }
     
-    // âœ… CORRECCIÓN CRÃTICA: Formatear en la zona horaria del plan sin convertir a UTC
+    // ✅ CORRECCIÓN CRÃTICA: Formatear en la zona horaria del plan sin convertir a UTC
     // Esto evita el desfase de -1 hora
     const startDateTime = formatDateTimeInTimezone(startTime, timezone);
     const endDateTime = formatDateTimeInTimezone(endTime, timezone);
@@ -527,11 +527,11 @@ async function createGoogleCalendarEvent(
 
 /**
  * Crea un evento en Microsoft Calendar
- * âœ… CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
+ * ✅ CORRECCIÓN: Formatea fechas en la zona horaria correcta sin convertir a UTC
  */
 async function createMicrosoftCalendarEvent(accessToken: string, session: any, timezone: string = 'UTC'): Promise<string | null> {
   try {
-    // âœ… CORRECCIÓN: Las fechas en la BD están en formato ISO string
+    // ✅ CORRECCIÓN: Las fechas en la BD están en formato ISO string
     const startTime = new Date(session.start_time);
     const endTime = new Date(session.end_time);
     
@@ -545,7 +545,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
       return null;
     }
     
-    // âœ… CORRECCIÓN CRÃTICA: Formatear en la zona horaria del plan sin convertir a UTC
+    // ✅ CORRECCIÓN CRÃTICA: Formatear en la zona horaria del plan sin convertir a UTC
     // Esto evita el desfase de -1 hora
     const startDateTime = formatDateTimeInTimezone(startTime, timezone);
     const endDateTime = formatDateTimeInTimezone(endTime, timezone);

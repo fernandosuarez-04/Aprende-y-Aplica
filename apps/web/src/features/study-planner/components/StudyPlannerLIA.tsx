@@ -207,7 +207,7 @@ export function StudyPlannerLIA() {
     }
   };
 
-  // âœ… Handler para insertar eventos de estudio en el calendario
+  // ✅ Handler para insertar eventos de estudio en el calendario
   const handleInsertEventsToCalendar = async () => {
     if (!savedLessonDistribution || savedLessonDistribution.length === 0) {
       console.error('No hay distribución de lecciones para insertar');
@@ -280,11 +280,11 @@ export function StudyPlannerLIA() {
         insertedCount: result.insertedCount
       });
 
-      console.log(`âœ… [Insert Events] Resultado: ${result.message}`);
+      console.log(`✅ [Insert Events] Resultado: ${result.message}`);
 
       // Agregar mensaje al chat confirmando la inserción
       if (result.success && result.insertedCount > 0) {
-        const successMessage = `âœ… **¡Listo!** He insertado ${result.insertedCount} eventos en tu calendario de Google.\n\nPuedes verlos en el calendario secundario "SOFLIA - Sesiones de Estudio". Cada evento incluye recordatorios 15 minutos antes.\n\nðŸ“… [Abrir Google Calendar](https://calendar.google.com)`;
+        const successMessage = `✅ **¡Listo!** He insertado ${result.insertedCount} eventos en tu calendario de Google.\n\nPuedes verlos en el calendario secundario "SOFLIA - Sesiones de Estudio". Cada evento incluye recordatorios 15 minutos antes.\n\nðŸ“… [Abrir Google Calendar](https://calendar.google.com)`;
 
         setConversationHistory(prev => [...prev, {
           role: 'assistant',
@@ -305,7 +305,7 @@ export function StudyPlannerLIA() {
   };
 
   // Estados para configuración de estudio
-  // âœ… NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
+  // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
   // La velocidad de finalización determina cuántas lecciones por día se asignan
   const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
   const [targetDate, setTargetDate] = useState<string | null>(null);
@@ -315,7 +315,7 @@ export function StudyPlannerLIA() {
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   // Inicializar currentMonth con el día 1 del mes actual para evitar problemas
-  // âœ… CORRECCIÓN: Usar null inicialmente y establecer en useEffect para evitar problemas de hidratación
+  // ✅ CORRECCIÓN: Usar null inicialmente y establecer en useEffect para evitar problemas de hidratación
   const [currentMonth, setCurrentMonth] = useState<Date | null>(null);
 
   // Función helper para normalizar currentMonth siempre al día 1
@@ -335,12 +335,12 @@ export function StudyPlannerLIA() {
   const [savedLessonDistribution, setSavedLessonDistribution] = useState<StoredLessonDistribution[]>([]);
   const [savedTargetDate, setSavedTargetDate] = useState<string | null>(null);
   const [savedTotalLessons, setSavedTotalLessons] = useState<number>(0);
-  const [savedPlanId, setSavedPlanId] = useState<string | null>(null); // âœ… Guardar planId cuando se guarda el plan
+  const [savedPlanId, setSavedPlanId] = useState<string | null>(null); // ✅ Guardar planId cuando se guarda el plan
 
   // Estado para rastrear si ya se mostró el resumen final
   const [hasShownFinalSummary, setHasShownFinalSummary] = useState<boolean>(false);
 
-  // âœ… Estados para inserción de eventos en calendario
+  // ✅ Estados para inserción de eventos en calendario
   const [showInsertConfirmModal, setShowInsertConfirmModal] = useState<boolean>(false);
   const [isInsertingEvents, setIsInsertingEvents] = useState<boolean>(false);
   const [insertProgress, setInsertProgress] = useState<{ current: number; total: number }>({ current: 0, total: 0 });
@@ -358,7 +358,7 @@ export function StudyPlannerLIA() {
   // Estado para guardar el contexto del usuario (perfil profesional) - Solo B2B
   const [userContext, setUserContext] = useState<{
     userType: 'b2b' | null;
-    userName: string | null; // âœ… NUEVO: Nombre real del usuario
+    userName: string | null; // ✅ NUEVO: Nombre real del usuario
     rol: string | null;
     area: string | null;
     nivel: string | null;
@@ -376,7 +376,7 @@ export function StudyPlannerLIA() {
     dueDate: string | null;
   }>>([]);
 
-  // âœ… NUEVO: Estado para lecciones pendientes con nombres reales (para mostrar en el plan)
+  // ✅ NUEVO: Estado para lecciones pendientes con nombres reales (para mostrar en el plan)
   const [pendingLessonsWithNames, setPendingLessonsWithNames] = useState<Array<{
     courseId: string;
     courseTitle: string;
@@ -395,10 +395,10 @@ export function StudyPlannerLIA() {
   const [conversationHistory, setConversationHistory] = useState<Array<{ role: string, content: string }>>([]);
 
 
-  // âœ… Estado para tracking de analytics de LIA
+  // ✅ Estado para tracking de analytics de LIA
   const [liaConversationId, setLiaConversationId] = useState<string | null>(null);
 
-  // âœ… NUEVO: Hook para datos de LIA (lecciones pendientes desde BD)
+  // ✅ NUEVO: Hook para datos de LIA (lecciones pendientes desde BD)
   const liaData = useLIAData();
 
   // Estados para recuperación de sesión
@@ -480,10 +480,10 @@ export function StudyPlannerLIA() {
           // Añadir mensaje de sistema indicando restauración
           setConversationHistory(prev => [...prev, {
             role: 'system',
-            content: 'ðŸ”„ [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.'
+            content: '🔄 [SISTEMA] Sesión anterior restaurada exitosamente. Puedes continuar donde lo dejaste.'
           }]);
 
-          console.log('âœ… Sesión restaurada');
+          console.log('✅ Sesión restaurada');
         }
       } catch (e) {
         console.error('Error restaurando sesión:', e);
@@ -514,7 +514,7 @@ export function StudyPlannerLIA() {
   const lastErrorTimeRef = useRef<number>(0);
   const hasAttemptedOpenRef = useRef<boolean>(false);
   const isOpeningRef = useRef<boolean>(false);
-  // âœ… NUEVO: Ref para lecciones pendientes (disponible inmediatamente sin esperar re-render)
+  // ✅ NUEVO: Ref para lecciones pendientes (disponible inmediatamente sin esperar re-render)
   const pendingLessonsRef = useRef<Array<{
     courseId: string;
     courseTitle: string;
@@ -538,17 +538,17 @@ export function StudyPlannerLIA() {
       .replace(/ðŸŽ¯/g, '')
       .replace(/ðŸ“ˆ/g, '')
       .replace(/ðŸ“š/g, '')
-      .replace(/ðŸ’¡/g, '')
+      .replace(/💡/g, '')
       .replace(/ðŸ—“ï¸/g, '')
       .replace(/â°/g, '')
       .replace(/ðŸ“‹/g, '')
-      .replace(/âœ…/g, '')
+      .replace(/✅/g, '')
       .replace(/âŒ/g, '')
       .replace(/âš ï¸/g, '')
       .replace(/ðŸ”¥/g, '')
-      .replace(/âœ¨/g, '')
+      .replace(/✨/g, '')
       .replace(/ðŸŽ‰/g, '')
-      .replace(/ðŸš€/g, '')
+      .replace(/🚀/g, '')
       .replace(/ðŸ’ª/g, '')
       .replace(/â­/g, '')
       .replace(/ðŸŽ“/g, '')
@@ -564,9 +564,9 @@ export function StudyPlannerLIA() {
       .replace(/âš¡/g, '')
       .replace(/ðŸŒŸ/g, '')
       .replace(/ðŸŽ/g, '')
-      .replace(/ðŸ”’/g, '')
+      .replace(/🔒/g, '')
       .replace(/ðŸ”“/g, '')
-      .replace(/ðŸ“±/g, '')
+      .replace(/📱/g, '')
       .replace(/ðŸ’»/g, '')
       .replace(/âŒ¨ï¸/g, '')
       .replace(/ðŸ–¥ï¸/g, '')
@@ -674,7 +674,7 @@ export function StudyPlannerLIA() {
         if (elements.length > 0) {
           addSeparator();
         }
-        const title = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“šðŸ’¡ðŸ—“ï¸â°ðŸ“‹âœ…âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        const title = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“š💡ðŸ—“ï¸â°ðŸ“‹✅âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
         let titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-purple-600 via-purple-500 to-purple-600 dark:from-purple-400 dark:via-purple-300 dark:to-purple-400 bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-purple-500/30 dark:border-purple-500/40 tracking-tight';
         if (trimmed.includes('METAS SEMANALES')) {
           titleClass = 'font-heading font-bold text-[22px] sm:text-[24px] bg-gradient-to-r from-[#0A2540] via-[#0A2540] to-[#0A2540] dark:from-[#0A2540] dark:via-[#0A2540] dark:to-[#0A2540] bg-clip-text text-transparent mt-10 mb-6 pb-3 border-b-2 border-[#0A2540]/40 tracking-tight'; /* Azul Profundo */
@@ -693,7 +693,7 @@ export function StudyPlannerLIA() {
       if (trimmed.match(/^(Por curso|Esta semana aprenderás sobre|ESTIMACIÓN BASADA EN TU PERFIL):/i)) {
         flushList();
         flushParagraph();
-        const subtitle = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“šðŸ’¡ðŸ—“ï¸â°ðŸ“‹âœ…âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
+        const subtitle = trimmed.replace(/^[ðŸŽ¯ðŸ“ˆðŸ“š💡ðŸ—“ï¸â°ðŸ“‹✅âŒâš ï¸]*\s*/, '').replace(/\*\*/g, '').replace(/:/g, '').trim();
         let subtitleClass = 'font-body font-semibold text-[17px] text-purple-600 dark:text-purple-200 mt-8 mb-5 tracking-wide';
         if (trimmed.includes('Esta semana aprenderás')) {
           subtitleClass = 'font-body font-semibold text-[17px] text-blue-600 dark:text-blue-200 mt-8 mb-5 tracking-wide';
@@ -804,7 +804,7 @@ export function StudyPlannerLIA() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // âœ… Obtener contexto del usuario AL INICIO (incluyendo userType) y verificar calendario
+  // ✅ Obtener contexto del usuario AL INICIO (incluyendo userType) y verificar calendario
   useEffect(() => {
     const checkUserAndCalendarStatus = async () => {
       try {
@@ -831,10 +831,10 @@ export function StudyPlannerLIA() {
             setCurrentUserId(userId);
           }
 
-          // âœ… ESTABLECER userContext COMPLETO AL INICIO (no solo en analyzeCalendarAndSuggest)
+          // ✅ ESTABLECER userContext COMPLETO AL INICIO (no solo en analyzeCalendarAndSuggest)
           if (userData.success && userData.data) {
             const userProfile = userData.data;
-            console.log('âœ… [StudyPlannerLIA] Estableciendo userContext al inicio:', {
+            console.log('✅ [StudyPlannerLIA] Estableciendo userContext al inicio:', {
               userType: userProfile.userType,
               hasOrganization: !!userProfile.organization,
               coursesCount: userProfile.courses?.length || 0,
@@ -848,7 +848,7 @@ export function StudyPlannerLIA() {
 
             setUserContext({
               userType: 'b2b', // Solo B2B ahora
-              userName: userProfile.user?.firstName || userProfile.user?.displayName || userProfile.user?.username || null, // âœ… NUEVO: Nombre real del usuario
+              userName: userProfile.user?.firstName || userProfile.user?.displayName || userProfile.user?.username || null, // ✅ NUEVO: Nombre real del usuario
               rol: userProfile.professionalProfile?.rol?.nombre || null,
               area: userProfile.professionalProfile?.area?.nombre || null,
               nivel: userProfile.professionalProfile?.nivel?.nombre || null,
@@ -859,7 +859,7 @@ export function StudyPlannerLIA() {
               workTeams: workTeams,
             });
 
-            // âœ… Para B2B, guardar TODOS los cursos asignados (con o sin fecha límite)
+            // ✅ Para B2B, guardar TODOS los cursos asignados (con o sin fecha límite)
             if (userProfile.courses && Array.isArray(userProfile.courses)) {
               const allAssignedCourses = userProfile.courses
                 .map((course: any) => {
@@ -882,13 +882,13 @@ export function StudyPlannerLIA() {
                 });
 
               setAssignedCourses(allAssignedCourses);
-              console.log('âœ… [StudyPlannerLIA] Cursos asignados:', allAssignedCourses);
+              console.log('✅ [StudyPlannerLIA] Cursos asignados:', allAssignedCourses);
 
               // Establecer selectedCourseIds automáticamente
               if (allAssignedCourses.length > 0) {
                 const courseIds = allAssignedCourses.map((c: any) => c.courseId).filter(Boolean);
                 setSelectedCourseIds(courseIds);
-                console.log('âœ… [StudyPlannerLIA] Cursos seleccionados automáticamente:', courseIds);
+                console.log('✅ [StudyPlannerLIA] Cursos seleccionados automáticamente:', courseIds);
               }
             }
           }
@@ -915,7 +915,7 @@ export function StudyPlannerLIA() {
     checkUserAndCalendarStatus();
   }, [currentUserId]);
 
-  // âœ… CORRECCIÓN: Inicializar currentMonth en el cliente para evitar problemas de hidratación
+  // ✅ CORRECCIÓN: Inicializar currentMonth en el cliente para evitar problemas de hidratación
   useEffect(() => {
     if (currentMonth === null) {
       const now = new Date();
@@ -934,7 +934,7 @@ export function StudyPlannerLIA() {
     }
   }, [showDateModal, currentMonth]);
 
-  // âœ… NUEVO: Detectar retorno de conexión OAuth exitosa
+  // ✅ NUEVO: Detectar retorno de conexión OAuth exitosa
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const calendarConnected = params.get('calendar_connected');
@@ -954,7 +954,7 @@ export function StudyPlannerLIA() {
           if (response.ok) {
             const data = await response.json();
             if (data.isConnected && data.provider) {
-              console.log('âœ… [OAuth Return] Estado verificado:', data.provider);
+              console.log('✅ [OAuth Return] Estado verificado:', data.provider);
               setConnectedCalendar(data.provider);
 
               // 2. Dar feedback al usuario
@@ -989,7 +989,7 @@ export function StudyPlannerLIA() {
     }
   }, []); // Solo al montar
 
-  // âœ… CRÃTICO: Cargar lecciones pendientes cuando hay cursos asignados
+  // ✅ CRÃTICO: Cargar lecciones pendientes cuando hay cursos asignados
   // Usa el hook useLIAData que consulta directamente la BD para obtener nombres EXACTOS
   // Esto evita alucinaciones de la IA (patrón Bridge de IRIS)
   useEffect(() => {
@@ -1019,7 +1019,7 @@ export function StudyPlannerLIA() {
         pendingLessonsRef.current = formattedLessons;
         setPendingLessonsWithNames(formattedLessons);
 
-        console.log(`âœ… [Sync] ${formattedLessons.length} lecciones sincronizadas desde useLIAData`);
+        console.log(`✅ [Sync] ${formattedLessons.length} lecciones sincronizadas desde useLIAData`);
 
         // Log de verificación
         if (formattedLessons.length > 0) {
@@ -1033,9 +1033,9 @@ export function StudyPlannerLIA() {
   }, [liaData.isReady, liaData.lessons]);
 
   // Inicializar mensaje de bienvenida cuando se carga la página (solo si no hay historial)
-  // âœ… Flujo B2B: LIA genera el mensaje de bienvenida dinámicamente
+  // ✅ Flujo B2B: LIA genera el mensaje de bienvenida dinámicamente
   useEffect(() => {
-    console.log('ðŸ”„ [Welcome] useEffect ejecutado:', {
+    console.log('🔄 [Welcome] useEffect ejecutado:', {
       showConversation,
       historyLength: conversationHistory.length,
       showCourseSelector,
@@ -1044,7 +1044,7 @@ export function StudyPlannerLIA() {
     });
 
     const generateWelcomeMessage = async (externalController?: AbortController) => {
-      // âœ… NUEVO: Si hay un tour activo, esperar (Requisito de flujo: Tour -> Planificador)
+      // ✅ NUEVO: Si hay un tour activo, esperar (Requisito de flujo: Tour -> Planificador)
       // if (isRunning) {
       //   console.log('â³ [Welcome] Tour activo, esperando a que termine...');
       //   return;
@@ -1055,19 +1055,19 @@ export function StudyPlannerLIA() {
         return;
       }
 
-      // âœ… ESPERAR a que userContext esté disponible
+      // ✅ ESPERAR a que userContext esté disponible
       if (!userContext?.userType) {
         console.log('â³ [Welcome] userContext aún no disponible');
         return;
       }
 
-      // âœ… CRÃTICO: Si hay cursos asignados, ESPERAR a que las lecciones estén cargadas
+      // ✅ CRÃTICO: Si hay cursos asignados, ESPERAR a que las lecciones estén cargadas
       if (assignedCourses.length > 0 && !liaData.isReady) {
         console.log('â³ [Welcome] Esperando carga de lecciones...');
         return;
       }
 
-      console.log('âœ… [Welcome] Generando mensaje de bienvenida...');
+      console.log('✅ [Welcome] Generando mensaje de bienvenida...');
 
       // Construir contexto para LIA
       const contextInfo = {
@@ -1113,7 +1113,7 @@ INSTRUCCIONES:
           day: 'numeric'
         });
 
-        // âœ… NUEVO: Construir contexto con fecha límite prominente
+        // ✅ NUEVO: Construir contexto con fecha límite prominente
         const coursesWithDueDatesWelcome = contextInfo.courses.filter((c: any) => c.dueDate);
         let welcomeDueDateContext = '';
         if (coursesWithDueDatesWelcome.length > 0) {
@@ -1129,7 +1129,7 @@ INSTRUCCIONES:
         // Obtener contexto de lecciones pendientes
         const lessonsContext = liaData.getLessonsForPrompt();
 
-        // âœ… FIX 207 + FIX 289: Inyectar calendario Y Festivos
+        // ✅ FIX 207 + FIX 289: Inyectar calendario Y Festivos
         let calendarContext = '';
         try {
           const busyList: string[] = [];
@@ -1172,7 +1172,7 @@ INSTRUCCIONES:
         }
 
         const liaSystemPrompt = generateStudyPlannerPrompt({
-          userName: userContext.userName || undefined, // âœ… CORREGIDO: Usar nombre del usuario
+          userName: userContext.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
           studyPlannerContextString: `CURSOS ASIGNADOS:\n${contextInfo.courses.map((c: any) => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${c.dueDate})` : ''}`).join('\n')}\n\nLECCIONES PENDIENTES:\n${lessonsContext}${welcomeDueDateContext}${calendarContext}`,
           currentDate: currentDate
         });
@@ -1188,7 +1188,7 @@ INSTRUCCIONES:
             message: systemPrompt,
             conversationHistory: [],
             systemPrompt: liaSystemPrompt,
-            userName: userContext.userName || undefined // âœ… CORREGIDO: Usar nombre del usuario, no de la organización
+            userName: userContext.userName || undefined // ✅ CORREGIDO: Usar nombre del usuario, no de la organización
           }),
         });
 
@@ -1199,16 +1199,16 @@ INSTRUCCIONES:
         if (response.ok) {
           const data = await response.json();
           let liaResponse = data.response;
-          console.log('âœ… [Welcome] Mensaje de LIA recibido:', liaResponse?.substring(0, 100) + '...');
+          console.log('✅ [Welcome] Mensaje de LIA recibido:', liaResponse?.substring(0, 100) + '...');
 
-          // âœ… Guardar conversationId para analytics
+          // ✅ Guardar conversationId para analytics
           if (data.conversationId) {
             setLiaConversationId(data.conversationId);
           }
 
           // Agregar el mensaje de LIA al historial
           setConversationHistory([{ role: 'assistant', content: liaResponse }]);
-          console.log('âœ… [Welcome] Mensaje agregado al historial');
+          console.log('✅ [Welcome] Mensaje agregado al historial');
 
           // Reproducir audio de bienvenida si está habilitado
           if (isAudioEnabled && assignedCourses.length > 0) {
@@ -1354,7 +1354,7 @@ INSTRUCCIONES:
   const formatTextForTTS = (text: string): string => {
     let formatted = text;
 
-    // âœ… LÓGICA DE RESUMEN INTELIGENTE PARA MENSAJE DE BIENVENIDA
+    // ✅ LÓGICA DE RESUMEN INTELIGENTE PARA MENSAJE DE BIENVENIDA
     if (formatted.includes('Soy LIA') && formatted.includes('Planificador de Estudios')) {
       // Simplificar el saludo y contexto
       if (formatted.includes('Tienes asignado el siguiente curso')) {
@@ -1537,7 +1537,7 @@ INSTRUCCIONES:
 
       const audioBlob = await response.blob();
 
-      // âœ… FIX: Verificar rigurosamente si se canceló la reproducción
+      // ✅ FIX: Verificar rigurosamente si se canceló la reproducción
       // Si ttsAbortRef es null (por stopAllAudio) o diferente al controller actual, o si la señal está abortada, DETENER
       if (!ttsAbortRef.current || ttsAbortRef.current !== controller || controller.signal.aborted) {
         console.log('ðŸ”‡ [speakText] Reproducción abortada antes de iniciar audio (silenciado o cancelado).');
@@ -1782,7 +1782,7 @@ INSTRUCCIONES:
         return;
       }
 
-      // âœ… LOG DEBUG: Verificar si el ref tiene las lecciones
+      // ✅ LOG DEBUG: Verificar si el ref tiene las lecciones
       console.log(`ðŸ” [handleVoiceQuestion] pendingLessonsRef.current.length: ${pendingLessonsRef.current.length}`);
       if (pendingLessonsRef.current.length > 0) {
         console.log(`ðŸ“š [handleVoiceQuestion] Primeras 3 lecciones en ref:`);
@@ -1805,7 +1805,7 @@ INSTRUCCIONES:
         : 'No hay lecciones pendientes definidas aún.';
 
       const voiceSystemPrompt = generateStudyPlannerPrompt({
-        userName: userContext?.userName || undefined, // âœ… CORREGIDO: Usar nombre del usuario
+        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
         studyPlannerContextString: `LECCIONES PENDIENTES (${pendingLessonsRef.current.length} total):\n${pendingLessonsContext}\n\nFECHA LÃMITE: ${targetDate || savedTargetDate || 'No establecida'}`,
         currentDate: currentDateStr
       });
@@ -1817,7 +1817,7 @@ INSTRUCCIONES:
           message: question,
           conversationHistory: conversationHistory || [],
           systemPrompt: voiceSystemPrompt,
-          userName: userContext?.userName || undefined // âœ… CORREGIDO
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -2033,7 +2033,7 @@ INSTRUCCIONES:
     setConversationHistory(prev => [...prev, { role: 'user', content: userMsg }]);
 
     // Respuesta de LIA - preguntar sobre enfoque de estudio primero
-    // âœ… NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
+    // ✅ NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
     setTimeout(async () => {
       setIsProcessing(true);
 
@@ -2079,7 +2079,7 @@ INSTRUCCIONES:
 
     setIsConnectingCalendar(true);
 
-    // âœ… CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
+    // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
     setShowCalendarModal(false);
 
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
@@ -2112,7 +2112,7 @@ INSTRUCCIONES:
       return;
     }
 
-    // âœ… NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
+    // ✅ NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
     // En lugar de depender de postMessage (que puede fallar por COOP), verificamos
     // periódicamente si el popup se cerró y luego verificamos el estado del calendario
 
@@ -2156,7 +2156,7 @@ INSTRUCCIONES:
             // Continuar con el análisis
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
               if (canProceed) {
-                // âœ… Para B2B: Usar automáticamente la fecha límite si está disponible
+                // ✅ Para B2B: Usar automáticamente la fecha límite si está disponible
                 let targetDateToUse: string | undefined = undefined;
                 if (userContext?.userType === 'b2b' && assignedCourses.length > 0) {
                   const nearestDueDate = assignedCourses[0]?.dueDate;
@@ -2234,10 +2234,10 @@ INSTRUCCIONES:
       }
     }, 60 * 1000); // 60 segundos
 
-    // âœ… ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK (opcional)
+    // ✅ ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK (opcional)
     // Si el mensaje postMessage llega, procesarlo inmediatamente
     const messageListener = (event: MessageEvent) => {
-      // âœ… FALLBACK: Si llega un mensaje postMessage, procesarlo inmediatamente
+      // ✅ FALLBACK: Si llega un mensaje postMessage, procesarlo inmediatamente
       if (event.data && event.data.type === 'calendar-connected') {
 
         // Limpiar interval de polling
@@ -2320,7 +2320,7 @@ INSTRUCCIONES:
 
     setIsConnectingCalendar(true);
 
-    // âœ… CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
+    // ✅ CORRECCIÓN: Cerrar el modal INMEDIATAMENTE cuando se abre el popup
     setShowCalendarModal(false);
 
     // Usar NEXT_PUBLIC_APP_URL si está disponible, sino usar window.location.origin
@@ -2351,7 +2351,7 @@ INSTRUCCIONES:
       return;
     }
 
-    // âœ… NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
+    // ✅ NUEVO FLUJO SIMPLIFICADO: Detectar cuando el popup se cierra usando polling
     let popupCheckInterval: NodeJS.Timeout | null = null;
     let hasCheckedAfterClose = false;
     const popupOpenTime = Date.now();
@@ -2389,7 +2389,7 @@ INSTRUCCIONES:
 
             checkAndAskStudyPreferences(data.provider as 'google' | 'microsoft').then(canProceed => {
               if (canProceed) {
-                // âœ… Para B2B: Usar automáticamente la fecha límite si está disponible
+                // ✅ Para B2B: Usar automáticamente la fecha límite si está disponible
                 let targetDateToUse: string | undefined = undefined;
                 if (userContext?.userType === 'b2b' && assignedCourses.length > 0) {
                   const nearestDueDate = assignedCourses[0]?.dueDate;
@@ -2462,7 +2462,7 @@ INSTRUCCIONES:
       }
     }, 60 * 1000);
 
-    // âœ… ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK
+    // ✅ ESCUCHAR MENSAJES POSTMESSAGE COMO FALLBACK
     const messageListener = (event: MessageEvent) => {
       if (event.data && event.data.type === 'calendar-connected') {
 
@@ -2534,7 +2534,7 @@ INSTRUCCIONES:
     let recommendedBreak = 5; // minutos
     const reasoning: string[] = [];
 
-    // âœ… SIMPLIFICADO: Ya no se usa el studyApproach para ajustar - siempre usar valores estándar
+    // ✅ SIMPLIFICADO: Ya no se usa el studyApproach para ajustar - siempre usar valores estándar
     // Valores estándar (equivalente a 'normal')
     baseMinutesPerDay = 75;
     recommendedSessionLength = 30;
@@ -2781,14 +2781,14 @@ INSTRUCCIONES:
               console.warn(`Error obteniendo información completa del curso ${courseId}:`, fetchError);
             }
 
-            // âœ… CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+            // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
             // Ahora incluye total_duration_minutes que incluye video + materiales + actividades
             const normalizedLessons = allLessons.map((lesson: any) => ({
               lessonId: lesson.lesson_id || lesson.lessonId,
               lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
               lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
               durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
-              // âœ… CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
+              // ✅ CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
               totalDurationMinutes: (lesson.total_duration_minutes && lesson.total_duration_minutes > 0)
                 ? lesson.total_duration_minutes
                 : ((lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0)
@@ -2803,10 +2803,10 @@ INSTRUCCIONES:
             const publishedLessons = normalizedLessons;
 
             // Calcular duración total en minutos
-            // âœ… CORRECCIÓN: Usar totalDurationMinutes que incluye video + materiales + actividades
+            // ✅ CORRECCIÓN: Usar totalDurationMinutes que incluye video + materiales + actividades
             if (publishedLessons.length > 0) {
               totalDurationMinutes = publishedLessons.reduce((sum: number, lesson: any) => {
-                // âœ… CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
+                // ✅ CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
                 const lessonMinutes = lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
                   ? lesson.totalDurationMinutes
                   : (lesson.durationSeconds && lesson.durationSeconds > 0
@@ -2820,7 +2820,7 @@ INSTRUCCIONES:
             }
 
             // Obtener títulos de lecciones para los objetivos de aprendizaje
-            // âœ… CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
+            // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
             const lessonTitles = publishedLessons
               .slice(0, 10)
               .map((lesson: any) => lesson.lessonTitle || '')
@@ -2965,7 +2965,7 @@ INSTRUCCIONES:
   };
 
   // Verificar y preguntar sobre enfoque y fecha antes de analizar calendario
-  // âœ… NOTA: El modal de enfoque se muestra pero la selección NO afecta el multiplicador de duración
+  // ✅ NOTA: El modal de enfoque se muestra pero la selección NO afecta el multiplicador de duración
   const checkAndAskStudyPreferences = async (provider: string) => {
     if (!hasAskedApproach || !studyApproach) {
       // Mostrar mensaje y abrir modal de enfoque
@@ -3019,7 +3019,7 @@ INSTRUCCIONES:
   };
 
   // Manejar selección de enfoque desde el modal
-  // âœ… NUEVO ENFOQUE: Determina la velocidad de finalización del curso
+  // ✅ NUEVO ENFOQUE: Determina la velocidad de finalización del curso
   // - rapido: más lecciones por día, terminar lo antes posible
   // - normal: distribución equilibrada, ritmo razonable
   // - largo: menos lecciones por día, usar todo el tiempo hasta la fecha límite
@@ -3048,7 +3048,7 @@ INSTRUCCIONES:
       setTargetDate(nearestDueDateFormatted);
       setHasAskedTargetDate(true);
     } else {
-      // âœ… FIX: Si no hay fecha límite, generar una fecha objetivo predeterminada basada en el enfoque
+      // ✅ FIX: Si no hay fecha límite, generar una fecha objetivo predeterminada basada en el enfoque
       // Esto evita que el flujo se rompa cuando los cursos no tienen dueDate
       const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
       const defaultTargetDate = new Date();
@@ -3064,7 +3064,7 @@ INSTRUCCIONES:
     }
 
     // Verificar si ya tiene calendario conectado antes de generar el mensaje
-    // âœ… CORRECCIÓN: Primero usar el estado local (connectedCalendar) que ya fue establecido
+    // ✅ CORRECCIÓN: Primero usar el estado local (connectedCalendar) que ya fue establecido
     // cuando se conectó el calendario. Solo hacer consulta HTTP como fallback.
     let calendarAlreadyConnected = connectedCalendar !== null;
     let calendarProvider: 'google' | 'microsoft' | null = connectedCalendar;
@@ -3095,7 +3095,7 @@ INSTRUCCIONES:
         console.error('âŒ [handleApproachSelection] Error verificando calendario:', error);
       }
     } else {
-      console.log('âœ… [handleApproachSelection] Usando estado local del calendario (ya conectado)');
+      console.log('✅ [handleApproachSelection] Usando estado local del calendario (ya conectado)');
     }
 
     // Construir el prompt para LIA dependiendo del estado del calendario
@@ -3160,7 +3160,7 @@ INSTRUCCIONES:
       });
 
       const approachSystemPrompt = generateStudyPlannerPrompt({
-        userName: userContext?.userName || undefined, // âœ… CORREGIDO: Usar nombre del usuario
+        userName: userContext?.userName || undefined, // ✅ CORREGIDO: Usar nombre del usuario
         studyPlannerContextString: `CURSOS ASIGNADOS:\n${assignedCourses.map(c => `- ${c.title}${c.dueDate ? ` (Fecha límite: ${new Date(c.dueDate).toLocaleDateString('es-ES')})` : ''}`).join('\n')}\n\nTIPO DE SESIÓN SELECCIONADO: ${approachText[approach]}`,
         currentDate: approachDateStr
       });
@@ -3172,7 +3172,7 @@ INSTRUCCIONES:
           message: systemPrompt,
           conversationHistory: conversationHistory.slice(-5),
           systemPrompt: approachSystemPrompt,
-          userName: userContext?.userName || undefined // âœ… CORREGIDO
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -3204,7 +3204,7 @@ INSTRUCCIONES:
     }
 
     // Si el calendario ya está conectado, proceder con el análisis
-    console.log('ðŸ”„ [handleApproachSelection] Verificando estado del calendario:', {
+    console.log('🔄 [handleApproachSelection] Verificando estado del calendario:', {
       calendarAlreadyConnected,
       calendarProvider,
       nearestDueDateFormatted,
@@ -3213,13 +3213,13 @@ INSTRUCCIONES:
     });
 
     if (calendarAlreadyConnected && calendarProvider) {
-      console.log('âœ… [handleApproachSelection] Calendario conectado, iniciando análisis en 2 segundos...');
-      // âœ… CORRECCIÓN: Reducir timeout y usar provider capturado para evitar problemas de closure
+      console.log('✅ [handleApproachSelection] Calendario conectado, iniciando análisis en 2 segundos...');
+      // ✅ CORRECCIÓN: Reducir timeout y usar provider capturado para evitar problemas de closure
       const providerToUse = calendarProvider;
       const dateToUse = nearestDueDateFormatted ?? undefined;
 
       setTimeout(async () => {
-        console.log('ðŸš€ [handleApproachSelection] Ejecutando analyzeCalendarAndSuggest...', {
+        console.log('🚀 [handleApproachSelection] Ejecutando analyzeCalendarAndSuggest...', {
           provider: providerToUse,
           targetDate: dateToUse,
           approach
@@ -3230,15 +3230,15 @@ INSTRUCCIONES:
             dateToUse,
             approach // Usar la selección del usuario
           );
-          console.log('âœ… [handleApproachSelection] analyzeCalendarAndSuggest completado exitosamente');
+          console.log('✅ [handleApproachSelection] analyzeCalendarAndSuggest completado exitosamente');
         } catch (error) {
           console.error('âŒ [handleApproachSelection] Error en analyzeCalendarAndSuggest:', error);
-          // âœ… FIX: Mostrar mensaje de fallback al usuario cuando hay un error
+          // ✅ FIX: Mostrar mensaje de fallback al usuario cuando hay un error
           setIsProcessing(false);
           const fallbackMsg = `Tu calendario de ${providerToUse === 'google' ? 'Google' : 'Microsoft'} está conectado, pero hubo un pequeño problema al analizarlo.\n\n¿Qué días de la semana prefieres estudiar? ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
           setConversationHistory(prev => [...prev, { role: 'assistant', content: fallbackMsg }]);
         }
-      }, 2000); // âœ… Reducido a 2 segundos para mejor UX
+      }, 2000); // ✅ Reducido a 2 segundos para mejor UX
     } else if (!calendarSkipped) {
       console.log('âš ï¸ [handleApproachSelection] Calendario NO conectado y NO rechazado, mostrando modal...');
       // Calendario NO está conectado Y el usuario NO ha rechazado, mostrar modal después de un delay
@@ -3331,7 +3331,7 @@ INSTRUCCIONES:
     await handleApproachSelection(approach);
   };
 
-  // âœ… FUNCIÓN ESPECÃFICA PARA ANÃLISIS DE CALENDARIO B2B
+  // ✅ FUNCIÓN ESPECÃFICA PARA ANÃLISIS DE CALENDARIO B2B
   const analyzeCalendarAndSuggestB2B = async (
     provider: string,
     approach: 'rapido' | 'normal' | 'largo',
@@ -3362,7 +3362,7 @@ INSTRUCCIONES:
       let furthestDueDate = allDueDates[0];
       let nearestDueDate = allDueDates[allDueDates.length - 1];
 
-      // âœ… FIX: Si no hay fechas límite, generar una fecha predeterminada basada en el enfoque
+      // ✅ FIX: Si no hay fechas límite, generar una fecha predeterminada basada en el enfoque
       if (!furthestDueDate) {
         console.log('âš ï¸ [B2B] No hay fechas límite, generando fecha predeterminada...');
         const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
@@ -3391,7 +3391,7 @@ INSTRUCCIONES:
         if (eventsResponse.ok) {
           const eventsData = await eventsResponse.json();
           calendarEvents = eventsData.events || [];
-          console.log(`âœ… [B2B] Eventos obtenidos: ${calendarEvents.length}`);
+          console.log(`✅ [B2B] Eventos obtenidos: ${calendarEvents.length}`);
         }
       } catch (error) {
         console.error('âŒ [B2B] Error obteniendo eventos:', error);
@@ -3401,7 +3401,7 @@ INSTRUCCIONES:
       // Esta es la lógica específica B2B: distribuir según plazos organizacionales
       const courseAnalysis = await Promise.all(
         assignedCourses.map(async (course) => {
-          // âœ… FIX: Usar furthestDueDate si el curso no tiene dueDate propio
+          // ✅ FIX: Usar furthestDueDate si el curso no tiene dueDate propio
           const effectiveDueDate = course.dueDate ? new Date(course.dueDate) : furthestDueDate;
           const courseDueDate = effectiveDueDate;
           const daysUntilDeadline = Math.ceil((courseDueDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
@@ -3428,7 +3428,7 @@ INSTRUCCIONES:
               const modules = metadataData.metadata?.modules || metadataData.modules || [];
 
               if (modules && modules.length > 0) {
-                console.log(`âœ… [B2B] Módulos encontrados: ${modules.length}`);
+                console.log(`✅ [B2B] Módulos encontrados: ${modules.length}`);
                 // Contar todas las lecciones de todos los módulos
                 const allLessons = modules.flatMap((module: any) => {
                   if (!module.lessons || !Array.isArray(module.lessons)) {
@@ -3463,7 +3463,7 @@ INSTRUCCIONES:
                     const progressData = await progressResponse.json();
                     completedLessonIds = progressData.completedLessonIds || [];
                     completedLessons = completedLessonIds.length;
-                    console.log(`âœ… [B2B] Curso ${course.title}: ${completedLessons} lecciones completadas de ${totalLessons} totales`);
+                    console.log(`✅ [B2B] Curso ${course.title}: ${completedLessons} lecciones completadas de ${totalLessons} totales`);
                   } else {
                     console.warn(`âš ï¸ [B2B] No se pudo obtener progreso del curso ${course.courseId}`);
                   }
@@ -3471,7 +3471,7 @@ INSTRUCCIONES:
                   console.warn(`âš ï¸ [B2B] Error obteniendo progreso del curso ${course.courseId}:`, progressError);
                 }
 
-                // âœ… NUEVO: Obtener lecciones pendientes con nombres y módulos
+                // ✅ NUEVO: Obtener lecciones pendientes con nombres y módulos
                 const completedSet = new Set(completedLessonIds);
                 const pendingLessonsDetails: Array<{
                   lessonId: string;
@@ -3495,7 +3495,7 @@ INSTRUCCIONES:
                         moduleOrderIndex: module.moduleOrderIndex || moduleIdx,
                         lessonOrderIndex: lesson.lessonOrderIndex || lessonIdx,
                         durationSeconds: lesson.durationSeconds || 0,
-                        // âœ… CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, fallback a 15 min
+                        // ✅ CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, fallback a 15 min
                         totalDurationMinutes: lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
                           ? lesson.totalDurationMinutes
                           : (lesson.durationSeconds && lesson.durationSeconds > 0
@@ -3526,14 +3526,14 @@ INSTRUCCIONES:
                 return {
                   courseId: course.courseId,
                   title: course.title,
-                  dueDate: course.dueDate || courseDueDate.toISOString(), // âœ… FIX: Usar fecha efectiva si no hay dueDate
+                  dueDate: course.dueDate || courseDueDate.toISOString(), // ✅ FIX: Usar fecha efectiva si no hay dueDate
                   dueDateObj: courseDueDate,
                   daysUntilDeadline,
                   weeksUntilDeadline,
                   totalLessons,
                   completedLessons,
                   pendingLessons: totalLessons - completedLessons,
-                  pendingLessonsDetails, // âœ… NUEVO: Lista con nombres de lecciones
+                  pendingLessonsDetails, // ✅ NUEVO: Lista con nombres de lecciones
                 };
 
               } else {
@@ -3551,7 +3551,7 @@ INSTRUCCIONES:
           return {
             courseId: course.courseId,
             title: course.title,
-            dueDate: course.dueDate || courseDueDate.toISOString(), // âœ… FIX: Usar fecha efectiva si no hay dueDate
+            dueDate: course.dueDate || courseDueDate.toISOString(), // ✅ FIX: Usar fecha efectiva si no hay dueDate
             dueDateObj: courseDueDate,
             daysUntilDeadline,
             weeksUntilDeadline,
@@ -3565,7 +3565,7 @@ INSTRUCCIONES:
 
       const validCourseAnalysis = courseAnalysis.filter(c => c !== null) as Array<NonNullable<typeof courseAnalysis[0]>>;
 
-      // âœ… NUEVO: Guardar las lecciones pendientes con nombres en el estado
+      // ✅ NUEVO: Guardar las lecciones pendientes con nombres en el estado
       const allPendingLessons: typeof pendingLessonsWithNames = [];
       validCourseAnalysis.forEach(courseInfo => {
         if (courseInfo.pendingLessonsDetails && courseInfo.pendingLessonsDetails.length > 0) {
@@ -3578,7 +3578,7 @@ INSTRUCCIONES:
               moduleTitle: lesson.moduleTitle,
               moduleOrderIndex: lesson.moduleOrderIndex,
               lessonOrderIndex: lesson.lessonOrderIndex,
-              // âœ… CORRECCIÓN: Asegurar fallback a 15 min cuando totalDurationMinutes es 0 o null
+              // ✅ CORRECCIÓN: Asegurar fallback a 15 min cuando totalDurationMinutes es 0 o null
               durationMinutes: lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0 ? lesson.totalDurationMinutes : 15,
             });
           });
@@ -3594,11 +3594,11 @@ INSTRUCCIONES:
       });
 
       setPendingLessonsWithNames(allPendingLessons);
-      // âœ… También actualizar el ref para que esté disponible inmediatamente
+      // ✅ También actualizar el ref para que esté disponible inmediatamente
       pendingLessonsRef.current = allPendingLessons;
       console.log(`ðŸ“š [B2B] Total de lecciones pendientes guardadas (ref+state): ${allPendingLessons.length}`);
 
-      // âœ… 4. Usar la misma lógica de análisis de calendario que B2C
+      // ✅ 4. Usar la misma lógica de análisis de calendario que B2C
       // Establecer selectedCourseIds temporalmente para que la lógica funcione
       const originalSelectedCourseIds = selectedCourseIds;
       const b2bCourseIds = validCourseAnalysis.map(c => c.courseId);
@@ -3614,16 +3614,16 @@ INSTRUCCIONES:
 
       // Llamar a analyzeCalendarAndSuggest con skipB2BRedirect=true para evitar bucle
       // Esto permite usar toda la lógica de B2C (slots, distribución, etc.) pero desde B2B
-      console.log('ðŸš€ [B2B] Llama a analyzeCalendarAndSuggest (modo B2C forzado)...');
+      console.log('🚀 [B2B] Llama a analyzeCalendarAndSuggest (modo B2C forzado)...');
 
       try {
         await analyzeCalendarAndSuggest(
           provider,
           nearestDueDateFormatted,
-          'normal', // âœ… SIMPLIFICADO: Siempre usar 'normal'
-          true // âœ… skipB2BRedirect: evitar redirección y usar lógica B2C directamente
+          'normal', // ✅ SIMPLIFICADO: Siempre usar 'normal'
+          true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
         );
-        console.log('âœ… [B2B] Retorno exitoso de analyzeCalendarAndSuggest');
+        console.log('✅ [B2B] Retorno exitoso de analyzeCalendarAndSuggest');
       } catch (innerError) {
         console.error('âŒ [B2B] Error interno en analyzeCalendarAndSuggest:', innerError);
         throw innerError; // Re-lanzar para que lo capture el catch externo y muestre el mensaje
@@ -3638,7 +3638,7 @@ INSTRUCCIONES:
       console.error('âŒ [B2B] Error en análisis de calendario:', error);
       setIsProcessing(false);
 
-      // âœ… FIX: Preguntar por preferencias de estudio en lugar de mensaje genérico de error
+      // ✅ FIX: Preguntar por preferencias de estudio en lugar de mensaje genérico de error
       const errorMsg = `Tu calendario está conectado, pero no pude completar el análisis automático.\n\nNo te preocupes, podemos continuar de forma manual. **¿Qué días de la semana prefieres estudiar?** ¿Y en qué horario te concentras mejor: **mañana**, **tarde** o **noche**?`;
       setConversationHistory(prev => [...prev, { role: 'assistant', content: errorMsg }]);
     }
@@ -3676,9 +3676,9 @@ INSTRUCCIONES:
     provider: string,
     targetDateParam?: string,
     approachParam?: 'rapido' | 'normal' | 'largo' | null,
-    skipB2BRedirect?: boolean // âœ… Flag para evitar redirección cuando se llama desde B2B
+    skipB2BRedirect?: boolean // ✅ Flag para evitar redirección cuando se llama desde B2B
   ) => {
-    // âœ… Usar el parámetro si está disponible, sino usar el estado
+    // ✅ Usar el parámetro si está disponible, sino usar el estado
     const effectiveApproach = approachParam !== undefined ? approachParam : studyApproach;
     const effectiveTargetDate = targetDateParam || targetDate;
 
@@ -3693,7 +3693,7 @@ INSTRUCCIONES:
     });
 
     // Evitar múltiples llamadas simultáneas
-    // âœ… FIX: Permitir reintentos incluso si isProcessing es true, pero loguearlo
+    // ✅ FIX: Permitir reintentos incluso si isProcessing es true, pero loguearlo
     if (isProcessing) {
       console.warn('âš ï¸ [analyzeCalendarAndSuggest] Se llamó mientras estaba procesando. Continuando de todos modos para asegurar recuperación...');
       // No retornamos, permitimos que continúe y sobrescriba el proceso actual si es necesario
@@ -3738,7 +3738,7 @@ INSTRUCCIONES:
       }
     }
 
-    // âœ… FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
+    // ✅ FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
     if (!dateToUse) {
       const weeksToAdd = approachToUse === 'rapido' ? 2 : (approachToUse === 'normal' ? 4 : 8);
       const defaultTargetDate = new Date();
@@ -3751,7 +3751,7 @@ INSTRUCCIONES:
       console.log(`ðŸ“… [analyzeCalendarAndSuggest] Usando fecha predeterminada: ${dateToUse} (${weeksToAdd} semanas)`);
     }
 
-    console.log('âœ… [analyzeCalendarAndSuggest] Todas las validaciones pasadas, procediendo con análisis...');
+    console.log('✅ [analyzeCalendarAndSuggest] Todas las validaciones pasadas, procediendo con análisis...');
     setIsProcessing(true);
 
     try {
@@ -3780,10 +3780,10 @@ INSTRUCCIONES:
             })) || null,
           });
 
-          // âœ… DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÃFICA
+          // ✅ DETECTAR B2B Y REDIRIGIR A LÓGICA ESPECÃFICA
           // Solo redirigir si no se está saltando la redirección (evitar bucle)
           if (userProfile.userType === 'b2b' && assignedCourses.length > 0 && !skipB2BRedirect) {
-            console.log('âœ… [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
+            console.log('✅ [B2B] Detectado usuario B2B, usando lógica específica para análisis de calendario');
             // Mantener isProcessing en true mientras redirigimos
             await analyzeCalendarAndSuggestB2B(
               provider,
@@ -3796,7 +3796,7 @@ INSTRUCCIONES:
         }
       }
 
-      // âœ… CONTINUAR CON LÓGICA B2C (si no es B2B o no tiene cursos asignados)
+      // ✅ CONTINUAR CON LÓGICA B2C (si no es B2B o no tiene cursos asignados)
 
       // 2. OBTENER EVENTOS DEL CALENDARIO (hasta la fecha objetivo del usuario, sin límite mínimo)
       // Primero necesitamos calcular la fecha objetivo ANTES de obtener eventos
@@ -3841,7 +3841,7 @@ INSTRUCCIONES:
       const startDate = new Date();
       startDate.setHours(0, 0, 0, 0);
 
-      // âœ… CAPTURAR HORA ACTUAL para filtrar slots pasados
+      // ✅ CAPTURAR HORA ACTUAL para filtrar slots pasados
       const currentTime = new Date();
       console.log(`ðŸ• Hora actual capturada: ${currentTime.toLocaleString('es-ES')}`);
 
@@ -3868,7 +3868,7 @@ INSTRUCCIONES:
           const eventsData = await eventsResponse.json();
           calendarEvents = eventsData.events || [];
         } else {
-          // âœ… CORRECCIÓN: Manejar error de token expirado y requerir reconexión
+          // ✅ CORRECCIÓN: Manejar error de token expirado y requerir reconexión
           let errorData: any = {};
           try {
             errorData = await eventsResponse.json();
@@ -3960,7 +3960,7 @@ INSTRUCCIONES:
         date.setDate(date.getDate() + i);
         date.setHours(0, 0, 0, 0);
 
-        // âœ… FIX ROOT CAUSE: Saltar festivos desde la generación de análisis
+        // ✅ FIX ROOT CAUSE: Saltar festivos desde la generación de análisis
         // Si el día es festivo, NO crear entrada en daySlots, por lo tanto no existirán slots
         const isoDate = date.toISOString();
         const isJan1Root = isoDate.includes('-01-01T') || (date.getMonth() === 0 && date.getDate() === 1);
@@ -4023,7 +4023,7 @@ INSTRUCCIONES:
         }
       });
 
-      // âœ… CORRECCIÓN: Marcar días que requieren descanso (día siguiente a eventos pesados)
+      // ✅ CORRECCIÓN: Marcar días que requieren descanso (día siguiente a eventos pesados)
       // IMPORTANTE: Solo propagamos el descanso desde días que tienen eventos pesados PROPIOS
       // (heavyEvents.length > 0), NO desde días que ya fueron marcados como "día después"
       // para evitar propagación en cascada infinita
@@ -4127,7 +4127,7 @@ INSTRUCCIONES:
         let lastEnd = dayStart;
 
         if (dayData.busySlots.length === 0) {
-          // âœ… DÃA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
+          // ✅ DÃA COMPLETAMENTE LIBRE - Dividir en bloques de estudio realistas
           console.log(`ðŸ“… Día completamente libre detectado: ${dayData.dayName} ${dayData.date.toLocaleDateString('es-ES')}`);
 
           // Verificar si es el día actual para filtrar bloques pasados
@@ -4363,7 +4363,7 @@ INSTRUCCIONES:
         restReason?: string | null;
       };
 
-      // âœ… FUNCIÓN HELPER: Filtrar slots que ya pasaron en el día actual
+      // ✅ FUNCIÓN HELPER: Filtrar slots que ya pasaron en el día actual
       /**
        * Filtra slots que ya pasaron en el día actual.
        * Si un slot es del día actual pero su hora de inicio ya pasó, se excluye.
@@ -4419,18 +4419,18 @@ INSTRUCCIONES:
 
       }
 
-      // âœ… CORRECCIÓN: Agrupar slots por día primero, para distribuir a lo largo del período completo
+      // ✅ CORRECCIÓN: Agrupar slots por día primero, para distribuir a lo largo del período completo
       // IMPORTANTE: Solo excluir días específicos marcados para descanso, NO días posteriores
       const slotsByDayInitial = new Map<string, FreeSlotWithDay[]>();
       daysAnalysis.forEach(day => {
         // Excluir días que requieren descanso después de eventos pesados
         // IMPORTANTE: Solo excluir el día específico marcado, NO afectar días posteriores
         if (day.requiresRestAfter) {
-          // âœ… CRÃTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
+          // ✅ CRÃTICO: Usar 'return' aquí para saltar SOLO este día, no afectar días posteriores
           return;
         }
 
-        // âœ… VERIFICACIÓN: Asegurar que los días posteriores NO se excluyan automáticamente
+        // ✅ VERIFICACIÓN: Asegurar que los días posteriores NO se excluyan automáticamente
         // Si llegamos aquí, el día NO requiere descanso y debe procesarse normalmente
 
         const validSlots = day.freeSlots
@@ -4447,7 +4447,7 @@ INSTRUCCIONES:
             requiresRest: day.requiresRestAfter,
             restReason: day.restReason,
           }))
-          // âœ… FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
+          // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
           .filter(slot => {
             const slotDate = new Date(slot.date);
             slotDate.setHours(0, 0, 0, 0);
@@ -4643,7 +4643,7 @@ INSTRUCCIONES:
       const slotsWithoutHolidays = uniqueDateSlots.filter(slot => {
         const isHolidayDate = HolidayService.isHoliday(slot.date, userCountry);
 
-        // âœ… FILTRO NUCLEAR 2.0: ISO STRING CHECK
+        // ✅ FILTRO NUCLEAR 2.0: ISO STRING CHECK
         // Detectar 1 de Enero (01-01) y 25 de Diciembre (12-25) en string ISO
         // Esto captura festivos independientemente de la zona horaria UTC/Local
         const iso = slot.date.toISOString();
@@ -4654,7 +4654,7 @@ INSTRUCCIONES:
           return false;
         }
 
-        // âœ… DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
+        // ✅ DEBUG: Verificar específicamente fechas problemáticas (Navidad y Año Nuevo)
         const dayOfMonth = slot.date.getDate();
         const month = slot.date.getMonth();
         const isSpecialDate = (month === 11 && dayOfMonth === 25) || (month === 0 && dayOfMonth === 1);
@@ -4783,14 +4783,14 @@ INSTRUCCIONES:
                         const modulesData = await modulesResponse.json();
                         if (modulesData.modules && Array.isArray(modulesData.modules)) {
                           const allLessons = modulesData.modules.flatMap((module: any) => module.lessons || []);
-                          // âœ… CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
+                          // ✅ CORRECCIÓN: Normalizar lecciones de snake_case a camelCase para consistencia
                           // Incluye totalDurationMinutes que incluye video + materiales + actividades
                           const normalizedLessons = allLessons.map((lesson: any) => ({
                             lessonId: lesson.lesson_id || lesson.lessonId,
                             lessonTitle: lesson.lesson_title || lesson.lessonTitle || '',
                             lessonOrderIndex: lesson.lesson_order_index !== undefined ? lesson.lesson_order_index : (lesson.lessonOrderIndex !== undefined ? lesson.lessonOrderIndex : 0),
                             durationSeconds: lesson.duration_seconds || lesson.durationSeconds || 0,
-                            // âœ… CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
+                            // ✅ CORRECCIÓN: Priorizar total_duration_minutes, luego durationSeconds, fallback a 15 min
                             totalDurationMinutes: (lesson.total_duration_minutes && lesson.total_duration_minutes > 0)
                               ? lesson.total_duration_minutes
                               : ((lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0)
@@ -4801,7 +4801,7 @@ INSTRUCCIONES:
                             is_published: lesson.is_published !== false
                           })).filter((lesson: any) => lesson.lessonId && lesson.lessonTitle && lesson.is_published);
 
-                          // âœ… CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId
+                          // ✅ CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId
                           const uniqueLessonsMap = new Map<string, any>();
                           normalizedLessons.forEach((lesson: any) => {
                             if (lesson && lesson.lessonId) {
@@ -4835,7 +4835,7 @@ INSTRUCCIONES:
                           }
 
                           // Filtrar lecciones pendientes (no completadas)
-                          // âœ… CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
+                          // ✅ CORRECCIÓN: Ahora las lecciones están normalizadas a camelCase
                           const remainingLessonsData = publishedLessons.filter((lesson: any) => {
                             return lesson.lessonId && !completedLessonIds.includes(lesson.lessonId);
                           });
@@ -4844,7 +4844,7 @@ INSTRUCCIONES:
                           const remainingLessons = remainingLessonsData.length;
 
                           // Calcular minutos solo de las lecciones pendientes
-                          // âœ… CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
+                          // ✅ CORRECCIÓN: Usar totalDurationMinutes si es válido (> 0), sino fallback a 15 min
                           const totalDurationMinutes = remainingLessonsData.reduce((sum: number, lesson: any) => {
                             const lessonMinutes = lesson.totalDurationMinutes && lesson.totalDurationMinutes > 0
                               ? lesson.totalDurationMinutes
@@ -4951,12 +4951,12 @@ INSTRUCCIONES:
         })
         : slotsWithoutHolidays;
 
-      // âœ… SIMPLIFICADO: Usar TODOS los slots disponibles hasta la fecha objetivo
+      // ✅ SIMPLIFICADO: Usar TODOS los slots disponibles hasta la fecha objetivo
       // Filtrar solo por duración mínima (25 minutos para que quepa al menos 1 lección)
       const MIN_SLOT_DURATION = 25; // Duración mínima de una lección
       const finalSlots: FreeSlotWithDay[] = validDateSlots
         .filter(slot => slot.durationMinutes >= MIN_SLOT_DURATION)
-        // âœ… FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
+        // ✅ FILTRAR SLOTS QUE YA PASARON EN EL DÃA ACTUAL
         .filter(slot => {
           const slotDate = new Date(slot.date);
           slotDate.setHours(0, 0, 0, 0);
@@ -4986,7 +4986,7 @@ INSTRUCCIONES:
           // Si el slot es de un día pasado, excluirlo
           return false;
         });
-      // âœ… SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
+      // ✅ SIMPLIFICADO: Dividir slots largos según el máximo de sesión del usuario
       const dividedSlots: FreeSlotWithDay[] = [];
       const sessionLength = profileAvailability?.recommendedSessionLength || 30;
       const breakLength = profileAvailability?.recommendedBreak || 10;
@@ -5028,10 +5028,10 @@ INSTRUCCIONES:
         }
       });
 
-      // âœ… LIMITAR SLOTS POR DÃA (adaptado para B2B vs B2C)
+      // ✅ LIMITAR SLOTS POR DÃA (adaptado para B2B vs B2C)
       // Para B2B: permitir más slots por día si es necesario para cumplir plazos
       // Para B2C: máximo 2 slots por día (requisito del usuario)
-      // âœ… Cuando skipB2BRedirect=true, tratar como B2C para usar la misma lógica
+      // ✅ Cuando skipB2BRedirect=true, tratar como B2C para usar la misma lógica
       const isB2BForSlots = userProfile?.userType === 'b2b' && !skipB2BRedirect;
       const maxSlotsPerDay = isB2BForSlots ? 4 : 2; // B2B: hasta 4 slots, B2C: máximo 2
 
@@ -5070,12 +5070,12 @@ INSTRUCCIONES:
         limitedSlots.push(...selectedDaySlots);
       });
 
-      // âœ… DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÃODO
+      // ✅ DISTRIBUIR EQUIDISTANTEMENTE A LO LARGO DE TODO EL PERÃODO
       // No usar todos los slots consecutivamente - distribuir a lo largo del tiempo
       // Ordenar por fecha
       limitedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      // âœ… CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+      // ✅ CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
       // Para B2B (sin skipB2BRedirect), usar TODOS los slots disponibles para asegurar que todas las lecciones se asignen
       // Para B2C, usar distribución equidistante más conservadora
       const isB2BUser = userProfile?.userType === 'b2b' && !skipB2BRedirect;
@@ -5083,17 +5083,17 @@ INSTRUCCIONES:
       let equidistantSlots: FreeSlotWithDay[] = [];
 
       if (isB2BUser) {
-        // âœ… B2B: Usar TODOS los slots disponibles para cumplir con plazos organizacionales
+        // ✅ B2B: Usar TODOS los slots disponibles para cumplir con plazos organizacionales
         console.log(`ðŸ“Š [B2B] Usando TODOS los slots disponibles para cumplir con plazos organizacionales`);
         console.log(`   Slots disponibles: ${limitedSlots.length}`);
         equidistantSlots = [...limitedSlots];
       } else {
-        // âœ… B2C o B2B con skipB2BRedirect
+        // ✅ B2C o B2B con skipB2BRedirect
         // Verificar si hay plazos organizacionales (cursos con dueDate)
         const hasOrganizationalDeadlines = userProfile?.courses?.some((c: any) => c.dueDate);
 
         if (hasOrganizationalDeadlines) {
-          // âœ… FIX: Si hay plazos organizacionales, usar TODOS los slots disponibles
+          // ✅ FIX: Si hay plazos organizacionales, usar TODOS los slots disponibles
           // Esto aplica para B2B incluso cuando skipB2BRedirect=true
           console.log(`ðŸ“Š [Plazos Detectados] Usando TODOS los slots para cumplir con fechas límite`);
           console.log(`   Slots disponibles: ${limitedSlots.length}`);
@@ -5243,7 +5243,7 @@ INSTRUCCIONES:
           let allLessonsByCourse: Map<string, Array<{ lessonId: string; lessonTitle: string; lessonOrderIndex: number; durationSeconds: number; moduleOrderIndex?: number; totalDurationMinutes?: number }>> = new Map();
           let completedLessonIdsByCourse: Map<string, string[]> = new Map();
 
-          // âœ… FIX: Si ya tenemos lecciones cargadas (flujo B2B), usarlas directamente
+          // ✅ FIX: Si ya tenemos lecciones cargadas (flujo B2B), usarlas directamente
           // en lugar de volver a llamar a /api/my-courses que falla para usuarios B2B
           const cachedPendingLessons = pendingLessonsRef.current || pendingLessonsWithNames;
 
@@ -5287,7 +5287,7 @@ INSTRUCCIONES:
 
                     // Usar el endpoint de metadata que funciona con courseId (no requiere slug)
                     try {
-                      // âœ… Usar /api/workshops/${courseId}/metadata en lugar de /api/courses/${slug}/modules
+                      // ✅ Usar /api/workshops/${courseId}/metadata en lugar de /api/courses/${slug}/modules
                       // Esto funciona incluso si el curso no tiene slug
                       const metadataResponse = await fetch(`/api/workshops/${courseId}/metadata`);
                       if (metadataResponse.ok) {
@@ -5305,7 +5305,7 @@ INSTRUCCIONES:
                                 console.warn(`   âš ï¸ Lección inválida en módulo ${module.moduleId}:`, lesson);
                                 return null;
                               }
-                              // âœ… CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
+                              // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido (>= 1 según BD)
                               // La BD tiene CHECK constraint: lesson_order_index > 0, así que nunca debería ser 0
                               // Pero por seguridad, si viene como 0 o undefined, usar el índice del array + 1
                               const orderIndex = lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0
@@ -5316,14 +5316,14 @@ INSTRUCCIONES:
                                 lessonId: lesson.lessonId,
                                 lessonTitle: lesson.lessonTitle.trim(),
                                 lessonOrderIndex: orderIndex,
-                                moduleOrderIndex: module.moduleOrderIndex || 0, // âœ… CRÃTICO: Para ordenar correctamente
+                                moduleOrderIndex: module.moduleOrderIndex || 0, // ✅ CRÃTICO: Para ordenar correctamente
                                 durationSeconds: lesson.durationSeconds || 0,
-                                totalDurationMinutes: lesson.totalDurationMinutes // âœ… CORRECCIÓN: Pasar duración total explícita si existe
+                                totalDurationMinutes: lesson.totalDurationMinutes // ✅ CORRECCIÓN: Pasar duración total explícita si existe
                               };
                             }).filter((lesson: any) => lesson !== null); // Filtrar nulos
                           });
 
-                          // âœ… CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId ANTES de filtrar y ordenar
+                          // ✅ CORRECCIÓN CRÃTICA: Eliminar duplicados por lessonId ANTES de filtrar y ordenar
                           const uniqueLessonsMap = new Map<string, any>();
                           allLessons.forEach((lesson: any) => {
                             if (lesson && lesson.lessonId) {
@@ -5418,7 +5418,7 @@ INSTRUCCIONES:
             }
           }
 
-          // âœ… PASO 1: Crear lista plana de todas las lecciones pendientes de todos los cursos
+          // ✅ PASO 1: Crear lista plana de todas las lecciones pendientes de todos los cursos
           // Estructura: { courseId, courseTitle, lessonId, lessonTitle, lessonOrderIndex, moduleOrderIndex, durationSeconds, durationMinutes }
           const allPendingLessons: Array<{
             courseId: string;
@@ -5431,7 +5431,7 @@ INSTRUCCIONES:
             durationMinutes: number;
           }> = [];
 
-          // âœ… PASO 1.1: Rastrear lessonIds agregados para evitar duplicados desde el inicio
+          // ✅ PASO 1.1: Rastrear lessonIds agregados para evitar duplicados desde el inicio
           const addedLessonIds = new Set<string>();
 
           selectedCourseIds.forEach(courseId => {
@@ -5464,20 +5464,20 @@ INSTRUCCIONES:
                 return;
               }
 
-              // âœ… PASO 1.2: Verificar duplicados ANTES de agregar a la lista
+              // ✅ PASO 1.2: Verificar duplicados ANTES de agregar a la lista
               if (addedLessonIds.has(lesson.lessonId)) {
                 console.warn(`   âš ï¸ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle} (ya agregada anteriormente)`);
                 duplicateCount++;
                 return;
               }
 
-              // âœ… PASO 1.3: Verificar si la lección está completada
+              // ✅ PASO 1.3: Verificar si la lección está completada
               if (completedIds.includes(lesson.lessonId)) {
                 completedCount++;
                 return; // No agregar lecciones completadas
               }
 
-              // âœ… PASO 1.4: Agregar lección pendiente con todos sus datos de orden
+              // ✅ PASO 1.4: Agregar lección pendiente con todos sus datos de orden
               const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
                 ? lesson.lessonOrderIndex
                 : 0;
@@ -5492,7 +5492,7 @@ INSTRUCCIONES:
                 lessonOrderIndex: orderIndex,
                 moduleOrderIndex: moduleOrderIndex,
                 durationSeconds: lesson.durationSeconds || 0,
-                // âœ… CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, y fallback a 15 min
+                // ✅ CORRECCIÓN: Priorizar totalDurationMinutes, luego calcular desde durationSeconds, y fallback a 15 min
                 durationMinutes: (lesson as any).totalDurationMinutes && (lesson as any).totalDurationMinutes > 0
                   ? (lesson as any).totalDurationMinutes
                   : (lesson.durationSeconds && lesson.durationSeconds > 0
@@ -5500,7 +5500,7 @@ INSTRUCCIONES:
                     : 15)
               });
 
-              // âœ… Marcar como agregada para evitar duplicados
+              // ✅ Marcar como agregada para evitar duplicados
               addedLessonIds.add(lesson.lessonId);
 
               pendingCount++;
@@ -5508,7 +5508,7 @@ INSTRUCCIONES:
 
           });
 
-          // âœ… PASO 3: Ordenar todas las lecciones para mantener la continuidad del taller
+          // ✅ PASO 3: Ordenar todas las lecciones para mantener la continuidad del taller
           // Orden: 1) Por curso (según orden de selección), 2) Por módulo, 3) Por lección
           allPendingLessons.sort((a, b) => {
             // 1. Primero por curso (mantener el orden de selección)
@@ -5551,7 +5551,7 @@ INSTRUCCIONES:
             }
           }
 
-          // âœ… CORRECCIÓN: Filtrar lecciones inválidas ANTES de la distribución
+          // ✅ CORRECCIÓN: Filtrar lecciones inválidas ANTES de la distribución
           // Esto evita que se salten lecciones válidas durante el proceso de asignación
           const validPendingLessons = allPendingLessons.filter(l => {
             const isValid = l &&
@@ -5582,7 +5582,7 @@ INSTRUCCIONES:
           };
 
           const lessonDistribution: LessonDistribution[] = [];
-          // âœ… CORRECCIÓN CRÃTICA: Rastrear lessonIds asignados para evitar duplicados
+          // ✅ CORRECCIÓN CRÃTICA: Rastrear lessonIds asignados para evitar duplicados
           const assignedLessonIds = new Set<string>();
 
           // Calcular distribución de lecciones por slot (para guardarla, no mostrar aún)
@@ -5591,7 +5591,7 @@ INSTRUCCIONES:
           const cycleDuration = sessionDuration + breakDuration;
 
           // Ordenar slots por fecha para distribuir a lo largo del mes
-          // âœ… FIX 289 + 324: Filtrar días festivos GLOBALMENTE de todos los slots candidatos
+          // ✅ FIX 289 + 324: Filtrar días festivos GLOBALMENTE de todos los slots candidatos
           // Esto asegura que ni la lógica principal ni los fallbacks B2B usen festivos
           const sortedSlots = [...finalSlots]
             .filter(slot => {
@@ -5617,12 +5617,12 @@ INSTRUCCIONES:
               return new Date(a.date).getTime() - new Date(b.date).getTime();
             });
 
-          // âœ… CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
+          // ✅ CRÃTICO: Cuando skipB2BRedirect=true, usar lógica B2C (mismo comportamiento)
           // Para usuarios B2B (sin skipB2BRedirect), usar TODOS los slots hasta la fecha límite más lejana
           // Para B2C, usar solo hasta la fecha objetivo del usuario
           let slotsUntilTarget: FreeSlotWithDay[] = [];
 
-          // âœ… Si skipB2BRedirect=true, tratar como B2C para usar la misma lógica de distribución
+          // ✅ Si skipB2BRedirect=true, tratar como B2C para usar la misma lógica de distribución
           const shouldUseB2BLogic = isB2B && !skipB2BRedirect && userProfile?.courses && Array.isArray(userProfile.courses);
 
           if (shouldUseB2BLogic) {
@@ -5676,7 +5676,7 @@ INSTRUCCIONES:
               : sortedSlots;
           }
 
-          // âœ… FIX 289: Filtrar días festivos de los slots disponibles ANTES de distribuir (REGLA INMUTABLE)
+          // ✅ FIX 289: Filtrar días festivos de los slots disponibles ANTES de distribuir (REGLA INMUTABLE)
           // Esto evita que el algoritmo matemático asigne lecciones a días festivos oficiales
           const originalSlotsCount = slotsUntilTarget.length;
           slotsUntilTarget = slotsUntilTarget.filter(slot => {
@@ -5691,7 +5691,7 @@ INSTRUCCIONES:
             console.log(`â„¹ï¸ Se filtraron ${originalSlotsCount - slotsUntilTarget.length} slots por ser días festivos.`);
           }
 
-          // âœ… DEBUG: Mostrar todos los slots disponibles por día
+          // ✅ DEBUG: Mostrar todos los slots disponibles por día
           const slotsByDay = new Map<string, number>();
           slotsUntilTarget.forEach(slot => {
             const dayKey = slot.date.toLocaleDateString('es-ES');
@@ -5705,10 +5705,10 @@ INSTRUCCIONES:
           if (slotsUntilTarget.length > 0) {
           }
 
-          // âœ… CORRECCIÓN: Usar solo lecciones válidas para la distribución
+          // ✅ CORRECCIÓN: Usar solo lecciones válidas para la distribución
 
           // --------------------------------------------------------------------------------
-          // âœ… NUEVO: AGRUPAR LECCIONES X y X.1 COMO BLOQUES INSEPARABLES
+          // ✅ NUEVO: AGRUPAR LECCIONES X y X.1 COMO BLOQUES INSEPARABLES
           // --------------------------------------------------------------------------------
           // Detectar lecciones que tienen versión .1 y agruparlas
           // Ejemplo: "Lección 1" y "Lección 1.1" deben ir juntas en la misma sesión
@@ -5779,10 +5779,10 @@ INSTRUCCIONES:
           console.log(`ðŸ“¦ [Agrupación] ${validPendingLessons.length} lecciones agrupadas en ${lessonGroups.length} bloques`);
 
           // --------------------------------------------------------------------------------
-          // âœ… NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
+          // ✅ NUEVA LÓGICA DE DISTRIBUCIÓN (Greedy Packing v2) - Simplificada y Precisa
           // --------------------------------------------------------------------------------
 
-          // 1. âœ… SIMPLIFICADO: Multiplicador siempre es 1.0 (usar duración base de lecciones)
+          // 1. ✅ SIMPLIFICADO: Multiplicador siempre es 1.0 (usar duración base de lecciones)
           const approachMultiplier = 1.0;
           console.log(`âš¡ [Distribución] Iniciando con Multiplicador: ${approachMultiplier} (sin modificación)`);
 
@@ -5791,7 +5791,7 @@ INSTRUCCIONES:
           assignedLessonIds.clear();
           let currentGroupIndex = 0;
 
-          // âœ… NUEVO: Calcular capacidad total disponible vs. requerida
+          // ✅ NUEVO: Calcular capacidad total disponible vs. requerida
           const totalGroups = lessonGroups.length;
           const totalSlots = slotsUntilTarget.length;
 
@@ -5805,14 +5805,14 @@ INSTRUCCIONES:
           console.log(`ðŸ“Š [Capacidad] Tiempo requerido: ${totalRequiredMinutes} min para ${totalGroups} grupos`);
 
           const capacityRatio = totalAvailableMinutes / totalRequiredMinutes;
-          console.log(`ðŸ“Š [Capacidad] Ratio: ${capacityRatio.toFixed(2)}x (${capacityRatio >= 1 ? 'âœ… Suficiente' : 'âš ï¸ Insuficiente'})`);
+          console.log(`ðŸ“Š [Capacidad] Ratio: ${capacityRatio.toFixed(2)}x (${capacityRatio >= 1 ? '✅ Suficiente' : 'âš ï¸ Insuficiente'})`);
 
           // Calcular cuántos grupos por slot según el enfoque
           let maxGroupsPerSlot: number;
           let skipSlots: number = 0; // Cuántos slots saltar entre asignaciones (para largo)
-          let forceUseAllSlots = false; // âœ… FIX: Forzar uso de todos los slots si no hay suficiente capacidad
+          let forceUseAllSlots = false; // ✅ FIX: Forzar uso de todos los slots si no hay suficiente capacidad
 
-          // âœ… FIX: Si la capacidad es ajustada (< 1.3x), forzar uso de todos los slots
+          // ✅ FIX: Si la capacidad es ajustada (< 1.3x), forzar uso de todos los slots
           // para maximizar la probabilidad de asignar todas las lecciones
           if (capacityRatio < 1.3) {
             forceUseAllSlots = true;
@@ -5823,7 +5823,7 @@ INSTRUCCIONES:
             // Terminar rápido: llenar cada slot al máximo (sin límite de grupos)
             maxGroupsPerSlot = 999; // Sin límite práctico
             skipSlots = 0;
-            console.log(`ðŸš€ [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
+            console.log(`🚀 [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
           } else if (studyApproach === 'largo') {
             // Tomar tiempo: distribuir a lo largo de todo el tiempo disponible
             // Solo aplicar distribución relajada si HAY espacio de sobra (capacidad >= 2x)
@@ -5849,7 +5849,7 @@ INSTRUCCIONES:
           }
 
           // 3. Iterar por cada slot disponible con la nueva estrategia
-          // âœ… MODIFICADO: Usar GRUPOS de lecciones en lugar de lecciones individuales
+          // ✅ MODIFICADO: Usar GRUPOS de lecciones en lugar de lecciones individuales
           // Esto garantiza que Lección X y Lección X.1 siempre van juntas
           let slotCounter = 0;
           slotsUntilTarget.forEach((slot, slotIndex) => {
@@ -5869,8 +5869,8 @@ INSTRUCCIONES:
             let groupsInThisSlot = 0;
 
             // Intentar meter GRUPOS de lecciones mientras quepan y haya disponibles
-            // âœ… NUEVO: También limitar por maxGroupsPerSlot según el enfoque
-            let consecutiveSkips = 0; // âœ… FIX: Contador de grupos saltados consecutivamente
+            // ✅ NUEVO: También limitar por maxGroupsPerSlot según el enfoque
+            let consecutiveSkips = 0; // ✅ FIX: Contador de grupos saltados consecutivamente
             const maxSkipsBeforeBreak = 3; // Si saltamos 3 grupos seguidos que no caben, pasar al siguiente slot
 
             while (currentGroupIndex < lessonGroups.length && groupsInThisSlot < maxGroupsPerSlot && consecutiveSkips < maxSkipsBeforeBreak) {
@@ -5890,7 +5890,7 @@ INSTRUCCIONES:
               // Lógica de encaje:
               // 1. Si el slot está vacío, aceptamos el grupo aunque se pase un poco (para no bloquear grupos largos)
               // 2. Si ya tiene contenido, solo aceptamos si cabe estrictamente
-              // âœ… FIX DEFINITIVO: Eliminar TODAS las restricciones de curso/módulo
+              // ✅ FIX DEFINITIVO: Eliminar TODAS las restricciones de curso/módulo
               // Las lecciones deben asignarse secuencialmente en orden, llenando los slots disponibles
               const fits = (usedDurationInSlot + groupDuration <= slotDuration);
               const isSlotEmpty = lessonsForSlot.length === 0;
@@ -5922,7 +5922,7 @@ INSTRUCCIONES:
                 }
               } else {
                 // No cabe el grupo completo -> Pasar al siguiente slot
-                // âœ… FIX: No incrementamos currentGroupIndex aquí
+                // ✅ FIX: No incrementamos currentGroupIndex aquí
                 // El grupo que no cabe será el primero en intentarse en el siguiente slot
                 break;
               }
@@ -5939,7 +5939,7 @@ INSTRUCCIONES:
           if (unassignedCount > 0) {
             console.warn(`âš ï¸ [Distribución] Quedaron ${unassignedCount} lecciones sin asignar por falta de espacio en el calendario.`);
           } else {
-            console.log(`âœ… [Distribución] Éxito: Todas las lecciones asignadas correctamente.`);
+            console.log(`✅ [Distribución] Éxito: Todas las lecciones asignadas correctamente.`);
           }
 
           /* LEGACY LOGIC START - TO BE REMOVED
@@ -5971,7 +5971,7 @@ INSTRUCCIONES:
               durationMinutes: number;
             }> = [];
 
-            // âœ… CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente) y evitar duplicados
+            // ✅ CORRECCIÓN: Asignar solo lecciones válidas (ya filtradas previamente) y evitar duplicados
             let assignedInSlot = 0;
             while (assignedInSlot < lessonsToAssign && currentLessonIndex < validPendingLessons.length) {
               const lesson = validPendingLessons[currentLessonIndex];
@@ -5983,11 +5983,11 @@ INSTRUCCIONES:
                 continue;
               }
 
-              // âœ… CORRECCIÓN CRÃTICA: Verificar que la lección no haya sido asignada ya
+              // ✅ CORRECCIÓN CRÃTICA: Verificar que la lección no haya sido asignada ya
               if (assignedLessonIds.has(lesson.lessonId)) {
                 console.warn(`âš ï¸ Lección duplicada detectada y omitida: ${lesson.lessonId} - ${lesson.lessonTitle}`);
                 currentLessonIndex++;
-                // âœ… IMPORTANTE: Buscar la siguiente lección NO asignada en lugar de continuar
+                // ✅ IMPORTANTE: Buscar la siguiente lección NO asignada en lugar de continuar
                 // Esto evita bucles infinitos si hay muchas lecciones duplicadas
                 let foundNext = false;
                 while (currentLessonIndex < validPendingLessons.length && !foundNext) {
@@ -6006,14 +6006,14 @@ INSTRUCCIONES:
                 continue; // Saltar esta lección y pasar a la siguiente
               }
 
-              // âœ… CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+              // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
               const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
                 ? lesson.lessonOrderIndex
                 : 0;
 
               const durationWithMultiplier = Math.ceil((lesson.durationMinutes || 15) * approachMultiplier);
 
-              // âœ… LOGGING: Verificar multiplicador (mostrar primeras lecciones)
+              // ✅ LOGGING: Verificar multiplicador (mostrar primeras lecciones)
               if (assignedInSlot < 3 && slotIndex === 0) {
                 console.log(`âš¡ [Multiplicador] Lección: "${lesson.lessonTitle.substring(0, 30)}..." | Base: ${lesson.durationMinutes || 15}m | Enfoque: ${effectiveApproach} (x${approachMultiplier}) | Final: ${durationWithMultiplier}m`);
               }
@@ -6025,7 +6025,7 @@ INSTRUCCIONES:
                 durationMinutes: durationWithMultiplier
               });
 
-              // âœ… Marcar como asignada para evitar duplicados
+              // ✅ Marcar como asignada para evitar duplicados
               assignedLessonIds.add(lesson.lessonId);
 
               // Log para las primeras asignaciones
@@ -6057,8 +6057,8 @@ INSTRUCCIONES:
             const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr));
             const unusedSlots = slotsUntilTarget.filter(slot => !usedSlotDates.has(slot.dateStr));
 
-            // âœ… CORRECCIÓN: Usar solo lecciones válidas en la redistribución
-            // âœ… CORRECCIÓN: Usar Greedy Packing con verificación de módulo para slots no usados
+            // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
+            // ✅ CORRECCIÓN: Usar Greedy Packing con verificación de módulo para slots no usados
             for (const unusedSlot of unusedSlots) {
               if (currentLessonIndex >= validPendingLessons.length) break;
 
@@ -6136,7 +6136,7 @@ INSTRUCCIONES:
               }
             }
 
-            // âœ… CORRECCIÓN: Usar solo lecciones válidas en la redistribución
+            // ✅ CORRECCIÓN: Usar solo lecciones válidas en la redistribución
             if (currentLessonIndex < validPendingLessons.length) {
               // Ordenar slots por espacio disponible (mayor primero)
               const slotsWithSpace = lessonDistribution
@@ -6183,12 +6183,12 @@ INSTRUCCIONES:
 
           }
 
-          // âœ… CRÃTICO PARA B2B: Si aún quedan lecciones sin asignar, usar TODOS los slots disponibles
+          // ✅ CRÃTICO PARA B2B: Si aún quedan lecciones sin asignar, usar TODOS los slots disponibles
           if (currentLessonIndex < validPendingLessons.length) {
             const stillRemaining = validPendingLessons.length - currentLessonIndex;
             console.warn(`âš ï¸ Después de la redistribución, aún quedan ${stillRemaining} lecciones sin asignar. Usando TODOS los slots disponibles...`);
 
-            // âœ… CRÃTICO: Obtener TODOS los slots disponibles (no solo slotsUntilTarget)
+            // ✅ CRÃTICO: Obtener TODOS los slots disponibles (no solo slotsUntilTarget)
             // Para B2B, necesitamos usar TODOS los slots hasta la fecha límite más lejana
             const usedSlotDates = new Set(lessonDistribution.map(d => d.slot.dateStr + d.slot.start.toISOString()));
 
@@ -6228,14 +6228,14 @@ INSTRUCCIONES:
             // Ordenar slots no usados por fecha y hora
             allUnusedSlots.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-            // âœ… Usar EXACTAMENTE LA MISMA LÓGICA QUE B2C para agrupar lecciones
+            // ✅ Usar EXACTAMENTE LA MISMA LÓGICA QUE B2C para agrupar lecciones
             // Calcular cuántas lecciones quedan y cuántos slots hay
             const remainingLessonsCount = validPendingLessons.length - currentLessonIndex;
             const remainingSlotsCount = allUnusedSlots.length;
 
             console.log(`   ðŸ“Š Redistribuyendo ${remainingLessonsCount} lecciones en ${remainingSlotsCount} slots adicionales`);
 
-            // âœ… NUEVA LÓGICA DE FALLBACK B2B: Usar Greedy Packing en slots extra para asegurar continuidad y eficiencia
+            // ✅ NUEVA LÓGICA DE FALLBACK B2B: Usar Greedy Packing en slots extra para asegurar continuidad y eficiencia
             
             // Iterar por cada slot disponible adicional
             for (let slotIdx = 0; slotIdx < allUnusedSlots.length; slotIdx++) {
@@ -6304,7 +6304,7 @@ INSTRUCCIONES:
                    slot: unusedSlot,
                    lessons: lessonsForSlot
                  });
-                 console.log(`   âœ… Agregado slot adicional: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForSlot.length} lecciones agrupadas`);
+                 console.log(`   ✅ Agregado slot adicional: ${unusedSlot.dayName} ${unusedSlot.date.toLocaleDateString('es-ES')} con ${lessonsForSlot.length} lecciones agrupadas`);
                }
             }
 
@@ -6352,7 +6352,7 @@ INSTRUCCIONES:
                 }
                 return isValid;
               }).map(lesson => {
-                // âœ… CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
+                // ✅ CORRECCIÓN: Asegurar que lessonOrderIndex sea válido
                 const orderIndex = (lesson.lessonOrderIndex && lesson.lessonOrderIndex > 0)
                   ? lesson.lessonOrderIndex
                   : 0;
@@ -6370,7 +6370,7 @@ INSTRUCCIONES:
                 return null;
               }
 
-              // âœ… CORRECCIÓN CRÃTICA: Guardar horarios en formato 24h para evitar problemas con AM/PM
+              // ✅ CORRECCIÓN CRÃTICA: Guardar horarios en formato 24h para evitar problemas con AM/PM
               // Formato: "HH:MM" (ej: "14:30", "09:00")
               const formatTime24h = (date: Date): string => {
                 const hours = date.getHours().toString().padStart(2, '0');
@@ -6390,7 +6390,7 @@ INSTRUCCIONES:
 
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
-          // âœ… CORRECCIÓN: Usar el número de lecciones válidas, no el total (que incluye inválidas)
+          // ✅ CORRECCIÓN: Usar el número de lecciones válidas, no el total (que incluye inválidas)
           setSavedTotalLessons(validPendingLessons.length);
 
           // Log detallado para debugging
@@ -6399,7 +6399,7 @@ INSTRUCCIONES:
 
           }
 
-          // âœ… MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
+          // ✅ MOSTRAR SOLO LOS SLOTS QUE TIENEN LECCIONES ASIGNADAS
           // No mostrar todos los slots disponibles, solo los que realmente se van a usar
           // Formatear mensaje detallado para LIA con tiempos reales
           const distByDay = new Map<string, typeof lessonDistribution>();
@@ -6445,7 +6445,7 @@ INSTRUCCIONES:
               calendarMessage += `   â° HORARIO EXACTO: ${startTimeStr} - ${endTimeStr} (${realDurationMinutes} min):\n`;
 
               dist.lessons.forEach(l => {
-                // âœ… CORRECCIÓN: Usar menos espacios para evitar que Markdown lo detecte como bloque de código
+                // ✅ CORRECCIÓN: Usar menos espacios para evitar que Markdown lo detecte como bloque de código
                 calendarMessage += `   â€¢ ${l.lessonTitle} (${l.durationMinutes || 15} min)\n`;
               });
               calendarMessage += `\n`; // Espacio entre slots
@@ -6467,7 +6467,7 @@ INSTRUCCIONES:
             calendarMessage += `\n**Nota:** He identificado ${slotsAfterTarget} espacios adicionales disponibles después de tu fecha objetivo (${targetDate}). Estos pueden ser útiles para repaso o actividades complementarias.`;
           }
 
-          // âœ… CRÃTICO: Verificar si se asignaron todas las lecciones
+          // ✅ CRÃTICO: Verificar si se asignaron todas las lecciones
           // Para B2B, esto es OBLIGATORIO - todas las lecciones deben asignarse
           const totalAssignedLessons = lessonDistribution.reduce((sum, dist) => sum + dist.lessons.length, 0);
           const remainingLessons = validPendingLessons.length - assignedLessonIds.size;
@@ -6485,9 +6485,9 @@ INSTRUCCIONES:
             }
             calendarMessage += `He intentado usar todos los slots disponibles. Si aún faltan lecciones, considera contactar a tu administrador para ajustar los plazos o aumentar la disponibilidad de horarios.`;
           } else {
-            // âœ… Todas las lecciones fueron asignadas
-            console.log(`âœ… ÉXITO: Todas las ${validPendingLessons.length} lecciones han sido asignadas correctamente`);
-            calendarMessage += `\n\nâœ… **PLAN COMPLETO:** He asignado todas las ${validPendingLessons.length} lecciones pendientes en los horarios disponibles. El plan está diseñado para cumplir con los plazos organizacionales establecidos.`;
+            // ✅ Todas las lecciones fueron asignadas
+            console.log(`✅ ÉXITO: Todas las ${validPendingLessons.length} lecciones han sido asignadas correctamente`);
+            calendarMessage += `\n\n✅ **PLAN COMPLETO:** He asignado todas las ${validPendingLessons.length} lecciones pendientes en los horarios disponibles. El plan está diseñado para cumplir con los plazos organizacionales establecidos.`;
           }
 
           // LOGGER ADICIONAL PARA DEPURACIÓN DE DATOS (NO VISIBLE AL USUARIO)
@@ -6502,7 +6502,7 @@ INSTRUCCIONES:
           if (selectedCourseIds.length > 0 && totalLessonsNeeded > 0 && weeksUntilTarget > 0 && targetDate) {
             // Calcular metas automáticamente
             const lessonsPerWeekCalc = Math.ceil(totalLessonsNeeded / weeksUntilTarget);
-            // âœ… SIMPLIFICADO: Usar duración base sin multiplicador
+            // ✅ SIMPLIFICADO: Usar duración base sin multiplicador
             // Estimar horas basándose en el tiempo promedio de lección
             const avgLessonMinutes = 15; // Promedio estimado si no tenemos datos exactos
             const hoursPerWeekCalc = Math.ceil((lessonsPerWeekCalc * avgLessonMinutes) / 60);
@@ -6763,9 +6763,9 @@ Cuéntame manualmente:
 
       // Actualizar estado local
       setConnectedCalendar(null);
-      // âœ… CORRECCIÓN: Cerrar el modal después de desconectar para permitir reconexión
+      // ✅ CORRECCIÓN: Cerrar el modal después de desconectar para permitir reconexión
       setShowCalendarModal(false);
-      console.log('âœ… [disconnectCalendar] Estado actualizado: connectedCalendar = null');
+      console.log('✅ [disconnectCalendar] Estado actualizado: connectedCalendar = null');
 
       // Agregar mensaje a la conversación
       const disconnectMsg = `He desconectado tu calendario de ${provider === 'google' ? 'Google' : 'Microsoft'}. Puedes volver a conectarlo cuando lo desees.`;
@@ -7204,7 +7204,7 @@ Cuéntame:
                 // Limpiar el título de caracteres especiales al inicio/final
                 const cleanTitle = lessonTitle.replace(/^[â€¢\-\s]+/, '').replace(/[â€¢\-\s]+$/, '').trim();
 
-                // âœ… CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // ✅ CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
                 // Un título válido debe tener más que solo el número de lección
                 const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) ||
                   /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
@@ -7313,7 +7313,7 @@ Cuéntame:
                 // Limpiar el título de caracteres especiales al inicio/final
                 const cleanTitle = lessonTitle.replace(/^[â€¢\-\s]+/, '').replace(/[â€¢\-\s]+$/, '').trim();
 
-                // âœ… CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
+                // ✅ CRÃTICO: Si el título es solo "Lección X" o similar (sin contenido real), no es válido
                 // Un título válido debe tener más que solo el número de lección
                 const isOnlyLessonNumber = /^lección\s*\d+[:\-\.]?\s*$/i.test(cleanTitle) ||
                   /^lección\s*\d+[:\-\.]?\s*lección\s*\d+/i.test(cleanTitle);
@@ -7347,7 +7347,7 @@ Cuéntame:
       }
 
       if (extractedSchedules.length > 0) {
-        console.log(`âœ… Extraídos ${extractedSchedules.length} horarios de la respuesta de LIA`);
+        console.log(`✅ Extraídos ${extractedSchedules.length} horarios de la respuesta de LIA`);
         console.log(`   Primeros 3 horarios extraídos:`, extractedSchedules.slice(0, 3).map(s => ({
           fecha: s.dateStr,
           hora: `${s.startTime}-${s.endTime}`,
@@ -7371,7 +7371,7 @@ Cuéntame:
 
   // Función para guardar el plan de estudios en la base de datos
   const saveStudyPlan = async () => {
-    // âœ… VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos
+    // ✅ VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos
     console.log('ðŸ’¾ Iniciando guardado de plan de estudios...');
     console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
 
@@ -7379,7 +7379,7 @@ Cuéntame:
       throw new Error('No hay horarios para guardar. savedLessonDistribution está vacío.');
     }
 
-    // âœ… LOGGING: Mostrar qué se va a guardar
+    // ✅ LOGGING: Mostrar qué se va a guardar
     console.log('ðŸ“‹ Horarios que se van a guardar:');
     savedLessonDistribution.slice(0, 5).forEach((slot, idx) => {
       console.log(`   ${idx + 1}. ${slot.dateStr} ${slot.startTime}-${slot.endTime} (${slot.lessons.length} lecciones)`);
@@ -7493,7 +7493,7 @@ Cuéntame:
         breakDurationMinutes = 15;
       }
 
-      // âœ… HELPER: Parsear fechas en múltiples formatos
+      // ✅ HELPER: Parsear fechas en múltiples formatos
       const parseDateStr = (dateStr: string): Date | null => {
         // Formato YYYY-MM-DD
         if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
@@ -7547,12 +7547,12 @@ Cuéntame:
           ? lastSlotDate.toISOString()
           : null;
 
-      // âœ… CORRECCIÓN CRÃTICA: Transformar sesiones al formato esperado
+      // ✅ CORRECCIÓN CRÃTICA: Transformar sesiones al formato esperado
       // Mejorar el parsing de horarios para manejar AM/PM y formato 24h correctamente
       const sessions = savedLessonDistribution.map(slot => {
         const date = parseDateStr(slot.dateStr) || new Date();
 
-        // âœ… CORRECCIÓN CRÃTICA: Parsear horarios en formato 24h (HH:MM)
+        // ✅ CORRECCIÓN CRÃTICA: Parsear horarios en formato 24h (HH:MM)
         // Ahora guardamos en formato 24h para evitar problemas con AM/PM
         // Pero también soportamos formato 12h por compatibilidad con datos antiguos
         const parseTime = (timeStr: string): { hours: number; minutes: number } => {
@@ -7580,7 +7580,7 @@ Cuéntame:
             return { hours: 9, minutes: 0 };
           }
 
-          // âœ… CORRECCIÓN CRÃTICA: Detectar AM/PM en formato español e inglés
+          // ✅ CORRECCIÓN CRÃTICA: Detectar AM/PM en formato español e inglés
           // Formatos posibles: "a. m.", "a.m.", "am", "AM", "p. m.", "p.m.", "pm", "PM"
           const normalizedLower = normalized.toLowerCase();
           const isPM = /p\.?\s*m\.?|pm/i.test(normalizedLower);
@@ -7624,7 +7624,7 @@ Cuéntame:
         startTime.setHours(startTimeParsed.hours, startTimeParsed.minutes, 0, 0);
         endTime.setHours(endTimeParsed.hours, endTimeParsed.minutes, 0, 0);
 
-        // âœ… Validar que el horario de fin sea después del inicio
+        // ✅ Validar que el horario de fin sea después del inicio
         if (endTime <= startTime) {
           console.error(`âŒ ERROR: Horario de fin (${slot.endTime}) debe ser después del inicio (${slot.startTime})`);
           // Ajustar automáticamente: agregar 1 hora al final si es necesario
@@ -7634,7 +7634,7 @@ Cuéntame:
 
         const durationMinutes = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
 
-        // âœ… CORRECCIÓN CRÃTICA: Obtener la primera lección del slot para el título y courseId
+        // ✅ CORRECCIÓN CRÃTICA: Obtener la primera lección del slot para el título y courseId
         // IMPORTANTE: La estructura usa lessonTitle (camelCase), NO lesson_title (snake_case)
         const firstLesson = slot.lessons && slot.lessons.length > 0 ? slot.lessons[0] : null;
         const courseTitle = firstLesson?.courseTitle || 'Curso';
@@ -7644,7 +7644,7 @@ Cuéntame:
         const course = availableCourses.find(c => c.title === courseTitle || selectedCourseIds.includes(c.id));
         const courseId = course?.id || selectedCourseIds[0] || '';
 
-        // âœ… CORRECCIÓN CRÃTICA: Crear título de la sesión usando lessonTitle (camelCase)
+        // ✅ CORRECCIÓN CRÃTICA: Crear título de la sesión usando lessonTitle (camelCase)
         let sessionTitle = 'Sesión de estudio';
         if (slot.lessons && slot.lessons.length > 0) {
           // Validar que las lecciones tengan títulos válidos
@@ -7673,7 +7673,7 @@ Cuéntame:
           }
         }
 
-        // âœ… CORRECCIÓN CRÃTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
+        // ✅ CORRECCIÓN CRÃTICA: Crear descripción con todas las lecciones usando lessonTitle (camelCase)
         const description = slot.lessons && slot.lessons.length > 0
           ? slot.lessons
             .filter(l => l.lessonTitle && l.lessonTitle.trim() !== '')
@@ -7789,13 +7789,13 @@ Cuéntame:
         throw new Error(saveData.error || 'Error al guardar el plan');
       }
 
-      // âœ… Guardar planId para poder actualizar sesiones después
+      // ✅ Guardar planId para poder actualizar sesiones después
       if (saveData.data?.planId) {
         setSavedPlanId(saveData.data.planId);
-        console.log(`âœ… PlanId guardado: ${saveData.data.planId}`);
+        console.log(`✅ PlanId guardado: ${saveData.data.planId}`);
       }
 
-      // âœ… INSERTAR EVENTOS EN GOOGLE CALENDAR AUTOMÃTICAMENTE
+      // ✅ INSERTAR EVENTOS EN GOOGLE CALENDAR AUTOMÃTICAMENTE
       let calendarInsertSuccess = false;
       let calendarInsertedCount = 0;
 
@@ -7857,7 +7857,7 @@ Cuéntame:
           if (insertResponse.ok && insertResult.success) {
             calendarInsertSuccess = true;
             calendarInsertedCount = insertResult.insertedCount || 0;
-            console.log(`âœ… [Insert Events] ${calendarInsertedCount} eventos insertados exitosamente`);
+            console.log(`✅ [Insert Events] ${calendarInsertedCount} eventos insertados exitosamente`);
           } else {
             console.error(`âŒ [Insert Events] Error: ${insertResult.error || 'Error desconocido'}`);
 
@@ -7966,7 +7966,7 @@ Cuéntame:
 
     const lowerMessage = message.toLowerCase();
 
-    // âœ… NUEVO: Detectar si el usuario está aceptando ampliar horarios después de mensaje de deadline excedido
+    // ✅ NUEVO: Detectar si el usuario está aceptando ampliar horarios después de mensaje de deadline excedido
     // Esto ocurre cuando:
     // 1. El usuario dice "sí", "ok", "acepto", etc.
     // 2. NO hay savedLessonDistribution (porque el deadline se excedió y no se generó plan)
@@ -7990,7 +7990,7 @@ Cuéntame:
       );
 
       if (wasDeadlineWarning) {
-        console.log('âœ… Usuario aceptó ampliar horarios después de advertencia de deadline');
+        console.log('✅ Usuario aceptó ampliar horarios después de advertencia de deadline');
 
         // Extraer los días que el usuario había mencionado previamente
         const previousUserMsgs = conversationHistory.filter(m => m.role === 'user');
@@ -8057,7 +8057,7 @@ Cuéntame:
       }
     }
 
-    // âœ… NUEVO: Detectar si el usuario está eligiendo una opción numerada de las alternativas validadas
+    // ✅ NUEVO: Detectar si el usuario está eligiendo una opción numerada de las alternativas validadas
     // Ejemplos: "opción 1", "la primera", "la 2", "opcion 3", "prefiero la opción 2"
     const optionMatch = lowerMessage.match(/opci[oó]n\s*(\d)|la\s+(\d)|(\d)\s*(opci[oó]n)?|primera|segunda|tercera|cuarta/i);
     let selectedOptionNumber: number | null = null;
@@ -8083,7 +8083,7 @@ Cuéntame:
       );
 
       if (wasAlternativesMessage) {
-        console.log(`âœ… Usuario eligió OPCIÓN ${selectedOptionNumber} de las alternativas`);
+        console.log(`✅ Usuario eligió OPCIÓN ${selectedOptionNumber} de las alternativas`);
         // Enriquecer el mensaje para que LIA sepa que debe regenerar el plan con esa opción
         message = `${message}\n\n[SISTEMA: El usuario eligió la OPCIÓN ${selectedOptionNumber}. ` +
           `Busca en tu contexto los datos de esa alternativa (días, horarios, duración de sesión). ` +
@@ -8195,9 +8195,9 @@ Cuéntame:
         return;
       }
 
-      // âœ… ACTUALIZAR savedLessonDistribution con los nuevos horarios (si no hay conflictos)
+      // ✅ ACTUALIZAR savedLessonDistribution con los nuevos horarios (si no hay conflictos)
       // Si llegamos aquí, no hay conflictos (ya retornamos antes si los había)
-      console.log(`âœ… Actualizando horarios en savedLessonDistribution (sin conflictos)`);
+      console.log(`✅ Actualizando horarios en savedLessonDistribution (sin conflictos)`);
 
       const updatedDistribution = savedLessonDistribution.map(slot => {
         if (slot.startTime && slot.endTime) {
@@ -8255,7 +8255,7 @@ Cuéntame:
       if (updatedCount > 0) {
         setSavedLessonDistribution(updatedDistribution);
 
-        // âœ… ACTUALIZAR SESIONES EN LA BD si hay un plan guardado
+        // ✅ ACTUALIZAR SESIONES EN LA BD si hay un plan guardado
         // Si no hay savedPlanId en el estado, intentar obtener el plan activo del usuario
         let planIdToUse = savedPlanId;
 
@@ -8268,7 +8268,7 @@ Cuéntame:
               if (planData.planId) {
                 planIdToUse = planData.planId;
                 setSavedPlanId(planIdToUse);
-                console.log(`âœ… Plan activo obtenido: ${planIdToUse}`);
+                console.log(`✅ Plan activo obtenido: ${planIdToUse}`);
               }
             }
           } catch (error) {
@@ -8314,7 +8314,7 @@ Cuéntame:
                 console.log(`ðŸ“¥ Respuesta de actualización:`, updateData);
 
                 if (updateData.success) {
-                  console.log(`âœ… ${updateData.data.updatedCount} sesiones actualizadas en la BD de ${updateData.data.totalUpdates} intentadas`);
+                  console.log(`✅ ${updateData.data.updatedCount} sesiones actualizadas en la BD de ${updateData.data.totalUpdates} intentadas`);
 
                   if (updateData.data.errors && updateData.data.errors.length > 0) {
                     console.warn(`âš ï¸ Errores al actualizar:`, updateData.data.errors);
@@ -8352,15 +8352,15 @@ Cuéntame:
 
         // Informar al usuario que se actualizaron los horarios
         const updateMessage = planIdToUse
-          ? `âœ… He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios ya están guardados en tu plan.`
-          : `âœ… He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios se aplicarán cuando guardes el plan.`;
+          ? `✅ He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios ya están guardados en tu plan.`
+          : `✅ He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} de ${timeChange.oldHour}:00 a ${timeChange.newHour}:00. Los cambios se aplicarán cuando guardes el plan.`;
         setConversationHistory(prev => [...prev, { role: 'assistant', content: updateMessage }]);
 
         if (isAudioEnabled) {
           await speakText(`He actualizado ${updatedCount} horario${updatedCount > 1 ? 's' : ''} como solicitaste.`);
         }
 
-        console.log(`âœ… ${updatedCount} horarios actualizados en savedLessonDistribution`);
+        console.log(`✅ ${updatedCount} horarios actualizados en savedLessonDistribution`);
       } else {
         console.log(`âš ï¸ No se encontraron horarios para actualizar (oldHour: ${timeChange.oldHour})`);
       }
@@ -8408,7 +8408,7 @@ Cuéntame:
 
     // Si está confirmando el resumen final, guardar el plan
     if (isConfirmingFinalSummary) {
-      console.log('âœ… Usuario confirmó resumen final - iniciando guardado...');
+      console.log('✅ Usuario confirmó resumen final - iniciando guardado...');
       console.log(`   savedLessonDistribution.length: ${savedLessonDistribution.length}`);
       console.log(`   hasShownFinalSummary: ${hasShownFinalSummary}`);
 
@@ -8417,11 +8417,11 @@ Cuéntame:
       setConversationHistory(newHistory);
       setIsProcessing(true);
 
-      // âœ… CRÃTICO: Esperar un momento para asegurar que el estado esté actualizado
+      // ✅ CRÃTICO: Esperar un momento para asegurar que el estado esté actualizado
       // Esto es importante si LIA acaba de actualizar el estado
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // âœ… VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos antes de guardar
+      // ✅ VALIDACIÓN CRÃTICA: Verificar que savedLessonDistribution tenga datos antes de guardar
       if (savedLessonDistribution.length === 0) {
         console.error('âŒ ERROR: No hay horarios para guardar. savedLessonDistribution está vacío.');
         setConversationHistory(prev => [...prev, {
@@ -8432,7 +8432,7 @@ Cuéntame:
         return;
       }
 
-      // âœ… LOGGING: Verificar qué se va a guardar
+      // ✅ LOGGING: Verificar qué se va a guardar
       console.log('ðŸ“‹ Preparando para guardar plan:');
       console.log(`   Total de horarios: ${savedLessonDistribution.length}`);
       console.log(`   Primeros 3 horarios:`, savedLessonDistribution.slice(0, 3).map(s => ({
@@ -8505,7 +8505,7 @@ Cuéntame:
         }
       });
       distributionSummary += `\n`;
-      // âœ… SIMPLIFICADO: Ya no se menciona el enfoque de estudio
+      // ✅ SIMPLIFICADO: Ya no se menciona el enfoque de estudio
       distributionSummary += `**Fecha límite para completar:** ${savedTargetDate || 'No especificada'}\n`;
       distributionSummary += `\n`;
 
@@ -8542,7 +8542,7 @@ Cuéntame:
           return;
         }
 
-        // âœ… PROMPT GUARD: Última línea de defensa
+        // ✅ PROMPT GUARD: Última línea de defensa
         // Eliminar festivos del texto que recibe LIA para que no pueda mostrarlos visualmente
         if (item.dateStr.includes('-01-01') || item.dateStr.includes('-12-25') || item.dateStr.includes('-05-01') || item.dateStr.includes('-09-16') || item.dateStr.includes('-11-20')) {
           console.warn(`ðŸ”¥ [Prompt Guard] Eliminando slot festivo del texto para LIA: ${item.dateStr}`);
@@ -8560,7 +8560,7 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
 
-              // âœ… PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
               distributionSummary += `â€¢ ${lessonTitle}\n`;
 
@@ -8578,9 +8578,9 @@ Cuéntame:
       distributionSummary += `\n`;
       distributionSummary += `**VERIFICACIÓN:**\n`;
       if (totalLessonsAssigned >= savedTotalLessons) {
-        distributionSummary += `âœ… Se completarán todas las ${savedTotalLessons} lecciones antes de ${savedTargetDate}.\n`;
+        distributionSummary += `✅ Se completarán todas las ${savedTotalLessons} lecciones antes de ${savedTargetDate}.\n`;
       } else {
-        // âœ… Para B2B, esto es crítico - mostrar advertencia más fuerte
+        // ✅ Para B2B, esto es crítico - mostrar advertencia más fuerte
         const isB2BSummary = userContext?.userType === 'b2b';
         if (isB2BSummary) {
           distributionSummary += `âš ï¸ **ALERTA CRÃTICA:** Se han asignado ${totalLessonsAssigned} de ${savedTotalLessons} lecciones. Faltan ${savedTotalLessons - totalLessonsAssigned} por asignar.\n`;
@@ -8659,7 +8659,7 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
 
-              // âœ… PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
               addScheduleContext += `  â€¢ ${lessonTitle}\n`;
             }
@@ -8754,7 +8754,7 @@ Cuéntame:
             if (lesson?.lessonTitle?.trim()) {
               const lessonTitle = lesson.lessonTitle.trim();
 
-              // âœ… PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
+              // ✅ PASO 2: NO agregar números a las lecciones - ya vienen con su número de la BD
               // Mostrar solo el título tal como viene de la base de datos
               changeDateContext += `  â€¢ ${lessonTitle}\n`;
             }
@@ -8821,7 +8821,7 @@ Cuéntame:
         return;
       }
 
-      // âœ… NUEVO: Detección de bucles - si LIA está repitiendo preguntas similares
+      // ✅ NUEVO: Detección de bucles - si LIA está repitiendo preguntas similares
       const lastAssistantMessages = conversationHistory
         .filter(m => m.role === 'assistant')
         .slice(-5);
@@ -8842,7 +8842,7 @@ Cuéntame:
       ).length;
 
       if (loopCount >= 2) {
-        console.warn('ðŸ”„ Posible bucle detectado en conversación. Forzando propuesta de alternativas.');
+        console.warn('🔄 Posible bucle detectado en conversación. Forzando propuesta de alternativas.');
         // Agregar instrucción extra para forzar propuesta concreta
         enrichedMessage = message + `\n\n[SISTEMA: Se detectó un posible bucle en la conversación. En lugar de volver a preguntar lo mismo, PROPÓN opciones específicas como: "¿Te funcionaría estudiar lunes, miércoles y viernes por la noche? Así podríamos terminar a tiempo." NO vuelvas a pedir que el usuario confirme los días.]`;
       }
@@ -8863,7 +8863,7 @@ Cuéntame:
           ? pendingLessonsRef.current.map(l => `- ${l.lessonTitle} (${l.durationMinutes || 15} min) - Módulo: ${l.moduleTitle}`).join('\n')
           : 'No hay lecciones pendientes definidas aún.';
 
-      // âœ… REFUERZO DE CONTEXTO: Si ya hay un plan parseado en memoria, recordárselo a LIA
+      // ✅ REFUERZO DE CONTEXTO: Si ya hay un plan parseado en memoria, recordárselo a LIA
       // Esto evita que LIA "olvide" el plan cuando el usuario confirma ("sí") y el preCalculatedPlanContext desaparece
       let existingPlanContext = '';
       if (savedLessonDistribution.length > 0) {
@@ -8880,7 +8880,7 @@ Cuéntame:
         existingPlanContext += `âš ï¸ INSTRUCCIÓN CRÃTICA DE CONFIRMACIÓN: Si el usuario dice "sí", "ok", "me gusta" o confirma:\n1. NO recalculas nada.\n2. NO digas que hubo un error.\n3. Confirma que guardas este plan.\n4. Muestra entusiasmo.\n`;
       }
 
-      // âœ… NUEVO: Incluir información de fecha límite y cursos asignados
+      // ✅ NUEVO: Incluir información de fecha límite y cursos asignados
       const coursesWithDueDates = assignedCourses.filter(c => c.dueDate);
       let dueDateContext = '';
       if (coursesWithDueDates.length > 0) {
@@ -8943,7 +8943,7 @@ Cuéntame:
             if (genData.exceedsDeadline) {
               blockPlanGeneration = true; // â›” ACTIVAR BLOQUEO
 
-              // âœ… USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
+              // ✅ USAR ALTERNATIVAS VALIDADAS POR EL BACKEND
               // El backend ya calculó qué opciones REALMENTE permiten completar antes del deadline
               const validAlternatives = genData.validAlternatives || [];
 
@@ -8979,7 +8979,7 @@ Cuéntame:
               console.log('â›” [Deterministic] Plan excede fecha límite. Alternativas VALIDADAS:', validAlternatives.length);
             } else if (genData.plan) {
               preCalculatedPlanContext = `\n\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\nðŸš¨ PLAN DE ESTUDIO PRE-CALCULADO (PRIORIDAD MÃXIMA - COPIAR LITERALMENTE)\nâ•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•\n\n${genData.plan}\n\nâš ï¸ INSTRUCCIÓN OBLIGATORIA: El usuario ha definido sus horarios y CUMPLEN con la fecha límite.\n1. NO LO RECALCULES.\n2. COPIA los horarios y lecciones EXACTAMENTE como aparecen arriba.\n3. Las lecciones secuenciales (1, 1.1) YA ESTÃN AGRUPADAS correctamente.\n4. Solo dale formato bonito (negritas, emojis).\n`;
-              console.log('âœ… [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
+              console.log('✅ [Deterministic] Plan pre-calculado generado e inyectado en contexto.');
             }
           }
         } catch (err) {
@@ -9005,7 +9005,7 @@ Cuéntame:
           message: enrichedMessage,
           conversationHistory: newHistory.slice(-10),
           systemPrompt: sendMsgSystemPrompt,
-          userName: userContext?.userName || undefined // âœ… CORREGIDO
+          userName: userContext?.userName || undefined // ✅ CORREGIDO
         }),
       });
 
@@ -9022,7 +9022,7 @@ Cuéntame:
       const data = await response.json();
       let liaResponse = data.response;
 
-      // âœ… Guardar conversationId para analytics (sendMessage)
+      // ✅ Guardar conversationId para analytics (sendMessage)
       if (data.conversationId && !liaConversationId) {
         setLiaConversationId(data.conversationId);
       }
@@ -9045,7 +9045,7 @@ Cuéntame:
         liaResponse = '¡Perfecto! Vamos a continuar. ¿Qué más necesitas para tu plan de estudios?';
       }
 
-      // âœ… SANITIZE: Limpiar respuesta de LIA para eliminar menciones de festivos
+      // ✅ SANITIZE: Limpiar respuesta de LIA para eliminar menciones de festivos
       // Eliminar bloques que mencionen "Jueves 1" (1 de Enero) u otros festivos
       // Patrón: Líneas que empiecen con "*" o "ðŸ“…" seguido de "Jueves 1" o similar
       liaResponse = liaResponse.replace(/^\*?\s*ðŸ“…?\s*\*?\*?Jueves\s+1\s*:?.*$/gim, ''); // Jueves 1
@@ -9061,7 +9061,7 @@ Cuéntame:
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
 
-      // âœ… NUEVO: Parsear respuesta de LIA para extraer horarios y actualizar savedLessonDistribution
+      // ✅ NUEVO: Parsear respuesta de LIA para extraer horarios y actualizar savedLessonDistribution
       // Ejecutar siempre que haya horarios en la respuesta o cuando sea relevante (agregar/confirmar horarios)
       console.log('ðŸ” Intentando parsear respuesta de LIA para extraer horarios...');
       console.log(`   Estado actual de savedLessonDistribution: ${savedLessonDistribution.length} horarios`);
@@ -9070,7 +9070,7 @@ Cuéntame:
 
       const extractedSchedulesRaw = parseLiaResponseToSchedules(liaResponse);
 
-      // âœ… FILTRO ANTI-FESTIVOS EN PARSED SCHEDULES
+      // ✅ FILTRO ANTI-FESTIVOS EN PARSED SCHEDULES
       // Eliminar cualquier horario que haya sido parseado con fecha de festivo
       const extractedSchedules = extractedSchedulesRaw.filter(schedule => {
         if (!schedule.dateStr) return true;
@@ -9121,7 +9121,7 @@ Cuéntame:
 
         if (shouldReplaceCompletely) {
           // Reemplazar completamente la distribución con los horarios extraídos
-          console.log(`ðŸ”„ Reemplazando completamente savedLessonDistribution con ${extractedSchedules.length} horarios`);
+          console.log(`🔄 Reemplazando completamente savedLessonDistribution con ${extractedSchedules.length} horarios`);
 
           // Preservar lecciones de horarios existentes si LIA no las mencionó explícitamente
           setSavedLessonDistribution(prev => {
@@ -9146,7 +9146,7 @@ Cuéntame:
                 }
               }
 
-              // âœ… CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+              // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
               // LIA generalmente solo menciona "Lección X" sin el título completo, por lo que
               // debemos preservar los nombres completos de las lecciones existentes
               if (existing && existing.lessons.length > 0) {
@@ -9176,7 +9176,7 @@ Cuéntame:
                     return !isOnlyNumber && (hasSubstantialContent || matchesExisting);
                   });
 
-                // âœ… CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
                 // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
                 // Por seguridad, siempre preservamos los nombres completos existentes
                 console.log(`   ðŸ“š Preservando ${existing.lessons.length} lecciones con nombres completos para ${extracted.dateStr} ${extracted.startTime}`);
@@ -9208,7 +9208,7 @@ Cuéntame:
               return a.startTime.localeCompare(b.startTime);
             });
 
-            console.log(`âœ… savedLessonDistribution reemplazado completamente: ${sortedSchedules.length} horarios`);
+            console.log(`✅ savedLessonDistribution reemplazado completamente: ${sortedSchedules.length} horarios`);
             console.log(`   Verificación: Primeros 3 horarios guardados:`, sortedSchedules.slice(0, 3).map(s => ({
               fecha: s.dateStr,
               hora: `${s.startTime}-${s.endTime}`,
@@ -9218,7 +9218,7 @@ Cuéntame:
             return sortedSchedules;
           });
 
-          // âœ… CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
+          // ✅ CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
           // Esto asegura que el estado esté actualizado si el usuario confirma inmediatamente
           await new Promise(resolve => setTimeout(resolve, 100));
         } else {
@@ -9246,7 +9246,7 @@ Cuéntame:
                   s.dateStr === extracted.dateStr && s.startTime === extracted.startTime
                 );
                 if (index >= 0) {
-                  // âœ… CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
+                  // ✅ CRÃTICO: SIEMPRE preservar las lecciones existentes con sus nombres completos
                   // LIA generalmente no menciona los títulos completos, solo "Lección X" o títulos cortados
                   // Por seguridad, siempre preservamos los nombres completos existentes
                   const lessons = updated[index].lessons; // SIEMPRE usar las lecciones existentes con nombres completos
@@ -9279,7 +9279,7 @@ Cuéntame:
               return a.startTime.localeCompare(b.startTime);
             });
 
-            console.log(`âœ… savedLessonDistribution fusionado: ${updated.length} horarios totales`);
+            console.log(`✅ savedLessonDistribution fusionado: ${updated.length} horarios totales`);
             console.log(`   Verificación: Primeros 3 horarios guardados:`, updated.slice(0, 3).map(s => ({
               fecha: s.dateStr,
               hora: `${s.startTime}-${s.endTime}`,
@@ -9288,7 +9288,7 @@ Cuéntame:
             return updated;
           });
 
-          // âœ… CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
+          // ✅ CRÃTICO: Esperar un momento para que React actualice el estado antes de continuar
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       } else {
@@ -9297,12 +9297,12 @@ Cuéntame:
         console.log(`   ¿Es confirmación de horarios? ${isConfirmingSchedules}`);
         console.log(`   ¿Es resumen final? ${hasShownFinalSummary}`);
 
-        // âœ… CRÃTICO: Si LIA mostró un resumen pero no extrajimos horarios, 
+        // ✅ CRÃTICO: Si LIA mostró un resumen pero no extrajimos horarios, 
         // y el usuario está confirmando, debemos preservar el estado actual
         // Esto puede pasar si LIA no usa el formato exacto que el parser espera
         if (isConfirmingSchedules || hasShownFinalSummary) {
           console.log('   â„¹ï¸ LIA mostró resumen pero no se extrajeron horarios - preservando estado actual');
-          console.log(`   âœ… Manteniendo ${savedLessonDistribution.length} horarios existentes en savedLessonDistribution`);
+          console.log(`   ✅ Manteniendo ${savedLessonDistribution.length} horarios existentes en savedLessonDistribution`);
         }
       }
 
@@ -9371,7 +9371,7 @@ Cuéntame:
       const liaConfirmsSaving = liaResponse.toLowerCase().match(/(guardad|guardar|xito|comenzar|dashboard|redireccion|creado|alegra|disfrut)/i);
 
       if (isUserConfirmation && liaConfirmsSaving && savedLessonDistribution.length > 0) {
-        console.log('ðŸš€ Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
+        console.log('🚀 Detectada confirmación final y cierre de LIA. Iniciando guardado de plan...');
         // Ejecutar guardado (pequeño delay para que LIA termine de hablar/mostrar mensaje)
         setTimeout(() => {
           executeFinalPlanSave();
@@ -9585,7 +9585,7 @@ Cuéntame:
       const responseData = await response.json();
 
       if (response.ok && responseData.success) {
-        console.log('âœ… Plan guardado exitosamente:', responseData);
+        console.log('✅ Plan guardado exitosamente:', responseData);
         if (currentUserId) {
           const key = getStorageKey(currentUserId);
           localStorage.removeItem(key);
@@ -10888,7 +10888,7 @@ Cuéntame:
                       {/* Mensaje informativo */}
                       <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
                         <p className="text-blue-400 text-xs text-center">
-                          ðŸ’¡ Conectar tu calendario permite adaptar el plan a tus horarios reales
+                          💡 Conectar tu calendario permite adaptar el plan a tus horarios reales
                         </p>
                       </div>
                     </motion.div>
@@ -11146,7 +11146,7 @@ Cuéntame:
                         {/* Días del mes */}
                         <div className="grid grid-cols-7 gap-1">
                           {(() => {
-                            // âœ… CORRECCIÓN: Verificar que currentMonth no sea null
+                            // ✅ CORRECCIÓN: Verificar que currentMonth no sea null
                             if (!currentMonth) {
                               return <div className="col-span-7 text-center text-[#6C757D] dark:text-gray-400 py-4">Cargando calendario...</div>;
                             }

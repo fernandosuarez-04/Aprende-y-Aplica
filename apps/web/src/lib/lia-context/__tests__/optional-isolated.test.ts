@@ -18,7 +18,7 @@ function testNewPageMetadata() {
   // Test 1: Verificar que hay más de 30 páginas registradas
   const routes = getRegisteredRoutes();
   if (routes.length >= 30) {
-    console.log(`âœ… Hay ${routes.length} páginas registradas (>= 30)`);
+    console.log(`✅ Hay ${routes.length} páginas registradas (>= 30)`);
     passed++;
   } else {
     console.log(`âŒ Solo hay ${routes.length} páginas, se esperaban >= 30`);
@@ -28,7 +28,7 @@ function testNewPageMetadata() {
   // Test 2: Verificar páginas de Auth
   const authPages = routes.filter(r => r.includes('/auth'));
   if (authPages.length >= 5) {
-    console.log(`âœ… ${authPages.length} páginas de Auth registradas`);
+    console.log(`✅ ${authPages.length} páginas de Auth registradas`);
     passed++;
   } else {
     console.log(`âŒ Solo ${authPages.length} páginas de Auth`);
@@ -38,7 +38,7 @@ function testNewPageMetadata() {
   // Test 3: Verificar páginas de Admin
   const adminPages = routes.filter(r => r.startsWith('/admin'));
   if (adminPages.length >= 10) {
-    console.log(`âœ… ${adminPages.length} páginas de Admin registradas`);
+    console.log(`✅ ${adminPages.length} páginas de Admin registradas`);
     passed++;
   } else {
     console.log(`âŒ Solo ${adminPages.length} páginas de Admin`);
@@ -47,7 +47,7 @@ function testNewPageMetadata() {
 
   // Test 4: Verificar que /profile existe
   if (hasPageMetadata('/profile')) {
-    console.log('âœ… Página /profile tiene metadata');
+    console.log('✅ Página /profile tiene metadata');
     passed++;
   } else {
     console.log('âŒ Página /profile no tiene metadata');
@@ -56,7 +56,7 @@ function testNewPageMetadata() {
 
   // Test 5: Verificar que /certificates existe
   if (hasPageMetadata('/certificates')) {
-    console.log('âœ… Página /certificates tiene metadata');
+    console.log('✅ Página /certificates tiene metadata');
     passed++;
   } else {
     console.log('âŒ Página /certificates no tiene metadata');
@@ -65,7 +65,7 @@ function testNewPageMetadata() {
 
   // Test 6: Verificar página de comunidades
   if (hasPageMetadata('/communities/[slug]')) {
-    console.log('âœ… Página /communities/[slug] tiene metadata');
+    console.log('✅ Página /communities/[slug] tiene metadata');
     passed++;
   } else {
     console.log('âŒ Página /communities/[slug] no tiene metadata');
@@ -75,7 +75,7 @@ function testNewPageMetadata() {
   // Test 7: Verificar páginas de instructor
   const instructorPages = routes.filter(r => r.includes('/instructor'));
   if (instructorPages.length >= 3) {
-    console.log(`âœ… ${instructorPages.length} páginas de Instructor registradas`);
+    console.log(`✅ ${instructorPages.length} páginas de Instructor registradas`);
     passed++;
   } else {
     console.log(`âŒ Solo ${instructorPages.length} páginas de Instructor`);
@@ -85,7 +85,7 @@ function testNewPageMetadata() {
   // Test 8: Verificar páginas del Study Planner
   const studyPlannerPages = routes.filter(r => r.includes('/study-planner'));
   if (studyPlannerPages.length >= 3) {
-    console.log(`âœ… ${studyPlannerPages.length} páginas de Study Planner`);
+    console.log(`✅ ${studyPlannerPages.length} páginas de Study Planner`);
     passed++;
   } else {
     console.log(`âŒ Solo ${studyPlannerPages.length} páginas de Study Planner`);
@@ -95,7 +95,7 @@ function testNewPageMetadata() {
   // Test 9: Verificar que la metadata de /auth tiene userFlows
   const authMeta = PAGE_METADATA['/auth'];
   if (authMeta && authMeta.userFlows && authMeta.userFlows.length > 0) {
-    console.log(`âœ… /auth tiene ${authMeta.userFlows.length} flujos de usuario`);
+    console.log(`✅ /auth tiene ${authMeta.userFlows.length} flujos de usuario`);
     passed++;
   } else {
     console.log('âŒ /auth no tiene flujos de usuario');
@@ -104,7 +104,7 @@ function testNewPageMetadata() {
 
   // Test 10: Verificar metadata de /dashboard
   if (hasPageMetadata('/dashboard')) {
-    console.log('âœ… Página /dashboard tiene metadata');
+    console.log('✅ Página /dashboard tiene metadata');
     passed++;
   } else {
     console.log('âŒ Página /dashboard no tiene metadata');
@@ -141,7 +141,7 @@ function testNewPageMetadata() {
   
   for (const page of newPages) {
     if (hasPageMetadata(page)) {
-      console.log(`âœ… ${page} tiene metadata`);
+      console.log(`✅ ${page} tiene metadata`);
       passed++;
     } else {
       console.log(`âŒ ${page} no tiene metadata`);
@@ -159,7 +159,7 @@ function testNewPageMetadata() {
 import { UserContextProvider } from '../providers/user/UserContextProvider';
 
 async function testUserContextProvider() {
-  console.log('\nðŸ‘¤ TEST: USER CONTEXT PROVIDER\n');
+  console.log('\n👤 TEST: USER CONTEXT PROVIDER\n');
   let passed = 0;
   let failed = 0;
 
@@ -167,7 +167,7 @@ async function testUserContextProvider() {
 
   // Test 1: Nombre y prioridad
   if (provider.name === 'user') {
-    console.log('âœ… Provider name es "user"');
+    console.log('✅ Provider name es "user"');
     passed++;
   } else {
     console.log(`âŒ Provider name es "${provider.name}"`);
@@ -175,7 +175,7 @@ async function testUserContextProvider() {
   }
 
   if (provider.priority === 30) {
-    console.log('âœ… Prioridad es 30');
+    console.log('✅ Prioridad es 30');
     passed++;
   } else {
     console.log(`âŒ Prioridad es ${provider.priority}`);
@@ -184,7 +184,7 @@ async function testUserContextProvider() {
 
   // Test 2: shouldInclude
   if (provider.shouldInclude('general')) {
-    console.log('âœ… Se incluye en contexto "general"');
+    console.log('✅ Se incluye en contexto "general"');
     passed++;
   } else {
     console.log('âŒ No se incluye en contexto "general"');
@@ -192,7 +192,7 @@ async function testUserContextProvider() {
   }
 
   if (provider.shouldInclude('bug-report')) {
-    console.log('âœ… Se incluye en contexto "bug-report"');
+    console.log('✅ Se incluye en contexto "bug-report"');
     passed++;
   } else {
     console.log('âŒ No se incluye en contexto "bug-report"');
@@ -204,7 +204,7 @@ async function testUserContextProvider() {
     contextType: 'general'
   });
   if (noUserContext === null) {
-    console.log('âœ… Sin userId retorna null');
+    console.log('✅ Sin userId retorna null');
     passed++;
   } else {
     console.log('âŒ Sin userId debería retornar null');
@@ -224,11 +224,11 @@ async function testUserContextProvider() {
     }
   });
   if (withUserContext && withUserContext.content) {
-    console.log('âœ… Con userId retorna contexto');
+    console.log('✅ Con userId retorna contexto');
     passed++;
 
     if (withUserContext.content.includes('CONTEXTO DEL USUARIO')) {
-      console.log('âœ… Contexto incluye header correcto');
+      console.log('✅ Contexto incluye header correcto');
       passed++;
     } else {
       console.log('âŒ Contexto no incluye header esperado');
@@ -236,7 +236,7 @@ async function testUserContextProvider() {
     }
 
     if (withUserContext.content.includes('5 minutos')) {
-      console.log('âœ… Contexto incluye duración de sesión');
+      console.log('✅ Contexto incluye duración de sesión');
       passed++;
     } else {
       console.log('âŒ Contexto no incluye duración de sesión');
@@ -244,7 +244,7 @@ async function testUserContextProvider() {
     }
 
     if (withUserContext.content.includes('Desktop')) {
-      console.log('âœ… Contexto detecta tipo de dispositivo');
+      console.log('✅ Contexto detecta tipo de dispositivo');
       passed++;
     } else {
       console.log('âŒ Contexto no detecta tipo de dispositivo');
@@ -273,7 +273,7 @@ async function testPlatformContextProvider() {
 
   // Test 1: Nombre y prioridad
   if (provider.name === 'platform') {
-    console.log('âœ… Provider name es "platform"');
+    console.log('✅ Provider name es "platform"');
     passed++;
   } else {
     console.log(`âŒ Provider name es "${provider.name}"`);
@@ -281,7 +281,7 @@ async function testPlatformContextProvider() {
   }
 
   if (provider.priority === 10) {
-    console.log('âœ… Prioridad es 10 (baja)');
+    console.log('✅ Prioridad es 10 (baja)');
     passed++;
   } else {
     console.log(`âŒ Prioridad es ${provider.priority}`);
@@ -290,7 +290,7 @@ async function testPlatformContextProvider() {
 
   // Test 2: shouldInclude
   if (provider.shouldInclude('general')) {
-    console.log('âœ… Se incluye en contexto "general"');
+    console.log('✅ Se incluye en contexto "general"');
     passed++;
   } else {
     console.log('âŒ No se incluye en contexto "general"');
@@ -298,7 +298,7 @@ async function testPlatformContextProvider() {
   }
 
   if (!provider.shouldInclude('bug-report')) {
-    console.log('âœ… No se incluye en contexto "bug-report"');
+    console.log('✅ No se incluye en contexto "bug-report"');
     passed++;
   } else {
     console.log('âŒ No debería incluirse en "bug-report"');
@@ -310,11 +310,11 @@ async function testPlatformContextProvider() {
     contextType: 'general'
   });
   if (generalContext && generalContext.content) {
-    console.log('âœ… Genera contexto general');
+    console.log('✅ Genera contexto general');
     passed++;
 
     if (generalContext.content.includes('SOFLIA')) {
-      console.log('âœ… Contexto menciona SOFLIA');
+      console.log('✅ Contexto menciona SOFLIA');
       passed++;
     } else {
       console.log('âŒ Contexto no menciona SOFLIA');
@@ -322,7 +322,7 @@ async function testPlatformContextProvider() {
     }
 
     if (generalContext.content.includes('Módulos Principales')) {
-      console.log('âœ… Contexto incluye módulos');
+      console.log('✅ Contexto incluye módulos');
       passed++;
     } else {
       console.log('âŒ Contexto no incluye módulos');
@@ -339,7 +339,7 @@ async function testPlatformContextProvider() {
     currentPage: '/courses/react-basics/learn'
   });
   if (courseContext && courseContext.content.includes('Cursos')) {
-    console.log('âœ… Contexto de curso incluye módulo de Cursos');
+    console.log('✅ Contexto de curso incluye módulo de Cursos');
     passed++;
   } else {
     console.log('âŒ Contexto de curso debería incluir módulo de Cursos');
@@ -351,7 +351,7 @@ async function testPlatformContextProvider() {
     contextType: 'help'
   });
   if (helpContext && helpContext.content.includes('Roles de Usuario')) {
-    console.log('âœ… Contexto de ayuda incluye roles');
+    console.log('✅ Contexto de ayuda incluye roles');
     passed++;
   } else {
     console.log('âŒ Contexto de ayuda debería incluir roles');
@@ -376,7 +376,7 @@ function testContextMetricsService() {
   const instance1 = ContextMetricsService.getInstance();
   const instance2 = ContextMetricsService.getInstance();
   if (instance1 === instance2) {
-    console.log('âœ… ContextMetricsService es singleton');
+    console.log('✅ ContextMetricsService es singleton');
     passed++;
   } else {
     console.log('âŒ No es singleton');
@@ -411,7 +411,7 @@ function testContextMetricsService() {
   const stats = getContextStats();
   
   if (stats.totalRequests >= 2) {
-    console.log(`âœ… ${stats.totalRequests} requests registrados`);
+    console.log(`✅ ${stats.totalRequests} requests registrados`);
     passed++;
   } else {
     console.log(`âŒ Solo ${stats.totalRequests} requests`);
@@ -420,7 +420,7 @@ function testContextMetricsService() {
 
   // Test 3: Stats de tokens
   if (stats.averageTokens > 0) {
-    console.log(`âœ… Average tokens: ${stats.averageTokens}`);
+    console.log(`✅ Average tokens: ${stats.averageTokens}`);
     passed++;
   } else {
     console.log('âŒ Average tokens es 0');
@@ -429,7 +429,7 @@ function testContextMetricsService() {
 
   // Test 4: Stats de providers
   if (stats.providerUsageCount['page'] >= 2) {
-    console.log(`âœ… Provider 'page' usado ${stats.providerUsageCount['page']} veces`);
+    console.log(`✅ Provider 'page' usado ${stats.providerUsageCount['page']} veces`);
     passed++;
   } else {
     console.log('âŒ Provider page no registrado correctamente');
@@ -438,7 +438,7 @@ function testContextMetricsService() {
 
   // Test 5: Stats de bugs
   if (stats.bugReportCount >= 1) {
-    console.log(`âœ… ${stats.bugReportCount} bug reports registrados`);
+    console.log(`✅ ${stats.bugReportCount} bug reports registrados`);
     passed++;
   } else {
     console.log('âŒ Bug reports no registrados');
@@ -448,7 +448,7 @@ function testContextMetricsService() {
   // Test 6: Provider performance
   const performance = instance1.getProviderPerformance();
   if (Object.keys(performance).length > 0) {
-    console.log('âœ… Performance de providers disponible');
+    console.log('✅ Performance de providers disponible');
     passed++;
   } else {
     console.log('âŒ Performance de providers vacía');
@@ -458,7 +458,7 @@ function testContextMetricsService() {
   // Test 7: Bug report stats
   const bugStats = instance1.getBugReportStats();
   if (bugStats.total >= 1) {
-    console.log(`âœ… Bug report stats: ${bugStats.total} total`);
+    console.log(`✅ Bug report stats: ${bugStats.total} total`);
     passed++;
   } else {
     console.log('âŒ Bug report stats vacías');
@@ -468,7 +468,7 @@ function testContextMetricsService() {
   // Test 8: Session stats
   const sessionStats = instance1.getSessionStats();
   if (sessionStats.sessionDuration > 0) {
-    console.log('âœ… Session stats disponibles');
+    console.log('✅ Session stats disponibles');
     passed++;
   } else {
     console.log('âŒ Session stats no disponibles');
@@ -478,7 +478,7 @@ function testContextMetricsService() {
   // Test 9: Top pages
   const topPages = instance1.getTopPages(5);
   if (topPages.length > 0) {
-    console.log(`âœ… Top pages: ${topPages.length} páginas`);
+    console.log(`✅ Top pages: ${topPages.length} páginas`);
     passed++;
   } else {
     console.log('âŒ Top pages vacío');
@@ -510,7 +510,7 @@ function testLiaComponentUtilities() {
   // Test 1: liaComponent básico
   const basic = liaComponent({ name: 'TestComponent' });
   if (basic[LIA_DATA_ATTRIBUTES.COMPONENT] === 'TestComponent') {
-    console.log('âœ… liaComponent genera atributo correcto');
+    console.log('✅ liaComponent genera atributo correcto');
     passed++;
   } else {
     console.log('âŒ liaComponent no genera atributo correcto');
@@ -524,7 +524,7 @@ function testLiaComponentUtilities() {
     state: 'active'
   });
   if (withProps[LIA_DATA_ATTRIBUTES.PROPS]) {
-    console.log('âœ… liaComponent incluye props');
+    console.log('✅ liaComponent incluye props');
     passed++;
   } else {
     console.log('âŒ liaComponent no incluye props');
@@ -535,7 +535,7 @@ function testLiaComponentUtilities() {
   const marker = liaMarker('Button', 'disabled');
   if (marker[LIA_DATA_ATTRIBUTES.COMPONENT] === 'Button' && 
       marker[LIA_DATA_ATTRIBUTES.STATE] === 'disabled') {
-    console.log('âœ… liaMarker genera nombre y estado');
+    console.log('✅ liaMarker genera nombre y estado');
     passed++;
   } else {
     console.log('âŒ liaMarker no funciona correctamente');
@@ -547,7 +547,7 @@ function testLiaComponentUtilities() {
   const modalClosed = liaModal('ConfirmDialog', false);
   if (modalOpen[LIA_DATA_ATTRIBUTES.STATE] === 'open' &&
       modalClosed[LIA_DATA_ATTRIBUTES.STATE] === 'closed') {
-    console.log('âœ… liaModal maneja estado open/closed');
+    console.log('✅ liaModal maneja estado open/closed');
     passed++;
   } else {
     console.log('âŒ liaModal no maneja estados correctamente');
@@ -559,7 +559,7 @@ function testLiaComponentUtilities() {
   if (form[LIA_DATA_ATTRIBUTES.STATE]?.includes('step-2') &&
       form[LIA_DATA_ATTRIBUTES.STATE]?.includes('has-errors') &&
       form[LIA_DATA_ATTRIBUTES.FEATURE] === 'form') {
-    console.log('âœ… liaForm genera estado y feature');
+    console.log('✅ liaForm genera estado y feature');
     passed++;
   } else {
     console.log('âŒ liaForm no genera correctamente');
@@ -571,7 +571,7 @@ function testLiaComponentUtilities() {
   if (table[LIA_DATA_ATTRIBUTES.STATE]?.includes('items-50') &&
       table[LIA_DATA_ATTRIBUTES.STATE]?.includes('page-2') &&
       table[LIA_DATA_ATTRIBUTES.STATE]?.includes('filtered')) {
-    console.log('âœ… liaDataTable genera estado correcto');
+    console.log('✅ liaDataTable genera estado correcto');
     passed++;
   } else {
     console.log('âŒ liaDataTable no genera estado correcto');
@@ -581,7 +581,7 @@ function testLiaComponentUtilities() {
   // Test 7: liaErrorBoundary
   const errorBoundary = liaErrorBoundary('AppBoundary');
   if (errorBoundary[LIA_DATA_ATTRIBUTES.ERROR_BOUNDARY] === 'true') {
-    console.log('âœ… liaErrorBoundary marca error boundary');
+    console.log('✅ liaErrorBoundary marca error boundary');
     passed++;
   } else {
     console.log('âŒ liaErrorBoundary no marca correctamente');
@@ -600,7 +600,7 @@ function testLiaComponentUtilities() {
   });
   const propsStr = sensitiveProps[LIA_DATA_ATTRIBUTES.PROPS] || '';
   if (!propsStr.includes('password') && !propsStr.includes('token') && !propsStr.includes('secret123')) {
-    console.log('âœ… Props sensibles son sanitizadas');
+    console.log('✅ Props sensibles son sanitizadas');
     passed++;
   } else {
     console.log('âŒ Props sensibles no se sanitizan');
@@ -610,7 +610,7 @@ function testLiaComponentUtilities() {
   // Test 9: LIA_DATA_ATTRIBUTES constantes
   if (LIA_DATA_ATTRIBUTES.COMPONENT === 'data-lia-component' &&
       LIA_DATA_ATTRIBUTES.STATE === 'data-lia-state') {
-    console.log('âœ… Constantes de atributos correctas');
+    console.log('✅ Constantes de atributos correctas');
     passed++;
   } else {
     console.log('âŒ Constantes incorrectas');
@@ -625,7 +625,7 @@ function testLiaComponentUtilities() {
   });
   if (withActions[LIA_DATA_ATTRIBUTES.FEATURE] === 'instructor' &&
       withActions[LIA_DATA_ATTRIBUTES.ACTION] === 'save,publish,preview') {
-    console.log('âœ… liaComponent soporta feature y actions');
+    console.log('✅ liaComponent soporta feature y actions');
     passed++;
   } else {
     console.log('âŒ liaComponent no soporta feature y actions');
@@ -635,7 +635,7 @@ function testLiaComponentUtilities() {
   // Test 11: liaDataTable con loading
   const loadingTable = liaDataTable('DataGrid', { isLoading: true });
   if (loadingTable[LIA_DATA_ATTRIBUTES.STATE]?.includes('loading')) {
-    console.log('âœ… liaDataTable soporta estado loading');
+    console.log('✅ liaDataTable soporta estado loading');
     passed++;
   } else {
     console.log('âŒ liaDataTable no soporta loading');
@@ -645,7 +645,7 @@ function testLiaComponentUtilities() {
   // Test 12: liaForm con submitting
   const submittingForm = liaForm('PaymentForm', { isSubmitting: true });
   if (submittingForm[LIA_DATA_ATTRIBUTES.STATE]?.includes('submitting')) {
-    console.log('âœ… liaForm soporta estado submitting');
+    console.log('✅ liaForm soporta estado submitting');
     passed++;
   } else {
     console.log('âŒ liaForm no soporta submitting');
@@ -669,7 +669,7 @@ function testPageContextServiceNewPages() {
   // Test 1: Contexto de /auth
   const authContext = PageContextService.buildPageContext('/auth');
   if (authContext.includes('auth_login') || authContext.includes('Login')) {
-    console.log('âœ… /auth genera contexto');
+    console.log('✅ /auth genera contexto');
     passed++;
   } else {
     console.log('âŒ /auth no genera contexto esperado');
@@ -679,7 +679,7 @@ function testPageContextServiceNewPages() {
   // Test 2: Contexto de /profile
   const profileContext = PageContextService.buildPageContext('/profile');
   if (profileContext.includes('user_profile') || profileContext.includes('Perfil')) {
-    console.log('âœ… /profile genera contexto');
+    console.log('✅ /profile genera contexto');
     passed++;
   } else {
     console.log('âŒ /profile no genera contexto esperado');
@@ -689,7 +689,7 @@ function testPageContextServiceNewPages() {
   // Test 3: Contexto de /dashboard
   const dashboardContext = PageContextService.buildPageContext('/dashboard');
   if (dashboardContext.includes('main_dashboard') || dashboardContext.includes('Dashboard')) {
-    console.log('âœ… /dashboard genera contexto');
+    console.log('✅ /dashboard genera contexto');
     passed++;
   } else {
     console.log('âŒ /dashboard no genera contexto esperado');
@@ -699,7 +699,7 @@ function testPageContextServiceNewPages() {
   // Test 4: Contexto de /certificates
   const certsContext = PageContextService.buildPageContext('/certificates');
   if (certsContext.includes('certificates_list') || certsContext.includes('Certificados')) {
-    console.log('âœ… /certificates genera contexto');
+    console.log('✅ /certificates genera contexto');
     passed++;
   } else {
     console.log('âŒ /certificates no genera contexto esperado');
@@ -709,7 +709,7 @@ function testPageContextServiceNewPages() {
   // Test 5: Bug report context para /auth
   const authBugContext = PageContextService.buildBugReportContext('/auth');
   if (authBugContext.includes('OAuth') || authBugContext.includes('Login')) {
-    console.log('âœ… /auth genera contexto de bug detallado');
+    console.log('✅ /auth genera contexto de bug detallado');
     passed++;
   } else {
     console.log('âŒ /auth no genera contexto de bug esperado');
@@ -719,7 +719,7 @@ function testPageContextServiceNewPages() {
   // Test 6: Contexto de comunidades
   const communityContext = PageContextService.buildPageContext('/communities/test-community');
   if (communityContext.includes('community_home') || communityContext.includes('Comunidad')) {
-    console.log('âœ… /communities/[slug] genera contexto');
+    console.log('✅ /communities/[slug] genera contexto');
     passed++;
   } else {
     console.log('âŒ /communities/[slug] no genera contexto esperado');
@@ -729,7 +729,7 @@ function testPageContextServiceNewPages() {
   // Test 7: Contexto de instructor
   const instructorContext = PageContextService.buildPageContext('/instructor/dashboard');
   if (instructorContext.includes('instructor_dashboard') || instructorContext.includes('Instructor')) {
-    console.log('âœ… /instructor/dashboard genera contexto');
+    console.log('✅ /instructor/dashboard genera contexto');
     passed++;
   } else {
     console.log('âŒ /instructor/dashboard no genera contexto esperado');
@@ -765,7 +765,7 @@ async function runAllTests() {
   let totalFailed = 0;
 
   for (const [name, result] of Object.entries(results)) {
-    const status = result.failed === 0 ? 'âœ…' : 'âš ï¸';
+    const status = result.failed === 0 ? '✅' : 'âš ï¸';
     console.log(`${status} ${name}: ${result.passed} passed, ${result.failed} failed`);
     totalPassed += result.passed;
     totalFailed += result.failed;

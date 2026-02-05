@@ -186,7 +186,7 @@ export class CalendarIntegrationService {
 
         if (secondaryCalendarId) {
           await this.saveSecondaryCalendarId(userId, secondaryCalendarId);
-          console.log('[Calendar Integration] âœ… Calendario secundario creado y guardado:', secondaryCalendarId);
+          console.log('[Calendar Integration] ✅ Calendario secundario creado y guardado:', secondaryCalendarId);
         } else {
           console.warn('[Calendar Integration] âš ï¸ No se pudo crear el calendario secundario, se usará el principal');
         }
@@ -624,7 +624,7 @@ export class CalendarIntegrationService {
 
     if (existing) {
       // Actualizar existente
-      // âœ… CORRECCIÓN: Preservar refresh_token existente si no viene uno nuevo
+      // ✅ CORRECCIÓN: Preservar refresh_token existente si no viene uno nuevo
       // Google no siempre devuelve un nuevo refresh_token al refrescar,
       // por lo que debemos preservar el existente
       const refreshTokenToSave = tokens.refresh_token || existing.refresh_token;
@@ -796,7 +796,7 @@ export class CalendarIntegrationService {
         ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
         : null;
 
-      // âœ… CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
+      // ✅ CORRECCIÓN: Guardar nuevo refresh_token si viene en la respuesta
       // Preservar el existente si no viene uno nuevo
       const refreshTokenToSave = tokens.refresh_token || integration.refresh_token;
 

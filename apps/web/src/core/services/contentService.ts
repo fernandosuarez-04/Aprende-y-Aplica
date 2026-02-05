@@ -84,7 +84,7 @@ const mockLandingPageContent: LandingPageContent = {
 // Mock data para Business Page
 const mockBusinessPageContent: BusinessPageContent = {
   hero: {
-    tag: "ðŸš€ SOFLIA Business",
+    tag: "🚀 SOFLIA Business",
     title: "Soluciones IA para",
     highlightWord: "tu organización",
     description: "Ya seas una empresa buscando capacitar a tu equipo o un instructor profesional, tenemos la plataforma perfecta para ti.",

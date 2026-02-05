@@ -273,7 +273,7 @@ export function ContextualVoiceGuide({
       // Acceder directamente a las variables sin validación previa
       const apiKey = 'sk_dd0d1757269405cd26d5e22fb14c54d2f49c4019fd8e86d0';
       const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
-      // âœ… OPTIMIZACIÓN: Usar modelo turbo para mayor velocidad
+      // ✅ OPTIMIZACIÓN: Usar modelo turbo para mayor velocidad
       const modelId = 'eleven_turbo_v2_5';
 
       // Debug: mostrar valores (comentado para reducir logs)
@@ -325,13 +325,13 @@ export function ContextualVoiceGuide({
             text: text,
             model_id: modelId || 'eleven_turbo_v2_5',
             voice_settings: {
-              // âœ… OPTIMIZACIÓN: Configuración ajustada para velocidad
+              // ✅ OPTIMIZACIÓN: Configuración ajustada para velocidad
               stability: 0.4,              // Reducido de 0.5 para más velocidad
               similarity_boost: 0.65,      // Reducido de 0.75
               style: 0.3,                  // Reducido de 0.5
               use_speaker_boost: false     // Desactivado para mayor velocidad
             },
-            // âœ… OPTIMIZACIÓN: Nuevos parámetros de latencia
+            // ✅ OPTIMIZACIÓN: Nuevos parámetros de latencia
             optimize_streaming_latency: 4,  // Máxima optimización (0-4)
             output_format: 'mp3_22050_32'   // Menor bitrate = menor latencia
           }),
@@ -525,7 +525,7 @@ export function ContextualVoiceGuide({
       }
       setIsListening(false);
     } else {
-      // âœ… Detener audio de LIA si está hablando antes de que el usuario hable
+      // ✅ Detener audio de LIA si está hablando antes de que el usuario hable
       stopAllAudio();
       
       try {
@@ -682,7 +682,7 @@ export function ContextualVoiceGuide({
     // Detener cualquier audio en reproducción
     stopAllAudio();
 
-    // âœ… Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automáticamente
+    // ✅ Ya no necesitamos verificar hasUserInteracted porque el audio se inicia automáticamente
     setHasUserInteracted(true);
     
     const nextStep = currentStep + 1;

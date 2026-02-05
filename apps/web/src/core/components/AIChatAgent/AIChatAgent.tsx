@@ -537,11 +537,11 @@ export function AIChatAgent({
   // Obtener los mensajes según el modo actual
   const messages = isNanoBananaMode ? nanoBananaMessages : isPromptMode ? promptMessages : normalMessages;
 
-  // âœ… PERSISTENCIA: Claves para localStorage
+  // ✅ PERSISTENCIA: Claves para localStorage
   const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
   const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
 
-  // âœ… PERSISTENCIA: Función para guardar mensajes en localStorage
+  // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
   // Solo guarda los últimos MAX_CONTEXT_MESSAGES mensajes
   const saveContextMessages = useCallback((messagesToSave: Message[]) => {
     try {
@@ -558,7 +558,7 @@ export function AIChatAgent({
     }
   }, []);
 
-  // âœ… PERSISTENCIA: Función para cargar mensajes desde localStorage
+  // ✅ PERSISTENCIA: Función para cargar mensajes desde localStorage
   const loadContextMessages = useCallback((): Message[] => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_CONTEXT_MESSAGES);
@@ -575,7 +575,7 @@ export function AIChatAgent({
     }
   }, []);
 
-  // âœ… PERSISTENCIA: Función para limpiar contexto guardado
+  // ✅ PERSISTENCIA: Función para limpiar contexto guardado
   const clearContextMessages = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
@@ -868,7 +868,7 @@ export function AIChatAgent({
       // Intentar reproducir el audio
       try {
         await audio.play();
-        console.log('âœ… [TTS] Audio reproducido exitosamente');
+        console.log('✅ [TTS] Audio reproducido exitosamente');
         // Playback started successfully; clear abort controller
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
@@ -923,7 +923,7 @@ export function AIChatAgent({
       const data = await response.json();
 
       // Notificar éxito
-      alert(`âœ… Prompt guardado exitosamente: "${draft.title}"`);
+      alert(`✅ Prompt guardado exitosamente: "${draft.title}"`);
 
       // Cerrar el panel de preview
       setIsPromptPanelOpen(false);
@@ -961,7 +961,7 @@ export function AIChatAgent({
     };
   }, [router]);
 
-  // âœ… PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
+  // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
   useEffect(() => {
     try {
       // Primero verificar si el modo de contexto está activado
@@ -984,7 +984,7 @@ export function AIChatAgent({
     }
   }, [loadContextMessages]); // loadContextMessages es estable (useCallback con [])
 
-  // âœ… PERSISTENCIA: Guardar estado de useContextMode cuando cambia
+  // ✅ PERSISTENCIA: Guardar estado de useContextMode cuando cambia
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, useContextMode.toString());
@@ -1001,7 +1001,7 @@ export function AIChatAgent({
     }
   }, [useContextMode, isOpen]);
 
-  // âœ… PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
+  // ✅ PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
   useEffect(() => {
     if (useContextMode && !isPromptMode && normalMessages.length > 0) {
       // Guardar inmediatamente sin debounce
@@ -1010,7 +1010,7 @@ export function AIChatAgent({
     }
   }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
 
-  // âœ… PERSISTENCIA: Guardar mensajes antes de cerrar la pestaña/navegador
+  // ✅ PERSISTENCIA: Guardar mensajes antes de cerrar la pestaña/navegador
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
@@ -1395,7 +1395,7 @@ export function AIChatAgent({
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "âœ¨ He cambiado al Modo Prompts ðŸŽ¯\n\n¿Qué tipo de prompt necesitas crear?",
+            content: "✨ He cambiado al Modo Prompts ðŸŽ¯\n\n¿Qué tipo de prompt necesitas crear?",
             timestamp: new Date()
           };
           setPromptMessages(prev => [...prev, systemMessage]);
@@ -1495,7 +1495,7 @@ export function AIChatAgent({
         const systemMessage: Message = {
           id: `system-${Date.now()}`,
           role: 'assistant',
-          content: "âœ¨ He detectado que quieres crear un prompt. He activado el Modo Prompts ðŸŽ¯\n\n¿Qué tipo de prompt necesitas crear?",
+          content: "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts ðŸŽ¯\n\n¿Qué tipo de prompt necesitas crear?",
           timestamp: new Date()
         };
 
@@ -1686,7 +1686,7 @@ export function AIChatAgent({
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('âœ… [TTS] Llamando speakText para mensaje NanoBanana');
+          console.log('✅ [TTS] Llamando speakText para mensaje NanoBanana');
           speakText(assistantMessage.content);
         } else {
           console.log('âŒ [TTS] No se leerá el mensaje NanoBanana', { 
@@ -1754,7 +1754,7 @@ export function AIChatAgent({
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('âœ… [TTS] Llamando speakText para mensaje prompt');
+          console.log('✅ [TTS] Llamando speakText para mensaje prompt');
           speakText(assistantMessage.content);
         } else {
           console.log('âŒ [TTS] No se leerá el mensaje prompt', { 
@@ -1774,8 +1774,8 @@ export function AIChatAgent({
             message: userMessage.content,
             context: activeContext,
             language,
-            isPromptMode: false, // âœ… Agregar parámetro isPromptMode
-            conversationId: conversationId, // âœ… Pasar conversationId para continuidad
+            isPromptMode: false, // ✅ Agregar parámetro isPromptMode
+            conversationId: conversationId, // ✅ Pasar conversationId para continuidad
             pageContext: {
               pathname: pathname,
               description: pageContextInfo,
@@ -1819,7 +1819,7 @@ export function AIChatAgent({
 
         const data = await response.json();
 
-        // âœ… ANALYTICS: Guardar conversationId que viene del backend
+        // ✅ ANALYTICS: Guardar conversationId que viene del backend
         if (data.conversationId && !conversationId) {
           setConversationId(data.conversationId);
         }
@@ -1842,7 +1842,7 @@ export function AIChatAgent({
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('âœ… [TTS] Llamando speakText para mensaje normal');
+          console.log('✅ [TTS] Llamando speakText para mensaje normal');
           speakText(assistantMessage.content);
         } else {
           console.log('âŒ [TTS] No se leerá el mensaje normal', { 
@@ -2071,12 +2071,12 @@ export function AIChatAgent({
     if (prevPathnameRef.current !== pathname) {
       const wasOpen = isOpen;
 
-      // âœ… PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
+      // ✅ PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
       }
 
-      // âœ… PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
+      // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
       // Esto permite mantener el contexto del chat entre páginas
       // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
       // Esto evita usar contenido de la página anterior

@@ -46,7 +46,7 @@ export async function loginAction(formData: FormData) {
       return { error: 'Credenciales inválidas' }
     }
 
-    console.log('ðŸ‘¤ [loginAction] Usuario encontrado:', {
+    console.log('👤 [loginAction] Usuario encontrado:', {
       id: user.id,
       username: user.username,
       email: user.email,
@@ -179,7 +179,7 @@ export async function loginAction(formData: FormData) {
     // 6. Crear sesión personalizada (sin Supabase Auth)
 
     try {
-      // âœ… Obtener cookieStore DENTRO del try para mantener el contexto AsyncLocalStorage
+      // ✅ Obtener cookieStore DENTRO del try para mantener el contexto AsyncLocalStorage
       const cookieStore = await cookies()
       const headersList = await headers()
       const userAgent = headersList.get('user-agent') || 'unknown'
@@ -264,7 +264,7 @@ export async function loginAction(formData: FormData) {
             })
           }
         })
-        logger.info('âœ… Notificación de login procesada', { userId: user.id })
+        logger.info('✅ Notificación de login procesada', { userId: user.id })
       } catch (notificationError) {
         // Log del error pero no bloquear el login
         logger.error('âŒ Error en notificación de login:', {
@@ -355,7 +355,7 @@ export async function loginAction(formData: FormData) {
         const userOrg = userOrgs[0]
         const orgSlug = (userOrg.organizations as any)?.slug
 
-        console.log('âœ… [loginAction] Usuario Business con organización única:', {
+        console.log('✅ [loginAction] Usuario Business con organización única:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationId: userOrg.organization_id,
@@ -372,7 +372,7 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    console.log('ðŸš€ [loginAction] Redirigiendo a:', redirectTo);
+    console.log('🚀 [loginAction] Redirigiendo a:', redirectTo);
 
     // Devolver success con la URL de redirección
     return { success: true, redirectTo }

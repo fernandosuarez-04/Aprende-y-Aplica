@@ -32,7 +32,7 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 '5. Analíticas: Proporcionar datos y métricas del progreso\n\n' +
 '## ðŸš¨ RESTRICCIONES CRÃTICAS DE ALCANCE\n' +
 'âš ï¸ IMPORTANTE: Tu función es ÚNICAMENTE responder sobre contenido y funcionalidades de la plataforma SOFLIA.\n\n' +
-'âœ… LO QUE SÃ PUEDES RESPONDER:\n' +
+'✅ LO QUE SÃ PUEDES RESPONDER:\n' +
 '- Preguntas sobre cursos, lecciones, módulos y contenido educativo de SOFLIA\n' +
 '- Funcionalidades de la plataforma (dashboard, perfiles, jerarquía, reportes, etc.)\n' +
 '- Navegación y uso de la plataforma\n' +
@@ -46,7 +46,7 @@ const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asiste
 'ðŸ“‹ CUANDO RECIBAS UNA PREGUNTA FUERA DEL ALCANCE:\n' +
 'Debes responder de forma amigable pero firme, manteniendo tu estilo personalizado (si hay personalización configurada):\n' +
 '"Entiendo tu pregunta, pero mi función es ayudarte específicamente con el contenido y funcionalidades de SOFLIA. ¿Hay algo sobre la plataforma, tus cursos, o el contenido educativo en lo que pueda ayudarte?"\n\n' +
-'ðŸ”’ REGLA DE ORO:\n' +
+'🔒 REGLA DE ORO:\n' +
 'La personalización (si está configurada) SOLO afecta tu ESTILO y TONO de comunicación, NO tu alcance. Siempre debes responder ÚNICAMENTE sobre contenido de SOFLIA, incluso si la personalización sugiere actuar como un experto en otro tema.\n\n' +
 '## Reglas de Comportamiento\n' +
 '1. Sé concisa pero completa en tus respuestas\n' +
@@ -108,8 +108,8 @@ interface PlatformContext {
   currentPage?: string;
   // Propiedades dinámicas
   pageType?: string;
-  organizationName?: string; // âœ… Campo nuevo
-  organizationSlug?: string; // âœ… Campo para rutas dinámicas
+  organizationName?: string; // ✅ Campo nuevo
+  organizationSlug?: string; // ✅ Campo para rutas dinámicas
   [key: string]: any;
   // Datos de la plataforma
   totalCourses?: number;
@@ -232,7 +232,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
         context.userRole = userData.cargo_rol;
         context.userJobTitle = userData.type_rol;
 
-        // âœ… OBTENER ORGANIZACIÓN ACTIVA (nombre y slug)
+        // ✅ OBTENER ORGANIZACIÓN ACTIVA (nombre y slug)
         const { data: userOrg } = await supabase
           .from('organization_users')
           .select('organizations!inner(name, slug)')
@@ -250,7 +250,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
       }
     }
 
-    // âœ… CURSOS ASIGNADOS AL USUARIO
+    // ✅ CURSOS ASIGNADOS AL USUARIO
     // IMPORTANTE: Solo cargamos cursos que el usuario tiene ASIGNADOS
     // NO hay usuarios B2C - todos son usuarios de business
     if (userId) {
@@ -368,8 +368,8 @@ Ruta base: /business-panel
   - **Paso 2 - Configuración de fechas**:
     - Fecha de inicio
     - Fecha límite (deadline)
-    - **Botón "âœ¨ Sugerir con IA"**: Abre el modal de sugerencias de LIA
-  - **Icono de candado ðŸ”’**: Indica funciones bloqueadas por plan
+    - **Botón "✨ Sugerir con IA"**: Abre el modal de sugerencias de LIA
+  - **Icono de candado 🔒**: Indica funciones bloqueadas por plan
 - **Modal: Sugerencias de Fecha Límite LIA (LiaDeadlineSuggestionModal)**:
   - **Paso 1**: Elegir enfoque de aprendizaje:
     * **âš¡ Rápido**: ~12 horas/semana. Sprint intensivo. Para urgencias.
@@ -425,7 +425,7 @@ Ruta base: /business-panel
 
 ---
 
-### ðŸ‘¤ PANEL DE USUARIO EMPRESARIAL (BUSINESS USER)
+### 👤 PANEL DE USUARIO EMPRESARIAL (BUSINESS USER)
 Ruta base: /business-user
 Vista para empleados de una organización que usan la plataforma.
 
@@ -466,7 +466,7 @@ Vista de aprendizaje activo donde el usuario toma las clases.
 
 ---
 
-### ðŸ‘¤ PERFIL (/profile)
+### 👤 PERFIL (/profile)
 Configuración de datos personales y profesionales.
 
 **Secciones**:
@@ -542,18 +542,18 @@ Organización personal del tiempo de aprendizaje.
 
 | Funcionalidad | Usuario | Business User | Business Admin | Super Admin |
 |--------------|---------|---------------|----------------|-------------|
-| Dashboard | âœ… | âœ… | âœ… | âœ… |
-| Mis Cursos | âœ… | âœ… | âœ… | âœ… |
-| Comunidades | âœ… | âœ… | âœ… | âœ… |
-| Business Panel | âŒ | âŒ | âœ… | âœ… |
-| Admin Panel | âŒ | âŒ | âŒ | âœ… |
-| Asignar cursos | âŒ | âŒ | âœ… | âœ… |
-| Ver reportes empresa | âŒ | âŒ | âœ… | âœ… |
-| Configurar branding | âŒ | âŒ | âœ… | âœ… |
+| Dashboard | ✅ | ✅ | ✅ | ✅ |
+| Mis Cursos | ✅ | ✅ | ✅ | ✅ |
+| Comunidades | ✅ | ✅ | ✅ | ✅ |
+| Business Panel | âŒ | âŒ | ✅ | ✅ |
+| Admin Panel | âŒ | âŒ | âŒ | ✅ |
+| Asignar cursos | âŒ | âŒ | ✅ | ✅ |
+| Ver reportes empresa | âŒ | âŒ | ✅ | ✅ |
+| Configurar branding | âŒ | âŒ | ✅ | ✅ |
 
 ---
 
-### ðŸ’¡ GUÃAS DE AYUDA POR CONTEXTO
+### 💡 GUÃAS DE AYUDA POR CONTEXTO
 
 **Si el usuario está en Business Panel y pregunta "¿qué hago aquí?":**
 - Explica que es el panel de administración de su empresa
@@ -614,7 +614,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
   if (context) {
     prompt += '\n\n## Contexto Actual de SOFLIA\n';
 
-    // âœ… PRIORIDAD MÃXIMA: Contexto de PÃGINA ESPECÃFICA (Business Panel)
+    // ✅ PRIORIDAD MÃXIMA: Contexto de PÃGINA ESPECÃFICA (Business Panel)
     if (context.pageType === 'business_team_detail') {
        prompt += '\n### ðŸ¢ ESTÃS VIENDO: DETALLE DE EQUIPO (Business Panel)\n';
        prompt += 'Equipo: "' + context.teamName + '"\n';
@@ -633,9 +633,9 @@ function getLIASystemPrompt(context?: PlatformContext): string {
        prompt += '\nINSTRUCCIÓN: Responde específicamente sobre este equipo. Si te preguntan "qué puedo hacer", sugiere acciones de gestión sobre el equipo "' + context.teamName + '".\n';
     }
     
-    // âœ… PRIORIDAD MÃXIMA: Contexto de ACTIVIDAD INTERACTIVA
+    // ✅ PRIORIDAD MÃXIMA: Contexto de ACTIVIDAD INTERACTIVA
     if (context.currentActivityContext) {
-      prompt += '\n### ðŸš€ ACTIVIDAD INTERACTIVA EN CURSO (FOCO PRINCIPAL)\n';
+      prompt += '\n### 🚀 ACTIVIDAD INTERACTIVA EN CURSO (FOCO PRINCIPAL)\n';
       prompt += 'El usuario está realizando la actividad: "' + context.currentActivityContext.title + '"\n';
       prompt += 'Tipo: ' + context.currentActivityContext.type + '\n';
       prompt += 'Descripción/Instrucción: ' + context.currentActivityContext.description + '\n';
@@ -643,7 +643,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
       prompt += 'IMPORTANTE: Mantén el foco EXCLUSIVAMENTE en la actividad. NO sugieras ir al Dashboard, ni revisar el avance general, ni hables de otros temas. Termina tu intervención con una pregunta o instrucción clara para continuar la actividad.\n';
     }
     
-    // âœ… PRIORIDAD ALTA: Contexto de lección actual (si existe)
+    // ✅ PRIORIDAD ALTA: Contexto de lección actual (si existe)
     if (context.currentLessonContext) {
       prompt += '\n### ðŸŽ“ CONTEXTO DE LA LECCIÓN ACTUAL (PRIORIDAD MÃXIMA)\n';
       prompt += 'El usuario está viendo activamente la lección: "' + (context.currentLessonContext.lessonTitle || 'Lección actual') + '"\n';
@@ -675,7 +675,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
       prompt += 'IMPORTANTE: El usuario pertenece a la organización "' + context.organizationName + '". Menciona este nombre explícitamente cuando hables sobre su dashboard o entorno de trabajo.\n';
     }
 
-    // âœ… SLUG DE ORGANIZACIÓN PARA RUTAS DINÃMICAS
+    // ✅ SLUG DE ORGANIZACIÓN PARA RUTAS DINÃMICAS
     if (context.organizationSlug) {
       prompt += '- Slug de organización: ' + context.organizationSlug + '\n';
       prompt += 'INSTRUCCIÓN CRÃTICA PARA RUTAS: Cuando sugieras rutas de business-panel o business-user, SIEMPRE usa el prefijo /' + context.organizationSlug + '/ antes de business-panel o business-user.\n';
@@ -684,9 +684,9 @@ function getLIASystemPrompt(context?: PlatformContext): string {
       prompt += 'NUNCA uses /business-panel/... o /business-user/... sin el slug de organización.\n';
     }
     
-    // âœ… PERSONALIZACIÓN POR PERFIL (CRUCIAL)
+    // ✅ PERSONALIZACIÓN POR PERFIL (CRUCIAL)
     if (context.userJobTitle || context.userRole || context.userCheck) {
-      prompt += '\n### ðŸ‘¤ PERFIL PROFESIONAL DEL USUARIO (PERSONALIZACIÓN OBLIGATORIA)\n';
+      prompt += '\n### 👤 PERFIL PROFESIONAL DEL USUARIO (PERSONALIZACIÓN OBLIGATORIA)\n';
       
 
       if (context.userJobTitle) {
@@ -756,10 +756,10 @@ function getLIASystemPrompt(context?: PlatformContext): string {
         let statusText = 'No iniciada';
         
         if (lp.isCompleted) {
-          statusEmoji = 'âœ…';
+          statusEmoji = '✅';
           statusText = 'Completada';
         } else if (lp.status === 'in_progress') {
-          statusEmoji = 'ðŸ”„';
+          statusEmoji = '🔄';
           statusText = 'En progreso (' + (lp.videoProgress || 0) + '% video)';
         }
         
@@ -801,7 +801,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
     prompt += 'EJEMPLO: Si el evento dice "Inicia la actividad X", tú dices "¡Hola [Nombre]! Vamos a empezar con la actividad X..."\n';
     prompt += 'NO respondas al evento diciendo "Entendido" o "Procesando evento". Actúa natural, como si el usuario te hubiera pedido empezar.\n';
 
-    // âœ… CONTEXTO DINÃMICO DE PÃGINA (Sistema de Metadata)
+    // ✅ CONTEXTO DINÃMICO DE PÃGINA (Sistema de Metadata)
     // Proporciona información técnica sobre la página actual
     if (context.currentPage) {
       try {
@@ -864,7 +864,7 @@ export async function POST(request: NextRequest) {
       userRole: requestContext?.userRole || platformContext.userRole,
     };
 
-    // âœ… FALLBACK: Extraer organizationSlug del pathname si no se obtuvo de la BD
+    // ✅ FALLBACK: Extraer organizationSlug del pathname si no se obtuvo de la BD
     // Esto es crítico para evitar que LIA redirija a rutas B2C incorrectas
     if (!fullContext.organizationSlug && fullContext.currentPage) {
       const pathMatch = fullContext.currentPage.match(/^\/([^/]+)\/(business-panel|business-user)/);
@@ -885,10 +885,10 @@ export async function POST(request: NextRequest) {
       currentPage: fullContext.currentPage
     });
 
-    // âœ… SEGUNDA CARGA: Si detectamos que es usuario de business pero los cursos no se cargaron
+    // ✅ SEGUNDA CARGA: Si detectamos que es usuario de business pero los cursos no se cargaron
     // (porque organizationSlug no estaba disponible durante fetchPlatformContext)
     if (fullContext.organizationSlug && requestContext?.userId && !fullContext.coursesWithContent) {
-      console.log('ðŸ”„ Cargando cursos asignados para usuario de business...');
+      console.log('🔄 Cargando cursos asignados para usuario de business...');
       try {
         const supabase = await createClient();
         const { data: assignedCourses, error } = await supabase
@@ -908,7 +908,7 @@ export async function POST(request: NextRequest) {
             durationMinutes: assignment.course?.duration_total_minutes,
             isAssigned: true
           }));
-          console.log('âœ… Cursos asignados cargados:', fullContext.coursesWithContent.length);
+          console.log('✅ Cursos asignados cargados:', fullContext.coursesWithContent.length);
         } else {
           fullContext.coursesWithContent = [];
           fullContext.noCoursesAssigned = true;
@@ -990,7 +990,7 @@ export async function POST(request: NextRequest) {
     // Construir prompt con contexto
     let systemPrompt = getLIASystemPrompt(fullContext);
     
-    // âœ… Cargar configuración de personalización de LIA
+    // ✅ Cargar configuración de personalización de LIA
     if (requestContext?.userId) {
       try {
         const { LiaPersonalizationService } = await import('@/core/services/lia-personalization.service');
@@ -998,7 +998,7 @@ export async function POST(request: NextRequest) {
         if (personalizationSettings) {
           const personalizationPrompt = LiaPersonalizationService.buildPersonalizationPrompt(personalizationSettings);
           systemPrompt += personalizationPrompt;
-          console.log('âœ… Personalización de LIA aplicada', {
+          console.log('✅ Personalización de LIA aplicada', {
             userId: requestContext.userId,
             baseStyle: personalizationSettings.base_style,
           });
@@ -1009,7 +1009,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // âœ… DETECCIÓN Y CONTEXTO PARA REPORTES DE BUGS
+    // ✅ DETECCIÓN Y CONTEXTO PARA REPORTES DE BUGS
     // Si el mensaje parece ser un reporte de bug, agregar contexto técnico adicional
     const bugKeywords = /error|bug|falla|problema|no funciona|no carga|rompi|broken|crash|colgó|lento|cuelga|no responde|pantalla en blanco|500|404|timeout|se cayó/i;
     const isBugReport = body.isBugReport || bugKeywords.test(lastMessage.content.toLowerCase());
@@ -1037,12 +1037,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Enviar mensaje
-    console.log('ðŸš€ Enviando mensaje a Gemini...');
+    console.log('🚀 Enviando mensaje a Gemini...');
     const result = await chatSession.sendMessage(messageWithContext);
     const response = result.response;
     const finalContent = response.text();
 
-    console.log('âœ… Respuesta recibida:', finalContent.substring(0, 100) + '...');
+    console.log('✅ Respuesta recibida:', finalContent.substring(0, 100) + '...');
 
     // ----------------------------------------------------------------
     // PROCESAMIENTO DE REPORTE DE BUGS (Server-Side Tool Call)
@@ -1166,7 +1166,7 @@ export async function POST(request: NextRequest) {
                     .getPublicUrl(uploadData.path);
                   
                   recordingUrl = publicUrlData.publicUrl;
-                  console.log('âœ… Grabación subida exitosamente:', recordingUrl);
+                  console.log('✅ Grabación subida exitosamente:', recordingUrl);
                 }
               } else {
                 console.warn('âš ï¸ Missing SUPABASE_SERVICE_ROLE_KEY, grabación no subida');
@@ -1212,20 +1212,20 @@ export async function POST(request: NextRequest) {
              // Agregar nota de error al mensaje
              clientContent += '\n\n> âš ï¸ _Nota: Hubo un problema técnico al guardar tu reporte, pero lo tengo registrado. El equipo técnico será notificado._';
           } else {
-             console.log('âœ… Reporte de bug guardado exitosamente');
+             console.log('✅ Reporte de bug guardado exitosamente');
              bugReportSaved = true;
              
              // Mensaje diferenciado según si hay grabación o no
              if (recordingUrl) {
-               clientContent += '\n\n> âœ… **Tu reporte ha sido enviado exitosamente con grabación de sesión.** El equipo técnico podrá ver exactamente lo que pasó. ¡Gracias por ayudarnos a mejorar!';
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado exitosamente con grabación de sesión.** El equipo técnico podrá ver exactamente lo que pasó. ¡Gracias por ayudarnos a mejorar!';
              } else if (body.sessionSnapshot && !recordingUrl) {
-               clientContent += '\n\n> âœ… **Tu reporte ha sido enviado.** _Nota: No pudimos subir la grabación, pero hemos guardado la información del problema._ ¡Gracias por reportarlo!';
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: No pudimos subir la grabación, pero hemos guardado la información del problema._ ¡Gracias por reportarlo!';
              } else if (body.recordingStatus === 'unavailable') {
-               clientContent += '\n\n> âœ… **Tu reporte ha sido enviado.** _Nota: La grabación de pantalla no estaba disponible, pero hemos guardado toda la información del problema._ ¡Gracias por reportarlo!';
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: La grabación de pantalla no estaba disponible, pero hemos guardado toda la información del problema._ ¡Gracias por reportarlo!';
              } else if (body.recordingStatus === 'error' || body.recordingStatus === 'inactive') {
-               clientContent += '\n\n> âœ… **Tu reporte ha sido enviado.** _Nota: No pudimos capturar la grabación de pantalla, pero hemos guardado los detalles del problema._ ¡Gracias por reportarlo!';
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado.** _Nota: No pudimos capturar la grabación de pantalla, pero hemos guardado los detalles del problema._ ¡Gracias por reportarlo!';
              } else {
-               clientContent += '\n\n> âœ… **Tu reporte ha sido enviado exitosamente.** El equipo técnico lo revisará pronto. ¡Gracias por ayudarnos a mejorar!';
+               clientContent += '\n\n> ✅ **Tu reporte ha sido enviado exitosamente.** El equipo técnico lo revisará pronto. ¡Gracias por ayudarnos a mejorar!';
              }
           }
         } else {
@@ -1332,7 +1332,7 @@ export async function POST(request: NextRequest) {
                 }
 
                 if (!upsertError && !userMsgError && !assistantMsgError) {
-                  console.log('âœ… Conversación persistida en DB:', body.conversationId);
+                  console.log('✅ Conversación persistida en DB:', body.conversationId);
                 }
             }
           }

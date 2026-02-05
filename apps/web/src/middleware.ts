@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { createServerClient } from '@supabase/ssr'
 import type { Database } from './lib/supabase/types'
 
-// âœ… Sistema de logging condicional - solo en desarrollo
+// ✅ Sistema de logging condicional - solo en desarrollo
 const isDevelopment = process.env.NODE_ENV === 'development';
 const logger = {
   log: (...args: any[]) => isDevelopment && console.log(...args),
@@ -56,7 +56,7 @@ export async function middleware(request: NextRequest) {
           if (user) {
             const normalizedRole = user.cargo_rol?.toLowerCase().trim()
 
-            logger.log('ðŸ”„ Usuario autenticado en /auth, redirigiendo según cargo_rol:', normalizedRole)
+            logger.log('🔄 Usuario autenticado en /auth, redirigiendo según cargo_rol:', normalizedRole)
 
             if (normalizedRole === 'administrador') {
               return NextResponse.redirect(new URL('/admin/dashboard', request.url))
@@ -86,7 +86,7 @@ export async function middleware(request: NextRequest) {
               const userOrg = userOrgs[0]
               const orgRole = userOrg.role as string
 
-              // âœ… Redirección basada en organization_users.role (owner/admin â†’ panel, member â†’ user dashboard)
+              // ✅ Redirección basada en organization_users.role (owner/admin â†’ panel, member â†’ user dashboard)
               if (orgRole === 'owner' || orgRole === 'admin') {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-panel/dashboard`, request.url))
               } else {
@@ -113,7 +113,7 @@ export async function middleware(request: NextRequest) {
     '/welcome',
     '/_next',
     '/favicon.ico',
-    '/auth/select-organization' // âœ… Permitir acceso a selección de organización
+    '/auth/select-organization' // ✅ Permitir acceso a selección de organización
   ]
 
   const isExemptRoute = exemptRoutes.some(route =>
@@ -121,7 +121,7 @@ export async function middleware(request: NextRequest) {
   )
 
   // Verificar si la ruta requiere autenticación
-  // âœ… Incluye rutas B2B: business-panel (admin de org) y business-user (empleado)
+  // ✅ Incluye rutas B2B: business-panel (admin de org) y business-user (empleado)
   const protectedRoutes = ['/admin', '/dashboard', '/communities', '/business-panel', '/business-user']
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
@@ -129,17 +129,17 @@ export async function middleware(request: NextRequest) {
 
   // Si es ruta exenta, continuar sin validación adicional
   if (isExemptRoute) {
-    logger.log('âœ… Ruta exenta, continuando...')
+    logger.log('✅ Ruta exenta, continuando...')
     return NextResponse.next()
   }
 
   // Si no es ruta protegida, continuar
   if (!isProtectedRoute) {
-    logger.log('âœ… Ruta no protegida, continuando...')
+    logger.log('✅ Ruta no protegida, continuando...')
     return NextResponse.next()
   }
 
-  logger.log('ðŸ”’ Ruta protegida detectada:', request.nextUrl.pathname)
+  logger.log('🔒 Ruta protegida detectada:', request.nextUrl.pathname)
 
   let response = NextResponse.next({
     request: {
@@ -168,7 +168,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // âœ… SOPORTE DUAL: Verificar sesión con refresh tokens (nuevo) o legacy (user_session)
+  // ✅ SOPORTE DUAL: Verificar sesión con refresh tokens (nuevo) o legacy (user_session)
   const sessionCookie = request.cookies.get('aprende-y-aplica-session')
   const accessTokenCookie = request.cookies.get('access_token')
   const refreshTokenCookie = request.cookies.get('refresh_token')
@@ -209,7 +209,7 @@ export async function middleware(request: NextRequest) {
 
       if (!tokenError && tokenData) {
         userId = tokenData.user_id
-        logger.log('âœ… Sesión validada via refresh token:', userId)
+        logger.log('✅ Sesión validada via refresh token:', userId)
       }
     }
 
@@ -225,7 +225,7 @@ export async function middleware(request: NextRequest) {
 
       if (!sessionError && sessionData) {
         userId = sessionData.user_id
-        logger.log('âœ… Sesión validada via legacy (user_session):', userId)
+        logger.log('✅ Sesión validada via legacy (user_session):', userId)
       }
     }
 
@@ -239,7 +239,7 @@ export async function middleware(request: NextRequest) {
       return redirectResponse;
     }
 
-    logger.log('âœ… Sesión válida para usuario:', userId)
+    logger.log('✅ Sesión válida para usuario:', userId)
 
   } catch (error) {
     logger.error('âŒ Error validando sesión:', error)
@@ -248,7 +248,7 @@ export async function middleware(request: NextRequest) {
 
   // Para rutas de admin, verificar rol
   if (request.nextUrl.pathname.startsWith('/admin')) {
-    logger.log('ðŸ‘‘ Verificando acceso de administrador...')
+    logger.log('👑 Verificando acceso de administrador...')
     try {
       // Usar el userId ya validado anteriormente
       const { data: userData } = await supabase
@@ -257,9 +257,9 @@ export async function middleware(request: NextRequest) {
         .eq('id', userId)
         .single()
 
-      logger.log('ðŸ‘¤ Rol del usuario:', userData?.cargo_rol)
+      logger.log('👤 Rol del usuario:', userData?.cargo_rol)
 
-      // âœ… Normalizar rol antes de comparar (toLowerCase y trim)
+      // ✅ Normalizar rol antes de comparar (toLowerCase y trim)
       const userRole = userData?.cargo_rol?.toLowerCase().trim()
 
       if (!userData || userRole !== 'administrador') {
@@ -267,7 +267,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(new URL('/dashboard', request.url))
       }
 
-      logger.log('âœ… Acceso de administrador autorizado')
+      logger.log('✅ Acceso de administrador autorizado')
     } catch (error) {
       logger.error('âŒ Error checking admin role:', error)
       return NextResponse.redirect(new URL('/dashboard', request.url))

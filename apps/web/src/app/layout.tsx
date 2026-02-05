@@ -80,7 +80,7 @@ export default function RootLayout({
                     e.message.includes('Loading CSS chunk') ||
                     (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static/chunks'))
                   )) {
-                    console.warn('ðŸ”„ ChunkLoadError detectado, recargando página...', e.message);
+                    console.warn('🔄 ChunkLoadError detectado, recargando página...', e.message);
                     // Evitar recargas infinitas
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
@@ -108,7 +108,7 @@ export default function RootLayout({
                     ) ||
                     e.reason.name === 'ChunkLoadError'
                   )) {
-                    console.warn('ðŸ”„ ChunkLoadError en promesa rechazada, recargando página...', e.reason);
+                    console.warn('🔄 ChunkLoadError en promesa rechazada, recargando página...', e.reason);
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
                     if (attempts < 2) {
@@ -186,14 +186,14 @@ export default function RootLayout({
           }}
         />
 
-        {/* ðŸš€ Resource Hints - Mejora conexión a APIs externas 20-30% */}
+        {/* 🚀 Resource Hints - Mejora conexión a APIs externas 20-30% */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
 
-        {/* ðŸ“± PWA Meta Tags */}
+        {/* 📱 PWA Meta Tags */}
         <meta name="application-name" content="SOFLIA" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />

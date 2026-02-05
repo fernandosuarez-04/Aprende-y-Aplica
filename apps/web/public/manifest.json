@@ -1,7 +1,7 @@
 {
   "name": "SOFLIA - Plataforma de IA",
   "short_name": "SOFLIA",
-  "description": "Plataforma educativa de inteligencia artificial con asistente virtual LIA. CapacitaciÃ³n, comunidad y adopciÃ³n de IA en el entorno laboral.",
+  "description": "Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0a",
@@ -41,7 +41,7 @@
     {
       "name": "Noticias",
       "short_name": "Noticias",
-      "description": "Ãšltimas noticias de IA",
+      "description": "Últimas noticias de IA",
       "url": "/news",
       "icons": [{ "src": "/icono.png", "sizes": "any" }]
     },

@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         const needsRefresh = !tokenExpiry || tokenExpiry <= new Date();
 
         if (needsRefresh) {
-            console.log('ðŸ”„ [Insert Events] Token expirado, refrescando...');
+            console.log('🔄 [Insert Events] Token expirado, refrescando...');
             const refreshedToken = await CalendarIntegrationService.refreshTokenIfNeeded(user.id);
             if (!refreshedToken) {
                 return NextResponse.json({
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
             if (calendarId) {
                 // Guardar el ID del calendario secundario si aún no está guardado
                 await CalendarIntegrationService.saveSecondaryCalendarId(user.id, calendarId);
-                console.log(`âœ… [Insert Events] Usando calendario secundario: ${calendarId}`);
+                console.log(`✅ [Insert Events] Usando calendario secundario: ${calendarId}`);
             } else {
                 console.warn('âš ï¸ [Insert Events] No se pudo crear calendario secundario, usando primario');
             }
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
 
                     if (result) {
                         results.push({ success: true, eventId: result.id, index: i });
-                        console.log(`âœ… [Insert Events] Evento ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
+                        console.log(`✅ [Insert Events] Evento ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
                     } else {
                         results.push({ success: false, error: 'No se pudo crear el evento', index: i });
                         console.error(`âŒ [Insert Events] Error en evento ${i + 1}/${eventsToInsert.length}`);
@@ -185,7 +185,7 @@ export async function POST(request: NextRequest) {
 
                     if (result) {
                         results.push({ success: true, eventId: result.id, index: i });
-                        console.log(`âœ… [Insert Events] Evento Microsoft ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
+                        console.log(`✅ [Insert Events] Evento Microsoft ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
                     } else {
                         results.push({ success: false, error: 'No se pudo crear el evento en Microsoft Calendar', index: i });
                         console.error(`âŒ [Insert Events] Error en evento Microsoft ${i + 1}/${eventsToInsert.length}`);

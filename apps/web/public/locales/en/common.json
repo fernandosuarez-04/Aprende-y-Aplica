@@ -65,7 +65,7 @@
       "title": "NanoBanana Pro",
       "description": "Generate structured JSON for precise visual rendering.",
       "emptyDescription": "Generate structured JSON for NanoBanana Pro. Describe UI, photographs, or diagrams and get precise, reproducible schemas.",
-      "welcome": "ðŸŽ¨ Welcome to NanoBanana Mode!\n\nI'm your assistant for creating structured JSON optimized for NanoBanana Pro.\n\n**What can I create?**\nâ€¢ ðŸ“± UI/Wireframes (apps, dashboards, landing pages)\nâ€¢ ðŸ“¸ Photographs (products, marketing, lifestyle)\nâ€¢ ðŸ“Š Diagrams (flows, architectures, processes)\n\nDescribe what you need and I'll generate a precise and reproducible JSON.",
+      "welcome": "ðŸŽ¨ Welcome to NanoBanana Mode!\n\nI'm your assistant for creating structured JSON optimized for NanoBanana Pro.\n\n**What can I create?**\nâ€¢ 📱 UI/Wireframes (apps, dashboards, landing pages)\nâ€¢ ðŸ“¸ Photographs (products, marketing, lifestyle)\nâ€¢ ðŸ“Š Diagrams (flows, architectures, processes)\n\nDescribe what you need and I'll generate a precise and reproducible JSON.",
       "viewJson": "View NanoBanana JSON"
     },
     "contextMode": {

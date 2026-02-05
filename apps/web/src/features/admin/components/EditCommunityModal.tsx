@@ -506,7 +506,7 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                     icon={<Globe className="w-5 h-5" />}
                     options={[
                       { value: 'public', label: 'ðŸŒ Pública - Visible para todos' },
-                      { value: 'private', label: 'ðŸ”’ Privada - Solo miembros' }
+                      { value: 'private', label: '🔒 Privada - Solo miembros' }
                     ]}
                     required
                   />
@@ -518,7 +518,7 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                     onChange={handleChange}
                     icon={<Lock className="w-5 h-5" />}
                     options={[
-                      { value: 'open', label: 'âœ… Abierto - Cualquiera puede unirse' },
+                      { value: 'open', label: '✅ Abierto - Cualquiera puede unirse' },
                       { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobación' },
                       { value: 'invite_only', label: 'âœ‰ï¸ Solo invitación' }
                     ]}

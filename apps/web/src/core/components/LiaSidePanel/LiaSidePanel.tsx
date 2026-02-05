@@ -652,7 +652,7 @@ function LiaSidePanelContent() {
       // Intentar reproducir el audio
       try {
         await audio.play();
-        console.log('âœ… [TTS] Audio reproducido exitosamente');
+        console.log('✅ [TTS] Audio reproducido exitosamente');
         // Playback started successfully; clear abort controller
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {

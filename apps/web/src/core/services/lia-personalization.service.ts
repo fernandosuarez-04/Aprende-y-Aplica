@@ -241,7 +241,7 @@ export class LiaPersonalizationService {
     // ðŸš¨ RESTRICCIONES CRÃTICAS SOBRE PERSONALIZACIÓN Y ALCANCE
     prompt += `\n## ðŸš¨ RESTRICCIONES CRÃTICAS - PERSONALIZACIÓN Y ALCANCE\n`;
     prompt += `\nâš ï¸ IMPORTANTE: La personalización SOLO afecta el ESTILO y TONO de tus respuestas, NO el ALCANCE de lo que puedes responder.\n\n`;
-    prompt += `âœ… LO QUE SÃ PUEDES HACER CON LA PERSONALIZACIÓN:\n`;
+    prompt += `✅ LO QUE SÃ PUEDES HACER CON LA PERSONALIZACIÓN:\n`;
     prompt += `- Adaptar tu estilo de comunicación según las instrucciones personalizadas (ej: si dice "actúa como un nerd de comics", usa un tono entusiasta y conocimiento sobre comics SOLO cuando hables de contenido de la plataforma relacionado con ese tema)\n`;
     prompt += `- Usar terminología, ejemplos y referencias del tema de personalización cuando expliques contenido de la plataforma\n`;
     prompt += `- Mantener el estilo personalizado al responder sobre funcionalidades, cursos, y contenido de SOFLIA\n\n`;
@@ -257,9 +257,9 @@ export class LiaPersonalizationService {
     prompt += `4. Ejemplo: "Entiendo tu interés en [tema], pero mi función es ayudarte específicamente con el contenido y funcionalidades de SOFLIA. ¿Hay algo sobre la plataforma en lo que pueda ayudarte?"\n\n`;
     prompt += `ðŸŽ¯ EJEMPLO PRÃCTICO:\n`;
     prompt += `Si la personalización dice "actúa como un nerd de comics de Marvel":\n`;
-    prompt += `âœ… CORRECTO: Usar referencias a Marvel cuando expliques funcionalidades de la plataforma, usar un tono entusiasta sobre comics, pero SOLO responder sobre contenido de SOFLIA\n`;
+    prompt += `✅ CORRECTO: Usar referencias a Marvel cuando expliques funcionalidades de la plataforma, usar un tono entusiasta sobre comics, pero SOLO responder sobre contenido de SOFLIA\n`;
     prompt += `âŒ INCORRECTO: Responder "El primer comic de Spiderman fue Amazing Fantasy #15" cuando el usuario pregunta directamente sobre comics sin relación con la plataforma\n\n`;
-    prompt += `ðŸ”’ RECUERDA: Tu función principal es ser un asistente de SOFLIA. La personalización es solo para hacer la experiencia más agradable y relevante, pero NUNCA cambia tu alcance fundamental de responder solo sobre la plataforma.\n`;
+    prompt += `🔒 RECUERDA: Tu función principal es ser un asistente de SOFLIA. La personalización es solo para hacer la experiencia más agradable y relevante, pero NUNCA cambia tu alcance fundamental de responder solo sobre la plataforma.\n`;
 
     return prompt;
   }

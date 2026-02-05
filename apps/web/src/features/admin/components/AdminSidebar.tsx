@@ -41,6 +41,8 @@ const navigation = [
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
   { name: 'Revisiones', href: '/admin/courses/pending', icon: DocumentTextIcon }, // TODO: Cambiar icono por ClipboardDocumentCheckIcon si está disponible
+  // TODO: [PENDING] Implementar sección de Gestión de Skills e Insignias (ver migración 20260204120000_create_skills_tables.sql)
+  // { name: 'Skills & Badges', href: '/admin/skills', icon: AcademicCapIcon },
 ]
 
 export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin, onHoverChange }: AdminSidebarProps) {

@@ -153,7 +153,7 @@ export function BusinessThemeCustomizer() {
       if (success) {
         setSaveSuccess('Estilos guardados correctamente');
         setTimeout(() => setSaveSuccess(null), 3000);
-        // console.log('âœ… Estilos guardados exitosamente, refrescando...');
+        // console.log('✅ Estilos guardados exitosamente, refrescando...');
         // Refrescar estilos para asegurar que todos los componentes se actualicen
         await refetch();
       } else {

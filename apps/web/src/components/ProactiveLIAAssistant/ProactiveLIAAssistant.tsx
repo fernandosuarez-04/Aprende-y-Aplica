@@ -5,9 +5,9 @@
  * se detectan patrones de dificultad en la sesión del usuario.
  * 
  * Características:
- * - âœ¨ Animación suave de entrada
+ * - ✨ Animación suave de entrada
  * - ðŸ’¬ Mensaje contextual de LIA
- * - âœ… Botón para aceptar ayuda
+ * - ✅ Botón para aceptar ayuda
  * - âŒ Botón para dismissar
  * - ðŸ”” Notificación no intrusiva
  */
