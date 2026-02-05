@@ -1,7 +1,7 @@
 export const DATABASE_SCHEMA_CONTEXT = `
 ## ESQUEMA DE BASE DE DATOS DE SOFLIA
 Usa este esquema para entender la estructura de datos real de la plataforma, las relaciones entre entidades y los campos disponibles.
-Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad de datos.
+Esto te servirá para responder preguntas técnicas o sobre disponibilidad de datos.
 
 ### TABLAS PRINCIPALES
 
@@ -10,7 +10,7 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 - username, email
 - first_name, last_name, display_name
 - cargo_rol (Usuario, Instructor, Administrador, Business, Business User)
-- type_rol (Cargo especÃ­fico)
+- type_rol (Cargo específico)
 - profile_picture_url, bio, location
 - is_banned, ban_reason
 - created_at, last_login_at
@@ -26,13 +26,13 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 - student_count, average_rating
 - approval_status
 
-**course_modules** (MÃ³dulos dentro de un curso)
+**course_modules** (Módulos dentro de un curso)
 - module_id (uuid, PK)
 - course_id (FK -> courses)
 - module_title, module_description
 - module_order_index
 
-**course_lessons** (Lecciones dentro de un mÃ³dulo)
+**course_lessons** (Lecciones dentro de un módulo)
 - lesson_id (uuid, PK)
 - module_id (FK -> course_modules)
 - instructor_id (FK -> users)
@@ -50,7 +50,7 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 - overall_progress_percentage
 - enrolled_at, last_accessed_at, completed_at
 
-**user_lesson_progress** (Progreso detallado por lecciÃ³n)
+**user_lesson_progress** (Progreso detallado por lección)
 - progress_id (uuid, PK)
 - user_id (FK -> users)
 - lesson_id (FK -> course_lessons)
@@ -66,16 +66,16 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 - id (uuid, PK)
 - name, description
 - subscription_plan, subscription_status
-- brand_color_primary, brand_logo_url (PersonalizaciÃ³n)
+- brand_color_primary, brand_logo_url (Personalización)
 - max_users
 
-**organization_users** (Miembros de la organizaciÃ³n)
+**organization_users** (Miembros de la organización)
 - user_id (FK -> users)
 - organization_id (FK -> organizations)
 - role (owner, admin, member)
 - status (active, invited)
 
-**work_teams** (Equipos dentro de una organizaciÃ³n)
+**work_teams** (Equipos dentro de una organización)
 - team_id (uuid, PK)
 - organization_id (FK -> organizations)
 - name, description
@@ -89,7 +89,7 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 **work_team_course_assignments** (Asignaciones de cursos a equipos)
 - team_id (FK -> work_teams)
 - course_id (FK -> courses)
-- due_date (Fecha lÃ­mite)
+- due_date (Fecha límite)
 - status (assigned, in_progress, completed)
 
 ### INTERACTIVIDAD Y LIA
@@ -142,7 +142,7 @@ Esto te servirÃ¡ para responder preguntas tÃ©cnicas o sobre disponibilidad d
 - app_id, name, description, category_id
 - pricing_model, website_url
 
-**communities** (Comunidades - implÃ­cito, no veo tabla explÃ­cita pero mencionado en cÃ³digo)
+**communities** (Comunidades - implícito, no veo tabla explícita pero mencionado en código)
 - (Probablemente gestioanda via categories o externa)
 
 **news** (Noticias - similar a communities)

@@ -169,9 +169,9 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
   const selectedPlan = PLAN_OPTIONS.find(p => p.value === formData.subscription_plan) || PLAN_OPTIONS[0]
 
   const navItems = [
-    { id: 'general' as CreateTab, label: 'General', icon: BuildingOffice2Icon, description: 'Info bÃ¡sica y contacto' },
+    { id: 'general' as CreateTab, label: 'General', icon: BuildingOffice2Icon, description: 'Info básica y contacto' },
     { id: 'branding' as CreateTab, label: 'Branding', icon: SparklesIcon, description: 'Logo, colores y marca' },
-    { id: 'owner' as CreateTab, label: 'Propietario', icon: UserCircleIcon, description: 'Invitar al dueÃ±o' }
+    { id: 'owner' as CreateTab, label: 'Propietario', icon: UserCircleIcon, description: 'Invitar al dueño' }
   ]
 
   const primaryColor = formData.brand_color_primary || colors.primary
@@ -286,7 +286,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                   <div className="w-2 h-2 rounded-full" style={{ backgroundColor: selectedPlan.color }} />
                 </div>
                 <p className="text-lg font-bold text-white leading-none">{selectedPlan.label}</p>
-                <p className="text-xs text-gray-500 mt-1">{formData.max_users} usuarios mÃ¡x.</p>
+                <p className="text-xs text-gray-500 mt-1">{formData.max_users} usuarios máx.</p>
               </div>
             </div>
           </div>
@@ -301,7 +301,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                     <div className="p-2 rounded-lg" style={{ backgroundColor: `${accentColor}20` }}>
                       <PlusIcon className="w-5 h-5" style={{ color: accentColor }} />
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Nueva OrganizaciÃ³n</h2>
+                    <h2 className="text-2xl font-bold text-white">Nueva Organización</h2>
                   </div>
                   <p className="text-sm text-gray-400 ml-12">Crea una nueva empresa en la plataforma SOFLIA</p>
                 </div>
@@ -329,7 +329,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                         {/* Section: Basic Info */}
                         <div className="space-y-5">
                            <div className="flex items-center gap-2 text-sm font-bold text-white/50 uppercase tracking-wider pb-2 border-b border-white/5">
-                              <BuildingOffice2Icon className="w-4 h-4" /> InformaciÃ³n BÃ¡sica
+                              <BuildingOffice2Icon className="w-4 h-4" /> Información Básica
                            </div>
                            <div className="grid grid-cols-1 gap-5">
                               <div>
@@ -377,13 +377,13 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                  </div>
                               </div>
                               <div>
-                                 <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">DescripciÃ³n</label>
+                                 <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">Descripción</label>
                                  <textarea 
                                    rows={3} 
                                    value={formData.description} 
                                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-none transition-all"
-                                   placeholder="Breve descripciÃ³n de la empresa..."
+                                   placeholder="Breve descripción de la empresa..."
                                  />
                               </div>
                            </div>
@@ -400,7 +400,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                  <input type="email" value={formData.contact_email} onChange={(e) => setFormData({...formData, contact_email: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" placeholder="contacto@empresa.com" />
                               </div>
                               <div>
-                                 <label className="block text-xs text-gray-400 mb-2 ml-1">TelÃ©fono</label>
+                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Teléfono</label>
                                  <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({...formData, contact_phone: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" placeholder="+52 55 1234 5678" />
                               </div>
                               <div className="md:col-span-2">
@@ -413,7 +413,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                         {/* Section: Subscription */}
                         <div className="space-y-5">
                            <div className="flex items-center gap-2 text-sm font-bold text-white/50 uppercase tracking-wider pb-2 border-b border-white/5">
-                              <BoltIcon className="w-4 h-4" /> SuscripciÃ³n
+                              <BoltIcon className="w-4 h-4" /> Suscripción
                            </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               <div className="relative">
@@ -442,7 +442,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                  </AnimatePresence>
                               </div>
                               <div>
-                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Usuarios MÃ¡ximos</label>
+                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Usuarios Máximos</label>
                                  <input type="number" min="1" value={formData.max_users} onChange={(e) => setFormData({...formData, max_users: parseInt(e.target.value) || 1 })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" />
                               </div>
                            </div>
@@ -489,7 +489,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                      </div>
                                      <div className="text-center">
                                        <p className="text-sm text-gray-400 group-hover:text-white transition-colors">Subir logo</p>
-                                       <p className="text-[10px] text-gray-600">PNG, JPG, SVG (mÃ¡x. 5MB)</p>
+                                       <p className="text-[10px] text-gray-600">PNG, JPG, SVG (máx. 5MB)</p>
                                      </div>
                                    </div>
                                  )}
@@ -539,7 +539,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                      </div>
                                      <div className="text-center">
                                        <p className="text-sm text-gray-400 group-hover:text-white transition-colors">Subir banner</p>
-                                       <p className="text-[10px] text-gray-600">PNG, JPG (mÃ¡x. 10MB)</p>
+                                       <p className="text-[10px] text-gray-600">PNG, JPG (máx. 10MB)</p>
                                      </div>
                                    </div>
                                  )}
@@ -581,7 +581,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                    {activeTab === 'owner' && (
                      <motion.div key="owner" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 max-w-3xl">
                         <div className="text-sm text-gray-400 border-b border-white/5 pb-4 mb-6">
-                           Ingresa los datos del propietario de la organizaciÃ³n. Se le enviarÃ¡ una invitaciÃ³n por correo electrÃ³nico para que configure su cuenta.
+                           Ingresa los datos del propietario de la organización. Se le enviará una invitación por correo electrónico para que configure su cuenta.
                         </div>
                         
                         {/* Owner Info Card */}
@@ -591,8 +591,8 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                                  <UserCircleIcon className="w-8 h-8" style={{ color: accentColor }} />
                               </div>
                               <div>
-                                 <h4 className="text-white font-bold text-lg">Propietario de la OrganizaciÃ³n</h4>
-                                 <p className="text-sm text-gray-400">TendrÃ¡ control total sobre la organizaciÃ³n</p>
+                                 <h4 className="text-white font-bold text-lg">Propietario de la Organización</h4>
+                                 <p className="text-sm text-gray-400">Tendrá control total sobre la organización</p>
                               </div>
                            </div>
                            
@@ -600,7 +600,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                               {/* Email del propietario */}
                               <div>
                                  <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">
-                                    Correo electrÃ³nico del propietario <span className="text-red-400">*</span>
+                                    Correo electrónico del propietario <span className="text-red-400">*</span>
                                  </label>
                                  <div className="relative">
                                     <EnvelopeIcon className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
@@ -617,7 +617,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                               {/* Cargo del propietario */}
                               <div>
                                  <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">
-                                    Cargo / PosiciÃ³n <span className="text-xs text-gray-600">(Opcional)</span>
+                                    Cargo / Posición <span className="text-xs text-gray-600">(Opcional)</span>
                                  </label>
                                  <input 
                                     type="text" 
@@ -635,12 +635,12 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                            <div className="flex items-start gap-3">
                               <SparklesIcon className="w-5 h-5 text-accent flex-shrink-0 mt-0.5" />
                               <div className="text-sm text-gray-400">
-                                 <p className="mb-2"><strong className="text-white">Â¿QuÃ© sucederÃ¡ despuÃ©s?</strong></p>
+                                 <p className="mb-2"><strong className="text-white">¿Qué sucederá después?</strong></p>
                                  <ul className="space-y-1 text-xs">
-                                    <li>â€¢ Se crearÃ¡ la organizaciÃ³n con la configuraciÃ³n especificada</li>
-                                    <li>â€¢ El propietario recibirÃ¡ un email con un enlace para registrarse</li>
-                                    <li>â€¢ La invitaciÃ³n expira en 7 dÃ­as</li>
-                                    <li>â€¢ PodrÃ¡s ver el estado de la invitaciÃ³n en el panel de administraciÃ³n</li>
+                                    <li>â€¢ Se creará la organización con la configuración especificada</li>
+                                    <li>â€¢ El propietario recibirá un email con un enlace para registrarse</li>
+                                    <li>â€¢ La invitación expira en 7 días</li>
+                                    <li>â€¢ Podrás ver el estado de la invitación en el panel de administración</li>
                                  </ul>
                               </div>
                            </div>
@@ -677,7 +677,7 @@ export function AdminCreateCompanyModal({ onClose, onCreate, isCreating }: Creat
                     }}
                   >
                      {isCreating && <ArrowPathIcon className="w-4 h-4 animate-spin" />}
-                     {isCreating ? 'Creando...' : 'Crear OrganizaciÃ³n'}
+                     {isCreating ? 'Creando...' : 'Crear Organización'}
                   </button>
                 </div>
              </div>

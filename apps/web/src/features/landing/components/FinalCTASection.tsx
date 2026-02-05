@@ -93,11 +93,11 @@ export function FinalCTASection() {
             </motion.span>
 
             <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-              {t('landing.cta.title', 'Transforma la capacitaciÃ³n de tu organizaciÃ³n')}
+              {t('landing.cta.title', 'Transforma la capacitación de tu organización')}
             </h2>
 
             <p className="text-lg lg:text-xl text-white/60 max-w-2xl mx-auto">
-              {t('landing.cta.subtitle', 'Agenda una demo ejecutiva y descubre cÃ³mo SOFLIA puede impulsar el desarrollo de tu equipo con resultados medibles.')}
+              {t('landing.cta.subtitle', 'Agenda una demo ejecutiva y descubre cómo SOFLIA puede impulsar el desarrollo de tu equipo con resultados medibles.')}
             </p>
           </motion.div>
 
@@ -123,10 +123,10 @@ export function FinalCTASection() {
                   <CheckCircle size={40} className="text-[#10B981]" />
                 </motion.div>
                 <h3 className="text-2xl font-bold text-white mb-3">
-                  {t('landing.cta.success.title', 'Â¡Mensaje recibido!')}
+                  {t('landing.cta.success.title', '¡Mensaje recibido!')}
                 </h3>
                 <p className="text-white/60">
-                  {t('landing.cta.success.description', 'Nuestro equipo se pondrÃ¡ en contacto contigo pronto para agendar tu demo.')}
+                  {t('landing.cta.success.description', 'Nuestro equipo se pondrá en contacto contigo pronto para agendar tu demo.')}
                 </p>
               </motion.div>
             ) : (
@@ -196,7 +196,7 @@ export function FinalCTASection() {
 
                 {/* Secondary Option */}
                 <p className="text-center text-white/40 text-sm">
-                  {t('landing.cta.form.alternative', 'Â¿Prefieres contactarnos directamente?')}{' '}
+                  {t('landing.cta.form.alternative', '¿Prefieres contactarnos directamente?')}{' '}
                   <a href="mailto:ernesto.hernandez@ecosdeliderazgo.com" className="text-[#00D4B3] hover:underline">
                     ernesto.hernandez@ecosdeliderazgo.com
                   </a>

@@ -2,45 +2,45 @@
  * PlatformContextProvider
  * 
  * Provee contexto general sobre la plataforma SOFLIA a LIA.
- * Incluye informaciÃ³n de funcionalidades, mÃ³dulos activos y capacidades.
+ * Incluye información de funcionalidades, módulos activos y capacidades.
  */
 
 import { BaseContextProvider } from '../base/BaseContextProvider';
 import type { ContextFragment, ContextBuildOptions } from '../../types';
 
 /**
- * MÃ³dulos principales de la plataforma
+ * Módulos principales de la plataforma
  */
 const PLATFORM_MODULES = {
   courses: {
     name: 'Cursos',
     description: 'Sistema de cursos con lecciones en video, actividades interactivas y certificados',
-    features: ['Videos', 'Actividades', 'Quizzes', 'Certificados', 'Progreso automÃ¡tico']
+    features: ['Videos', 'Actividades', 'Quizzes', 'Certificados', 'Progreso automático']
   },
   studyPlanner: {
     name: 'Planificador de Estudio',
-    description: 'Herramienta de planificaciÃ³n de estudio con IA',
-    features: ['GeneraciÃ³n de planes con IA', 'IntegraciÃ³n con calendario', 'Recordatorios']
+    description: 'Herramienta de planificación de estudio con IA',
+    features: ['Generación de planes con IA', 'Integración con calendario', 'Recordatorios']
   },
   communities: {
     name: 'Comunidades',
-    description: 'Red social interna para interacciÃ³n entre usuarios',
-    features: ['Posts', 'Comentarios', 'Likes', 'Comunidades pÃºblicas y privadas']
+    description: 'Red social interna para interacción entre usuarios',
+    features: ['Posts', 'Comentarios', 'Likes', 'Comunidades públicas y privadas']
   },
   businessPanel: {
     name: 'Panel Empresarial',
-    description: 'Herramientas de gestiÃ³n para administradores de empresas',
-    features: ['GestiÃ³n de usuarios', 'AsignaciÃ³n de cursos', 'Reportes', 'Analytics', 'JerarquÃ­a de equipos']
+    description: 'Herramientas de gestión para administradores de empresas',
+    features: ['Gestión de usuarios', 'Asignación de cursos', 'Reportes', 'Analytics', 'Jerarquía de equipos']
   },
   aiDirectory: {
     name: 'Directorio de IA',
-    description: 'CatÃ¡logo de herramientas y aplicaciones de IA',
-    features: ['Apps de IA', 'Prompts', 'CategorÃ­as', 'Favoritos']
+    description: 'Catálogo de herramientas y aplicaciones de IA',
+    features: ['Apps de IA', 'Prompts', 'Categorías', 'Favoritos']
   },
   lia: {
     name: 'LIA - Asistente de IA',
     description: 'Asistente inteligente integrado en toda la plataforma',
-    features: ['Chat contextual', 'Ayuda en cursos', 'PlanificaciÃ³n de estudio', 'Reporte de bugs']
+    features: ['Chat contextual', 'Ayuda en cursos', 'Planificación de estudio', 'Reporte de bugs']
   },
   workshops: {
     name: 'Talleres',
@@ -49,18 +49,18 @@ const PLATFORM_MODULES = {
   },
   news: {
     name: 'Noticias',
-    description: 'Sistema de artÃ­culos y noticias de la plataforma',
-    features: ['ArtÃ­culos', 'CategorÃ­as', 'Lectura estimada']
+    description: 'Sistema de artículos y noticias de la plataforma',
+    features: ['Artículos', 'Categorías', 'Lectura estimada']
   },
   certificates: {
     name: 'Certificados',
-    description: 'Sistema de certificaciÃ³n por completar cursos',
-    features: ['GeneraciÃ³n automÃ¡tica', 'VerificaciÃ³n pÃºblica', 'Descarga en PDF']
+    description: 'Sistema de certificación por completar cursos',
+    features: ['Generación automática', 'Verificación pública', 'Descarga en PDF']
   },
   reels: {
     name: 'Reels',
     description: 'Videos cortos educativos',
-    features: ['Videos verticales', 'NavegaciÃ³n tipo TikTok', 'Likes']
+    features: ['Videos verticales', 'Navegación tipo TikTok', 'Likes']
   }
 };
 
@@ -68,10 +68,10 @@ const PLATFORM_MODULES = {
  * Roles de usuario en la plataforma
  */
 const USER_ROLES = {
-  user: 'Usuario estÃ¡ndar - Acceso a cursos y comunidades',
+  user: 'Usuario estándar - Acceso a cursos y comunidades',
   business_user: 'Usuario empresarial - Acceso a cursos asignados por su empresa',
-  business_admin: 'Admin empresarial - GestiÃ³n de usuarios y cursos de su empresa',
-  instructor: 'Instructor - CreaciÃ³n y gestiÃ³n de cursos propios',
+  business_admin: 'Admin empresarial - Gestión de usuarios y cursos de su empresa',
+  instructor: 'Instructor - Creación y gestión de cursos propios',
   admin: 'Administrador - Acceso completo a la plataforma'
 };
 
@@ -82,7 +82,7 @@ export class PlatformContextProvider extends BaseContextProvider {
   async getContext(options: ContextBuildOptions): Promise<ContextFragment | null> {
     const { contextType, currentPage } = options;
 
-    // Construir contexto segÃºn el tipo solicitado
+    // Construir contexto según el tipo solicitado
     const content = this.buildPlatformContext(contextType, currentPage);
 
     return {
@@ -94,7 +94,7 @@ export class PlatformContextProvider extends BaseContextProvider {
   }
 
   shouldInclude(contextType: string): boolean {
-    // Incluir solo en contextos generales o cuando se pide explÃ­citamente
+    // Incluir solo en contextos generales o cuando se pide explícitamente
     return ['general', 'help', 'platform', 'onboarding'].includes(contextType);
   }
 
@@ -109,10 +109,10 @@ export class PlatformContextProvider extends BaseContextProvider {
     sections.push('SOFLIA es una plataforma de aprendizaje corporativo con IA integrada.');
     sections.push('');
 
-    // MÃ³dulos relevantes segÃºn la pÃ¡gina actual
+    // Módulos relevantes según la página actual
     const relevantModules = this.getRelevantModules(currentPage);
     
-    sections.push('### MÃ³dulos Principales');
+    sections.push('### Módulos Principales');
     for (const moduleKey of relevantModules) {
       const module = PLATFORM_MODULES[moduleKey as keyof typeof PLATFORM_MODULES];
       if (module) {
@@ -130,7 +130,7 @@ export class PlatformContextProvider extends BaseContextProvider {
     }
 
     sections.push('\n### Notas para LIA');
-    sections.push('- Responder en espaÃ±ol por defecto');
+    sections.push('- Responder en español por defecto');
     sections.push('- Ser amigable pero profesional');
     sections.push('- Cuando no sepas algo, sugerir contactar soporte');
 
@@ -138,17 +138,17 @@ export class PlatformContextProvider extends BaseContextProvider {
   }
 
   /**
-   * Determina quÃ© mÃ³dulos son relevantes para la pÃ¡gina actual
+   * Determina qué módulos son relevantes para la página actual
    */
   private getRelevantModules(currentPage?: string): string[] {
     if (!currentPage) {
-      // Si no hay pÃ¡gina, devolver los mÃ¡s importantes
+      // Si no hay página, devolver los más importantes
       return ['courses', 'lia', 'studyPlanner', 'communities'];
     }
 
     const page = currentPage.toLowerCase();
 
-    // Mapear pÃ¡gina a mÃ³dulos relevantes
+    // Mapear página a módulos relevantes
     if (page.includes('course') || page.includes('learn')) {
       return ['courses', 'lia', 'certificates'];
     }

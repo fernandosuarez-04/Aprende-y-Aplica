@@ -80,7 +80,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
         setComments(prev => [newCommentData, ...prev]);
         setNewComment('');
         
-        // Notificar al componente padre que se agregÃ³ un comentario
+        // Notificar al componente padre que se agregó un comentario
         if (onCommentAdded) {
           onCommentAdded();
         }
@@ -99,7 +99,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
     }
   }, [isOpen, reelId]);
 
-  // Filtrar comentarios por bÃºsqueda
+  // Filtrar comentarios por búsqueda
   const filteredComments = comments.filter(comment =>
     comment.content.toLowerCase().includes(searchQuery.toLowerCase()) ||
     comment.users.username.toLowerCase().includes(searchQuery.toLowerCase())
@@ -161,7 +161,7 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
             </div>
           </div>
 
-          {/* Barra de bÃºsqueda - Unificada con talleres/comunidades */}
+          {/* Barra de búsqueda - Unificada con talleres/comunidades */}
           <div className="p-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#0F1419]">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#6C757D] dark:text-[#6C757D]" />
@@ -213,13 +213,13 @@ export const CommentsPanel: React.FC<CommentsPanelProps> = ({
                   className="text-base font-semibold text-[#0A2540] dark:text-white mb-2"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 600 }}
                 >
-                  {searchQuery ? 'No se encontraron comentarios' : 'No hay comentarios aÃºn'}
+                  {searchQuery ? 'No se encontraron comentarios' : 'No hay comentarios aún'}
                 </h3>
                 <p 
                   className="text-sm text-[#6C757D] dark:text-white/60"
                   style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
                 >
-                  {searchQuery ? 'Intenta con otros tÃ©rminos de bÃºsqueda' : 'Â¡SÃ© el primero en comentar!'}
+                  {searchQuery ? 'Intenta con otros términos de búsqueda' : '¡Sé el primero en comentar!'}
                 </p>
               </div>
             ) : (

@@ -134,7 +134,7 @@ export function CTASection() {
               }}
               className="bg-clip-text text-transparent bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540] dark:from-white dark:via-[#00D4B3] dark:to-white bg-[length:200%_auto]"
             >
-              Â¿Listo para revolucionar
+              ¿Listo para revolucionar
             </motion.span>
             <br />
             <motion.span
@@ -161,10 +161,10 @@ export function CTASection() {
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            Ãšnete a miles de profesionales que ya estÃ¡n transformando su futuro con IA
+            Únete a miles de profesionales que ya están transformando su futuro con IA
           </motion.p>
 
-          {/* CTA Button - RediseÃ±ado */}
+          {/* CTA Button - Rediseñado */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -305,7 +305,7 @@ export function CTASection() {
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>Sin tarjeta de crÃ©dito</span>
+              <span>Sin tarjeta de crédito</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
@@ -313,7 +313,7 @@ export function CTASection() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>CancelaciÃ³n en cualquier momento</span>
+              <span>Cancelación en cualquier momento</span>
             </div>
           </motion.div>
         </motion.div>
@@ -335,14 +335,14 @@ export function CTASection() {
                 href="/privacy"
                 className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
               >
-                PolÃ­tica de Privacidad
+                Política de Privacidad
               </Link>
               <span className="text-[#6C757D] dark:text-white/40">â€¢</span>
               <Link
                 href="/terms"
                 className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
               >
-                TÃ©rminos de Servicio
+                Términos de Servicio
               </Link>
             </div>
           </div>

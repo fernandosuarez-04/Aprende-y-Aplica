@@ -53,7 +53,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
   const [showOptionsMenu, setShowOptionsMenu] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar menÃº al hacer click fuera
+  // Cerrar menú al hacer click fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -67,16 +67,16 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
     }
   }, [showOptionsMenu]);
 
-  // Handlers para opciones del menÃº
+  // Handlers para opciones del menú
   const handleEdit = () => {
     setShowOptionsMenu(false);
-    // TODO: Implementar lÃ³gica de ediciÃ³n
-    alert('FunciÃ³n de editar en desarrollo');
+    // TODO: Implementar lógica de edición
+    alert('Función de editar en desarrollo');
   };
 
   const handleDelete = async () => {
     setShowOptionsMenu(false);
-    if (!confirm('Â¿EstÃ¡s seguro de que quieres eliminar este comentario?')) return;
+    if (!confirm('¿Estás seguro de que quieres eliminar este comentario?')) return;
 
     try {
       const response = await fetch(`/api/reels/comments/${comment.id}`, {
@@ -97,8 +97,8 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
 
   const handleReport = () => {
     setShowOptionsMenu(false);
-    // TODO: Implementar lÃ³gica de reporte
-    alert('FunciÃ³n de reportar en desarrollo');
+    // TODO: Implementar lógica de reporte
+    alert('Función de reportar en desarrollo');
   };
 
   // Cargar respuestas
@@ -216,7 +216,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
                 <MoreHorizontal className="w-4 h-4 text-[#6C757D] dark:text-white/60" />
               </button>
 
-              {/* MenÃº de opciones - SOFLIA */}
+              {/* Menú de opciones - SOFLIA */}
               <AnimatePresence>
                 {showOptionsMenu && (
                   <motion.div
@@ -264,7 +264,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             dangerouslySetInnerHTML={{ __html: sanitizeComment(comment.content) }}
           />
           
-          {/* Botones de acciÃ³n */}
+          {/* Botones de acción */}
           <div className="flex items-center gap-4">
             <button 
               onClick={() => setShowReplyInput(!showReplyInput)}
@@ -316,7 +316,7 @@ export const CommentItem: React.FC<CommentItemProps> = ({ comment, onReplyAdded 
             )}
           </AnimatePresence>
 
-          {/* BotÃ³n para mostrar respuestas */}
+          {/* Botón para mostrar respuestas */}
           {replies.length > 0 && (
             <button
               onClick={() => setShowReplies(!showReplies)}

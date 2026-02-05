@@ -55,7 +55,7 @@ const THEME_PRESETS = [
   { id: 'emerald', name: 'Esmeralda', primary: '#065F46', secondary: '#064E3B', accent: '#10B981', description: 'Verde empresarial' },
   { id: 'purple', name: 'Violeta', primary: '#4C1D95', secondary: '#5B21B6', accent: '#8B5CF6', description: 'Morado elegante' },
   { id: 'rose', name: 'Rosa', primary: '#9F1239', secondary: '#881337', accent: '#F43F5E', description: 'Rosa vibrante' },
-  { id: 'amber', name: 'Ãmbar', primary: '#92400E', secondary: '#78350F', accent: '#F59E0B', description: 'Naranja cÃ¡lido' }
+  { id: 'amber', name: 'Ãmbar', primary: '#92400E', secondary: '#78350F', accent: '#F59E0B', description: 'Naranja cálido' }
 ]
 
 type EditTab = 'general' | 'members' | 'branding' | 'themes'
@@ -167,8 +167,8 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
   }
 
   const navItems = [
-    { id: 'general' as EditTab, label: 'General', icon: BuildingOffice2Icon, description: 'Info bÃ¡sica y contacto' },
-    { id: 'members' as EditTab, label: 'Miembros', icon: ChartBarIcon, description: 'EstadÃ­sticas y admins' },
+    { id: 'general' as EditTab, label: 'General', icon: BuildingOffice2Icon, description: 'Info básica y contacto' },
+    { id: 'members' as EditTab, label: 'Miembros', icon: ChartBarIcon, description: 'Estadísticas y admins' },
     { id: 'branding' as EditTab, label: 'Branding', icon: SparklesIcon, description: 'Logo, colores y marca' },
     { id: 'themes' as EditTab, label: 'Temas', icon: EyeIcon, description: 'Estilos predefinidos' }
   ]
@@ -302,7 +302,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
              <div className="px-8 py-6 border-b border-white/5 flex items-center justify-between shrink-0">
                 <div>
                   <h2 className="text-2xl font-bold text-white">Editar Empresa</h2>
-                  <p className="text-sm text-gray-400 mt-1">ConfiguraciÃ³n y preferencias de {company.name}</p>
+                  <p className="text-sm text-gray-400 mt-1">Configuración y preferencias de {company.name}</p>
                 </div>
                 <button 
                   onClick={onClose} 
@@ -328,7 +328,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                         {/* Section: Basic Info */}
                         <div className="space-y-5">
                            <div className="flex items-center gap-2 text-sm font-bold text-white/50 uppercase tracking-wider pb-2 border-b border-white/5">
-                              <BuildingOffice2Icon className="w-4 h-4" /> InformaciÃ³n BÃ¡sica
+                              <BuildingOffice2Icon className="w-4 h-4" /> Información Básica
                            </div>
                            <div className="grid grid-cols-1 gap-5">
                               <div>
@@ -376,13 +376,13 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                  </div>
                               </div>
                               <div>
-                                 <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">DescripciÃ³n</label>
+                                 <label className="block text-xs font-medium text-gray-400 mb-2 ml-1">Descripción</label>
                                  <textarea 
                                    rows={3} 
                                    value={formData.description} 
                                    onChange={(e) => setFormData({...formData, description: e.target.value})} 
                                    className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 focus:ring-1 focus:ring-white/20 outline-none resize-none transition-all"
-                                   placeholder="Breve descripciÃ³n de la empresa..."
+                                   placeholder="Breve descripción de la empresa..."
                                  />
                               </div>
                            </div>
@@ -399,7 +399,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                  <input type="email" value={formData.contact_email} onChange={(e) => setFormData({...formData, contact_email: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" />
                               </div>
                               <div>
-                                 <label className="block text-xs text-gray-400 mb-2 ml-1">TelÃ©fono</label>
+                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Teléfono</label>
                                  <input type="tel" value={formData.contact_phone} onChange={(e) => setFormData({...formData, contact_phone: e.target.value})} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" />
                               </div>
                               <div className="md:col-span-2">
@@ -412,7 +412,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                         {/* Section: Subscription */}
                         <div className="space-y-5">
                            <div className="flex items-center gap-2 text-sm font-bold text-white/50 uppercase tracking-wider pb-2 border-b border-white/5">
-                              <BoltIcon className="w-4 h-4" /> SuscripciÃ³n
+                              <BoltIcon className="w-4 h-4" /> Suscripción
                            </div>
                            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                               <div className="relative">
@@ -441,7 +441,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                  </AnimatePresence>
                               </div>
                               <div>
-                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Usuarios MÃ¡ximos</label>
+                                 <label className="block text-xs text-gray-400 mb-2 ml-1">Usuarios Máximos</label>
                                  <input type="number" min="1" value={formData.max_users} onChange={(e) => setFormData({...formData, max_users: parseInt(e.target.value) || 1 })} className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/20 focus:border-white/20 outline-none transition-all" />
                               </div>
                            </div>
@@ -546,7 +546,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                      </div>
                                      <div className="text-center">
                                        <p className="text-sm text-gray-400 group-hover:text-white transition-colors">Subir logo</p>
-                                       <p className="text-[10px] text-gray-600">PNG, JPG, SVG (mÃ¡x. 5MB)</p>
+                                       <p className="text-[10px] text-gray-600">PNG, JPG, SVG (máx. 5MB)</p>
                                      </div>
                                    </div>
                                  )}
@@ -596,7 +596,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                                      </div>
                                      <div className="text-center">
                                        <p className="text-sm text-gray-400 group-hover:text-white transition-colors">Subir banner</p>
-                                       <p className="text-[10px] text-gray-600">PNG, JPG (mÃ¡x. 10MB)</p>
+                                       <p className="text-[10px] text-gray-600">PNG, JPG (máx. 10MB)</p>
                                      </div>
                                    </div>
                                  )}
@@ -638,7 +638,7 @@ export function AdminEditCompanyModal({ company, onClose, onSave, isSaving }: Ed
                    {activeTab === 'themes' && (
                      <motion.div key="themes" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="space-y-6 max-w-3xl">
                         <div className="text-sm text-gray-400 border-b border-white/5 pb-4 mb-6">
-                           Selecciona un tema predefinido para aplicar colores automÃ¡ticamente. Puedes personalizarlos despuÃ©s en la pestaÃ±a Branding.
+                           Selecciona un tema predefinido para aplicar colores automáticamente. Puedes personalizarlos después en la pestaña Branding.
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                            {THEME_PRESETS.map(preset => {

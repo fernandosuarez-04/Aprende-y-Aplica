@@ -6,7 +6,7 @@ import { SessionService } from '../services/session.service';
 import { logger } from '@/lib/logger';
 
 /**
- * Redirige al usuario al dashboard apropiado segÃºn su cargo_rol y rol en la organizaciÃ³n
+ * Redirige al usuario al dashboard apropiado según su cargo_rol y rol en la organización
  * - Administrador â†’ /admin/dashboard
  * - Instructor â†’ /instructor/dashboard (Panel de Instructor)
  * - Business (owner/admin en org) â†’ /{orgSlug}/business-panel/dashboard (Panel Admin Empresas)
@@ -15,7 +15,7 @@ import { logger } from '@/lib/logger';
  */
 export async function redirectToDashboard() {
   try {
-    // Verificar si el usuario estÃ¡ autenticado
+    // Verificar si el usuario está autenticado
     const user = await SessionService.getCurrentUser();
 
     if (!user) {
@@ -38,7 +38,7 @@ export async function redirectToDashboard() {
       return;
     }
 
-    // RedirecciÃ³n basada en cargo_rol (normalizado a minÃºsculas)
+    // Redirección basada en cargo_rol (normalizado a minúsculas)
     const normalizedRole = userData.cargo_rol?.toLowerCase().trim();
     logger.log(`Dashboard redirect: cargo_rol = ${userData.cargo_rol}, normalizedRole = ${normalizedRole}`);
 
@@ -47,7 +47,7 @@ export async function redirectToDashboard() {
     } else if (normalizedRole === 'instructor') {
       redirect('/instructor/dashboard');
     } else if (normalizedRole === 'business' || normalizedRole === 'business user') {
-      // Obtener organizaciÃ³n activa con slug y rol
+      // Obtener organización activa con slug y rol
       const { data: userOrg, error: orgError } = await supabase
         .from('organization_users')
         .select('organization_id, role, status, organizations!inner(slug)')
@@ -56,14 +56,14 @@ export async function redirectToDashboard() {
         .single();
 
       if (orgError || !userOrg) {
-        logger.warn(`Usuario Business sin organizaciÃ³n activa, redirigiendo a /dashboard`);
+        logger.warn(`Usuario Business sin organización activa, redirigiendo a /dashboard`);
         redirect('/dashboard');
       } else {
         const orgSlug = (userOrg.organizations as any)?.slug;
-        const orgRole = userOrg.role; // Rol en la organizaciÃ³n: 'owner', 'admin', 'member', etc.
+        const orgRole = userOrg.role; // Rol en la organización: 'owner', 'admin', 'member', etc.
         
         if (orgSlug) {
-          // Determinar destino segÃºn el rol en la organizaciÃ³n
+          // Determinar destino según el rol en la organización
           // owner y admin van a business-panel, member va a business-user
           if (orgRole === 'owner' || orgRole === 'admin') {
             redirect(`/${orgSlug}/business-panel/dashboard`);

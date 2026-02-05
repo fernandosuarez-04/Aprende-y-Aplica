@@ -13,7 +13,7 @@ export interface ThemeStyle {
   sidebar_opacity?: number;
 }
 
-// ConfiguraciÃ³n de estilos para modo especÃ­fico (light o dark)
+// Configuración de estilos para modo específico (light o dark)
 export interface ThemeModeStyles {
   panel: ThemeStyle;
   userDashboard: ThemeStyle;
@@ -27,7 +27,7 @@ export interface ThemeConfig {
   description: string;
   // Soporte para dual mode (modo claro y oscuro en un solo tema)
   supportsDualMode?: boolean;
-  // Estilos para modo oscuro (por defecto o Ãºnico modo)
+  // Estilos para modo oscuro (por defecto o único modo)
   panel: ThemeStyle;
   userDashboard: ThemeStyle;
   login: ThemeStyle;
@@ -42,7 +42,7 @@ export interface BrandingColors {
 }
 
 /**
- * FunciÃ³n auxiliar para oscurecer un color hexadecimal
+ * Función auxiliar para oscurecer un color hexadecimal
  */
 function darkenColor(hex: string, percent: number): string {
   // Remover el # si existe
@@ -68,7 +68,7 @@ function darkenColor(hex: string, percent: number): string {
 }
 
 /**
- * Genera un tema automÃ¡ticamente desde los colores de Branding
+ * Genera un tema automáticamente desde los colores de Branding
  */
 export function generateBrandingTheme(branding: BrandingColors): ThemeConfig {
   const darkPrimary = darkenColor(branding.color_primary, 0.7);
@@ -78,7 +78,7 @@ export function generateBrandingTheme(branding: BrandingColors): ThemeConfig {
   return {
     id: "branding-personalizado",
     name: "Branding Personalizado",
-    description: "Tema generado automÃ¡ticamente con los colores de tu marca",
+    description: "Tema generado automáticamente con los colores de tu marca",
     panel: {
       background_type: "gradient",
       background_value: `linear-gradient(135deg, ${darkPrimary} 0%, ${mediumPrimary} 50%, ${lightPrimary} 100%)`,
@@ -130,9 +130,9 @@ export const PRESET_THEMES: Record<string, ThemeConfig> = {
     id: "SOFLIA",
     name: "SOFLIA",
     description:
-      "Tema oficial basado en el Sistema de DiseÃ±o SOFLIA con soporte para modo claro y oscuro",
+      "Tema oficial basado en el Sistema de Diseño SOFLIA con soporte para modo claro y oscuro",
     supportsDualMode: true,
-    // Modo oscuro (configuraciÃ³n por defecto)
+    // Modo oscuro (configuración por defecto)
     panel: {
       background_type: "color",
       background_value: "#0F1419",
@@ -238,7 +238,7 @@ export function getAllThemes(): ThemeConfig[] {
 }
 
 /**
- * Obtiene los estilos del tema para un modo especÃ­fico
+ * Obtiene los estilos del tema para un modo específico
  * @param themeId - ID del tema
  * @param mode - Modo 'light' o 'dark'
  * @returns Estilos del tema para el modo especificado o null si no existe

@@ -13,10 +13,10 @@ const logger = {
 
 
 export async function middleware(request: NextRequest) {
-  logger.log('ðŸ” Middleware ejecutÃ¡ndose para:', request.nextUrl.pathname)
+  logger.log('ðŸ” Middleware ejecutándose para:', request.nextUrl.pathname)
 
-  // Verificar si es una ruta de auth y si el usuario tiene sesiÃ³n activa
-  // Redirigir usuarios autenticados al dashboard apropiado segÃºn cargo_rol
+  // Verificar si es una ruta de auth y si el usuario tiene sesión activa
+  // Redirigir usuarios autenticados al dashboard apropiado según cargo_rol
   if ((request.nextUrl.pathname === '/auth' || request.nextUrl.pathname === '/auth/')
     && !request.nextUrl.searchParams.has('redirect')) {
     const sessionCookie = request.cookies.get('aprende-y-aplica-session')
@@ -35,7 +35,7 @@ export async function middleware(request: NextRequest) {
           }
         )
 
-        // Verificar sesiÃ³n y obtener usuario
+        // Verificar sesión y obtener usuario
         const { data: sessionData } = await supabase
           .from('user_session')
           .select('user_id')
@@ -52,11 +52,11 @@ export async function middleware(request: NextRequest) {
             .eq('id', sessionData.user_id)
             .single()
 
-          // Redirigir segÃºn cargo_rol (Enfoque B2B)
+          // Redirigir según cargo_rol (Enfoque B2B)
           if (user) {
             const normalizedRole = user.cargo_rol?.toLowerCase().trim()
 
-            logger.log('ðŸ”„ Usuario autenticado en /auth, redirigiendo segÃºn cargo_rol:', normalizedRole)
+            logger.log('ðŸ”„ Usuario autenticado en /auth, redirigiendo según cargo_rol:', normalizedRole)
 
             if (normalizedRole === 'administrador') {
               return NextResponse.redirect(new URL('/admin/dashboard', request.url))
@@ -64,8 +64,8 @@ export async function middleware(request: NextRequest) {
               // Instructor â†’ Panel de instructor
               return NextResponse.redirect(new URL('/instructor/dashboard', request.url))
             } else if (normalizedRole === 'business') {
-              // Para usuarios Business, verificar que pertenezca a una organizaciÃ³n
-              // La redirecciÃ³n se basa en organization_users.role (owner/admin/member)
+              // Para usuarios Business, verificar que pertenezca a una organización
+              // La redirección se basa en organization_users.role (owner/admin/member)
               const { data: userOrgs, error: userOrgError } = await supabase
                 .from('organization_users')
                 .select('organization_id, role, status, joined_at, organizations!inner(id, name, slug, is_active, subscription_plan, subscription_status)')
@@ -74,11 +74,11 @@ export async function middleware(request: NextRequest) {
                 .order('joined_at', { ascending: false })
 
               if (userOrgError || !userOrgs || userOrgs.length === 0) {
-                // Si no pertenece a ninguna organizaciÃ³n, redirigir al dashboard normal
+                // Si no pertenece a ninguna organización, redirigir al dashboard normal
                 return NextResponse.redirect(new URL('/dashboard', request.url))
               }
 
-              // Si el usuario pertenece a mÃ¡s de una organizaciÃ³n, ir a selecciÃ³n
+              // Si el usuario pertenece a más de una organización, ir a selección
               if (userOrgs.length > 1) {
                 return NextResponse.redirect(new URL('/auth/select-organization', request.url))
               }
@@ -86,7 +86,7 @@ export async function middleware(request: NextRequest) {
               const userOrg = userOrgs[0]
               const orgRole = userOrg.role as string
 
-              // âœ… RedirecciÃ³n basada en organization_users.role (owner/admin â†’ panel, member â†’ user dashboard)
+              // âœ… Redirección basada en organization_users.role (owner/admin â†’ panel, member â†’ user dashboard)
               if (orgRole === 'owner' || orgRole === 'admin') {
                 return NextResponse.redirect(new URL(`/${userOrg.organizations.slug}/business-panel/dashboard`, request.url))
               } else {
@@ -99,13 +99,13 @@ export async function middleware(request: NextRequest) {
           }
         }
       } catch (error) {
-        // console.error('Error verificando sesiÃ³n en middleware:', error)
+        // console.error('Error verificando sesión en middleware:', error)
         // Continuar con flujo normal si hay error
       }
     }
   }
 
-  // Rutas que estÃ¡n exentas de la validaciÃ³n de cuestionario
+  // Rutas que están exentas de la validación de cuestionario
   const exemptRoutes = [
     '/auth',
     '/api',
@@ -113,21 +113,21 @@ export async function middleware(request: NextRequest) {
     '/welcome',
     '/_next',
     '/favicon.ico',
-    '/auth/select-organization' // âœ… Permitir acceso a selecciÃ³n de organizaciÃ³n
+    '/auth/select-organization' // âœ… Permitir acceso a selección de organización
   ]
 
   const isExemptRoute = exemptRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
-  // Verificar si la ruta requiere autenticaciÃ³n
+  // Verificar si la ruta requiere autenticación
   // âœ… Incluye rutas B2B: business-panel (admin de org) y business-user (empleado)
   const protectedRoutes = ['/admin', '/dashboard', '/communities', '/business-panel', '/business-user']
   const isProtectedRoute = protectedRoutes.some(route =>
     request.nextUrl.pathname.startsWith(route)
   )
 
-  // Si es ruta exenta, continuar sin validaciÃ³n adicional
+  // Si es ruta exenta, continuar sin validación adicional
   if (isExemptRoute) {
     logger.log('âœ… Ruta exenta, continuando...')
     return NextResponse.next()
@@ -168,7 +168,7 @@ export async function middleware(request: NextRequest) {
     }
   )
 
-  // âœ… SOPORTE DUAL: Verificar sesiÃ³n con refresh tokens (nuevo) o legacy (user_session)
+  // âœ… SOPORTE DUAL: Verificar sesión con refresh tokens (nuevo) o legacy (user_session)
   const sessionCookie = request.cookies.get('aprende-y-aplica-session')
   const accessTokenCookie = request.cookies.get('access_token')
   const refreshTokenCookie = request.cookies.get('refresh_token')
@@ -176,18 +176,18 @@ export async function middleware(request: NextRequest) {
   const hasLegacySession = !!sessionCookie
   const hasRefreshTokenSession = !!(accessTokenCookie && refreshTokenCookie)
 
-  logger.log('ðŸª Cookies de sesiÃ³n:', {
+  logger.log('ðŸª Cookies de sesión:', {
     legacy: hasLegacySession,
     refreshToken: hasRefreshTokenSession
   })
 
   if (!hasLegacySession && !hasRefreshTokenSession) {
-    logger.log('âŒ No hay sesiÃ³n (ni legacy ni refresh token), redirigiendo a /auth')
+    logger.log('âŒ No hay sesión (ni legacy ni refresh token), redirigiendo a /auth')
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
-  // Validar que la sesiÃ³n sea vÃ¡lida en la base de datos
-  logger.log('ðŸ” Validando sesiÃ³n en base de datos...')
+  // Validar que la sesión sea válida en la base de datos
+  logger.log('ðŸ” Validando sesión en base de datos...')
   let userId: string | null = null;
 
   try {
@@ -209,11 +209,11 @@ export async function middleware(request: NextRequest) {
 
       if (!tokenError && tokenData) {
         userId = tokenData.user_id
-        logger.log('âœ… SesiÃ³n validada via refresh token:', userId)
+        logger.log('âœ… Sesión validada via refresh token:', userId)
       }
     }
 
-    // PASO 2: Fallback a sistema legacy si no funcionÃ³ refresh tokens
+    // PASO 2: Fallback a sistema legacy si no funcionó refresh tokens
     if (!userId && hasLegacySession && sessionCookie) {
       const { data: sessionData, error: sessionError } = await supabase
         .from('user_session')
@@ -225,13 +225,13 @@ export async function middleware(request: NextRequest) {
 
       if (!sessionError && sessionData) {
         userId = sessionData.user_id
-        logger.log('âœ… SesiÃ³n validada via legacy (user_session):', userId)
+        logger.log('âœ… Sesión validada via legacy (user_session):', userId)
       }
     }
 
     if (!userId) {
-      logger.log('âŒ SesiÃ³n invÃ¡lida o expirada, redirigiendo a /auth')
-      // Eliminar cookies invÃ¡lidas
+      logger.log('âŒ Sesión inválida o expirada, redirigiendo a /auth')
+      // Eliminar cookies inválidas
       const redirectResponse = NextResponse.redirect(new URL('/auth', request.url));
       if (hasLegacySession) {
           redirectResponse.cookies.delete('aprende-y-aplica-session');
@@ -239,10 +239,10 @@ export async function middleware(request: NextRequest) {
       return redirectResponse;
     }
 
-    logger.log('âœ… SesiÃ³n vÃ¡lida para usuario:', userId)
+    logger.log('âœ… Sesión válida para usuario:', userId)
 
   } catch (error) {
-    logger.error('âŒ Error validando sesiÃ³n:', error)
+    logger.error('âŒ Error validando sesión:', error)
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 

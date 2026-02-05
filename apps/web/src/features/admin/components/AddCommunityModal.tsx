@@ -364,13 +364,13 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
     }
     
     if (!formData.description.trim()) {
-      newErrors.description = 'La descripciÃ³n es requerida'
+      newErrors.description = 'La descripción es requerida'
     }
     
     if (!formData.slug.trim()) {
       newErrors.slug = 'El slug es requerido'
     } else if (!/^[a-z0-9-]+$/.test(formData.slug)) {
-      newErrors.slug = 'Solo letras minÃºsculas, nÃºmeros y guiones'
+      newErrors.slug = 'Solo letras minúsculas, números y guiones'
     }
     
     setErrors(newErrors)
@@ -486,7 +486,7 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
               <div>
                 <SectionHeader 
                   icon={<Users className="w-5 h-5" style={{ color: colors.accent }} />}
-                  title="InformaciÃ³n BÃ¡sica"
+                  title="Información Básica"
                   subtitle="Datos principales de la comunidad"
                   color={colors.accent}
                 />
@@ -517,11 +517,11 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
 
                 <div className="mt-5">
                   <PremiumTextarea
-                    label="DescripciÃ³n"
+                    label="Descripción"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Describe el propÃ³sito y objetivos de la comunidad..."
+                    placeholder="Describe el propósito y objetivos de la comunidad..."
                     required
                     error={errors.description}
                     rows={3}
@@ -577,8 +577,8 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
               <div>
                 <SectionHeader 
                   icon={<Shield className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
-                  title="ConfiguraciÃ³n de Privacidad"
-                  subtitle="Controla quiÃ©n puede ver y acceder a la comunidad"
+                  title="Configuración de Privacidad"
+                  subtitle="Controla quién puede ver y acceder a la comunidad"
                   color="#8B5CF6"
                 />
                 
@@ -590,7 +590,7 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                     onChange={handleChange}
                     icon={<Globe className="w-5 h-5" />}
                     options={[
-                      { value: 'public', label: 'ðŸŒ PÃºblica - Visible para todos' },
+                      { value: 'public', label: 'ðŸŒ Pública - Visible para todos' },
                       { value: 'private', label: 'ðŸ”’ Privada - Solo miembros' }
                     ]}
                     required
@@ -604,8 +604,8 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                     icon={<Lock className="w-5 h-5" />}
                     options={[
                       { value: 'open', label: 'âœ… Abierto - Cualquiera puede unirse' },
-                      { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobaciÃ³n' },
-                      { value: 'invite_only', label: 'âœ‰ï¸ Solo invitaciÃ³n' }
+                      { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobación' },
+                      { value: 'invite_only', label: 'âœ‰ï¸ Solo invitación' }
                     ]}
                     required
                   />
@@ -638,7 +638,7 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                 <SectionHeader 
                   icon={formData.is_active ? <Eye className="w-5 h-5" style={{ color: colors.success }} /> : <EyeOff className="w-5 h-5" style={{ color: colors.grayMedium }} />}
                   title="Estado de la Comunidad"
-                  subtitle="Controla si la comunidad estÃ¡ activa y visible"
+                  subtitle="Controla si la comunidad está activa y visible"
                   color={formData.is_active ? colors.success : colors.grayMedium}
                 />
                 
@@ -714,11 +714,11 @@ export function AddCommunityModal({ isOpen, onClose, onSave }: AddCommunityModal
                 </div>
                 <div>
                   <h5 className="text-sm font-semibold" style={{ color: colors.accent }}>
-                    ProtecciÃ³n de Datos
+                    Protección de Datos
                   </h5>
                   <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    La informaciÃ³n serÃ¡ procesada de acuerdo con la LFPDPPP y las normas ISO 27001. 
-                    La creaciÃ³n serÃ¡ registrada en el log de auditorÃ­a.
+                    La información será procesada de acuerdo con la LFPDPPP y las normas ISO 27001. 
+                    La creación será registrada en el log de auditoría.
                   </p>
                 </div>
               </motion.div>

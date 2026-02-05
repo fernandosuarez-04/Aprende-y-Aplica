@@ -119,7 +119,7 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                   </motion.div>
                   <div>
                     <h2 className="text-2xl font-bold text-white">Eliminar Comunidad</h2>
-                    <p className="text-red-400 text-sm mt-0.5">Esta acciÃ³n no se puede deshacer</p>
+                    <p className="text-red-400 text-sm mt-0.5">Esta acción no se puede deshacer</p>
                   </div>
                 </div>
                 
@@ -173,12 +173,12 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                   </motion.div>
                   <div>
                     <h4 className="text-lg font-semibold mb-2" style={{ color: colors.error }}>
-                      Â¿EstÃ¡s seguro de que quieres eliminar esta comunidad?
+                      ¿Estás seguro de que quieres eliminar esta comunidad?
                     </h4>
                     <p className="text-sm text-gray-300 leading-relaxed">
-                      Esta acciÃ³n eliminarÃ¡ permanentemente la comunidad{' '}
+                      Esta acción eliminará permanentemente la comunidad{' '}
                       <span className="font-semibold text-white">"{community.name}"</span>{' '}
-                      y todos sus datos asociados. Esta operaciÃ³n no se puede deshacer.
+                      y todos sus datos asociados. Esta operación no se puede deshacer.
                     </p>
                   </div>
                 </div>
@@ -196,7 +196,7 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                   <div className="p-2 rounded-lg" style={{ background: `${colors.accent}20` }}>
                     <Users className="w-4 h-4" style={{ color: colors.accent }} />
                   </div>
-                  <h5 className="text-sm font-semibold text-white">InformaciÃ³n de la Comunidad</h5>
+                  <h5 className="text-sm font-semibold text-white">Información de la Comunidad</h5>
                 </div>
                 
                 <div className="space-y-3 text-sm">
@@ -205,7 +205,7 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                     <span className="text-white font-medium">{community.name}</span>
                   </div>
                   <div className="flex justify-between items-start py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
-                    <span className="text-gray-400">DescripciÃ³n</span>
+                    <span className="text-gray-400">Descripción</span>
                     <span className="text-white text-right max-w-[200px] text-xs">{community.description}</span>
                   </div>
                   <div className="flex justify-between items-center py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
@@ -244,7 +244,7 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                     <Shield className="w-4 h-4" style={{ color: colors.warning }} />
                   </div>
                   <h5 className="text-sm font-semibold" style={{ color: colors.warning }}>
-                    Datos que se eliminarÃ¡n
+                    Datos que se eliminarán
                   </h5>
                 </div>
                 
@@ -284,10 +284,10 @@ export function DeleteCommunityModal({ community, isOpen, onClose, onConfirm }: 
                 </div>
                 <div>
                   <h5 className="text-sm font-semibold" style={{ color: colors.accent }}>
-                    Aviso de ProtecciÃ³n de Datos
+                    Aviso de Protección de Datos
                   </h5>
                   <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    Esta eliminaciÃ³n serÃ¡ registrada en el log de auditorÃ­a conforme a la LFPDPPP y las normas ISO 27001.
+                    Esta eliminación será registrada en el log de auditoría conforme a la LFPDPPP y las normas ISO 27001.
                   </p>
                 </div>
               </motion.div>

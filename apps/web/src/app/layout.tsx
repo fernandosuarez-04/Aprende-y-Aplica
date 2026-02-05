@@ -31,8 +31,8 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: 'SOFLIA',
-  description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. CapacitaciÃ³n, comunidad y adopciÃ³n de IA en el entorno laboral.',
-  keywords: ['educaciÃ³n', 'inteligencia artificial', 'chatbot', 'capacitaciÃ³n', 'IA', 'LIA'],
+  description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
+  keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
   authors: [{ name: 'Equipo SOFLIA' }],
   robots: 'index, follow',
   icons: {
@@ -80,7 +80,7 @@ export default function RootLayout({
                     e.message.includes('Loading CSS chunk') ||
                     (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static/chunks'))
                   )) {
-                    console.warn('ðŸ”„ ChunkLoadError detectado, recargando pÃ¡gina...', e.message);
+                    console.warn('ðŸ”„ ChunkLoadError detectado, recargando página...', e.message);
                     // Evitar recargas infinitas
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
@@ -91,7 +91,7 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('âŒ MÃºltiples intentos de recarga fallidos. Por favor, recarga manualmente la pÃ¡gina.');
+                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                     return true;
@@ -108,7 +108,7 @@ export default function RootLayout({
                     ) ||
                     e.reason.name === 'ChunkLoadError'
                   )) {
-                    console.warn('ðŸ”„ ChunkLoadError en promesa rechazada, recargando pÃ¡gina...', e.reason);
+                    console.warn('ðŸ”„ ChunkLoadError en promesa rechazada, recargando página...', e.reason);
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
                     if (attempts < 2) {
@@ -118,13 +118,13 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('âŒ MÃºltiples intentos de recarga fallidos. Por favor, recarga manualmente la pÃ¡gina.');
+                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                   }
                 });
                 
-                // Limpiar contador de intentos despuÃ©s de 5 minutos
+                // Limpiar contador de intentos después de 5 minutos
                 setTimeout(function() {
                   sessionStorage.removeItem('chunk-reload-attempt');
                 }, 5 * 60 * 1000);
@@ -155,7 +155,7 @@ export default function RootLayout({
                       } else if (savedTheme === 'dark' || savedTheme === 'light') {
                         resolvedTheme = savedTheme;
                       } else {
-                        // Si el tema guardado no es vÃ¡lido, usar sistema
+                        // Si el tema guardado no es válido, usar sistema
                         var prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
                         resolvedTheme = prefersDark ? 'dark' : 'light';
                       }
@@ -176,7 +176,7 @@ export default function RootLayout({
                   root.classList.add(resolvedTheme);
                   root.style.colorScheme = resolvedTheme;
                 } catch (e) {
-                  // Fallback a dark si hay algÃºn error
+                  // Fallback a dark si hay algún error
                   var root = document.documentElement;
                   root.classList.add('dark');
                   root.style.colorScheme = 'dark';
@@ -186,7 +186,7 @@ export default function RootLayout({
           }}
         />
 
-        {/* ðŸš€ Resource Hints - Mejora conexiÃ³n a APIs externas 20-30% */}
+        {/* ðŸš€ Resource Hints - Mejora conexión a APIs externas 20-30% */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://odbxqmhbnkfledqcqujl.supabase.co" />
@@ -221,7 +221,7 @@ export default function RootLayout({
                             {children}
                           </ContentWrapper>
                         </AuthSecurityGuard>
-                        {/* AI Chat Agent - Lia - Disponible en todas las pÃ¡ginas excepto lessons - Removed
+                        {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons - Removed
                         <ConditionalAIChatAgent /> */}
                         {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
                         <OnboardingAgent />

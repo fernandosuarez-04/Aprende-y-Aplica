@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import nodemailer from 'nodemailer';
 
-// ConfiguraciÃ³n del transportador de correo
+// Configuración del transportador de correo
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.SMTP_HOST || 'smtp.gmail.com',
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { name, email, company, source, timestamp } = body;
 
-    // ValidaciÃ³n bÃ¡sica
+    // Validación básica
     if (!name || !email || !company) {
       return NextResponse.json(
         { error: 'Todos los campos son requeridos' },
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
-        { error: 'Email invÃ¡lido' },
+        { error: 'Email inválido' },
         { status: 400 }
       );
     }
@@ -58,11 +58,11 @@ export async function POST(request: NextRequest) {
 
     if (dbError) {
       console.error('Error saving contact:', dbError);
-      // Continuar con el envÃ­o de correo aunque falle la base de datos
+      // Continuar con el envío de correo aunque falle la base de datos
       console.log('New landing contact (DB failed):', { name, email, company, source, timestamp });
     }
 
-    // Enviar correo de notificaciÃ³n
+    // Enviar correo de notificación
     try {
       const transporter = createTransporter();
 
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         timeStyle: 'short',
       });
 
-      // URL base para el logo (usar la URL de producciÃ³n)
+      // URL base para el logo (usar la URL de producción)
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://SOFLIA-plataforma.netlify.app';
       const logoUrl = `${baseUrl}/Logo.png`;
 
@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
                 Nueva Solicitud de Demo
               </h1>
               <p style="color: rgba(255,255,255,0.7); margin: 10px 0 0 0; font-size: 15px;">
-                Plataforma de CapacitaciÃ³n en IA
+                Plataforma de Capacitación en IA
               </p>
             </div>
 
@@ -139,21 +139,21 @@ export async function POST(request: NextRequest) {
 
               <!-- CTA Button -->
               <div style="text-align: center; margin: 30px 0;">
-                <a href="mailto:${email}?subject=Demo%20Ejecutiva%20SOFLIA%20-%20${encodeURIComponent(company)}&body=Hola%20${encodeURIComponent(name)},%0A%0AGracias%20por%20tu%20interÃ©s%20en%20SOFLIA.%20Me%20gustarÃ­a%20agendar%20una%20demo%20ejecutiva%20contigo.%0A%0AÂ¿QuÃ©%20horario%20te%20funcionarÃ­a%20mejor?" 
+                <a href="mailto:${email}?subject=Demo%20Ejecutiva%20SOFLIA%20-%20${encodeURIComponent(company)}&body=Hola%20${encodeURIComponent(name)},%0A%0AGracias%20por%20tu%20interés%20en%20SOFLIA.%20Me%20gustaría%20agendar%20una%20demo%20ejecutiva%20contigo.%0A%0A¿Qué%20horario%20te%20funcionaría%20mejor?" 
                    style="display: inline-block; background: linear-gradient(135deg, #00D4B3 0%, #10B981 100%); color: #ffffff; text-decoration: none; padding: 15px 40px; border-radius: 10px; font-size: 16px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,212,179,0.3);">
                   Responder a ${name}
                 </a>
               </div>
 
               <p style="color: #6C757D; font-size: 14px; line-height: 1.6; margin: 30px 0 0 0; text-align: center;">
-                Este correo fue generado automÃ¡ticamente desde el formulario de la landing page.
+                Este correo fue generado automáticamente desde el formulario de la landing page.
               </p>
             </div>
 
             <!-- Footer -->
             <div style="background-color: #f8fafc; padding: 25px 30px; text-align: center; border-top: 1px solid #E9ECEF;">
               <p style="color: #6C757D; font-size: 12px; margin: 0;">
-                Â© ${new Date().getFullYear()} SOFLIA - Plataforma de CapacitaciÃ³n en IA
+                Â© ${new Date().getFullYear()} SOFLIA - Plataforma de Capacitación en IA
               </p>
             </div>
           </div>
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
         Por favor, contacta a ${name} lo antes posible para agendar la demo.
         
         ---
-        Este correo fue generado automÃ¡ticamente desde el formulario de la landing page.
+        Este correo fue generado automáticamente desde el formulario de la landing page.
       `;
 
       await transporter.sendMail({
@@ -193,7 +193,7 @@ export async function POST(request: NextRequest) {
 
     } catch (emailError) {
       console.error('Error sending email:', emailError);
-      // No retornar error al usuario, ya que el registro se guardÃ³
+      // No retornar error al usuario, ya que el registro se guardó
     }
 
     return NextResponse.json({

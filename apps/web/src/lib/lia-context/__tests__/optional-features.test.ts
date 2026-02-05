@@ -2,7 +2,7 @@
  * Tests para las funcionalidades opcionales del sistema de contexto de LIA
  * 
  * Incluye:
- * - Nuevas pÃ¡ginas con metadata
+ * - Nuevas páginas con metadata
  * - UserContextProvider
  * - PlatformContextProvider
  * - ContextMetricsService
@@ -28,80 +28,80 @@ function testNewPageMetadata() {
   let passed = 0;
   let failed = 0;
 
-  // Test 1: Verificar que hay mÃ¡s de 30 pÃ¡ginas registradas
+  // Test 1: Verificar que hay más de 30 páginas registradas
   const routes = getRegisteredRoutes();
   if (routes.length >= 30) {
-    console.log(`âœ… Hay ${routes.length} pÃ¡ginas registradas (>= 30)`);
+    console.log(`âœ… Hay ${routes.length} páginas registradas (>= 30)`);
     passed++;
   } else {
-    console.log(`âŒ Solo hay ${routes.length} pÃ¡ginas, se esperaban >= 30`);
+    console.log(`âŒ Solo hay ${routes.length} páginas, se esperaban >= 30`);
     failed++;
   }
 
-  // Test 2: Verificar pÃ¡ginas de Auth
+  // Test 2: Verificar páginas de Auth
   const authPages = routes.filter(r => r.includes('/auth'));
   if (authPages.length >= 5) {
-    console.log(`âœ… ${authPages.length} pÃ¡ginas de Auth registradas`);
+    console.log(`âœ… ${authPages.length} páginas de Auth registradas`);
     passed++;
   } else {
-    console.log(`âŒ Solo ${authPages.length} pÃ¡ginas de Auth`);
+    console.log(`âŒ Solo ${authPages.length} páginas de Auth`);
     failed++;
   }
 
-  // Test 3: Verificar pÃ¡ginas de Admin
+  // Test 3: Verificar páginas de Admin
   const adminPages = routes.filter(r => r.startsWith('/admin'));
   if (adminPages.length >= 10) {
-    console.log(`âœ… ${adminPages.length} pÃ¡ginas de Admin registradas`);
+    console.log(`âœ… ${adminPages.length} páginas de Admin registradas`);
     passed++;
   } else {
-    console.log(`âŒ Solo ${adminPages.length} pÃ¡ginas de Admin`);
+    console.log(`âŒ Solo ${adminPages.length} páginas de Admin`);
     failed++;
   }
 
   // Test 4: Verificar que /profile existe
   if (hasPageMetadata('/profile')) {
-    console.log('âœ… PÃ¡gina /profile tiene metadata');
+    console.log('âœ… Página /profile tiene metadata');
     passed++;
   } else {
-    console.log('âŒ PÃ¡gina /profile no tiene metadata');
+    console.log('âŒ Página /profile no tiene metadata');
     failed++;
   }
 
   // Test 5: Verificar que /certificates existe
   if (hasPageMetadata('/certificates')) {
-    console.log('âœ… PÃ¡gina /certificates tiene metadata');
+    console.log('âœ… Página /certificates tiene metadata');
     passed++;
   } else {
-    console.log('âŒ PÃ¡gina /certificates no tiene metadata');
+    console.log('âŒ Página /certificates no tiene metadata');
     failed++;
   }
 
-  // Test 6: Verificar pÃ¡gina de comunidades
+  // Test 6: Verificar página de comunidades
   if (hasPageMetadata('/communities/[slug]')) {
-    console.log('âœ… PÃ¡gina /communities/[slug] tiene metadata');
+    console.log('âœ… Página /communities/[slug] tiene metadata');
     passed++;
   } else {
-    console.log('âŒ PÃ¡gina /communities/[slug] no tiene metadata');
+    console.log('âŒ Página /communities/[slug] no tiene metadata');
     failed++;
   }
 
-  // Test 7: Verificar pÃ¡ginas de instructor
+  // Test 7: Verificar páginas de instructor
   const instructorPages = routes.filter(r => r.includes('/instructor'));
   if (instructorPages.length >= 3) {
-    console.log(`âœ… ${instructorPages.length} pÃ¡ginas de Instructor registradas`);
+    console.log(`âœ… ${instructorPages.length} páginas de Instructor registradas`);
     passed++;
   } else {
-    console.log(`âŒ Solo ${instructorPages.length} pÃ¡ginas de Instructor`);
+    console.log(`âŒ Solo ${instructorPages.length} páginas de Instructor`);
     failed++;
   }
 
-  // Test 8: Verificar pÃ¡ginas del Study Planner
+  // Test 8: Verificar páginas del Study Planner
   const studyPlannerPages = routes.filter(r => r.includes('/study-planner'));
   if (studyPlannerPages.length >= 3) {
-    console.log(`âœ… ${studyPlannerPages.length} pÃ¡ginas de Study Planner`);
+    console.log(`âœ… ${studyPlannerPages.length} páginas de Study Planner`);
     passed++;
   } else {
-    console.log(`âŒ Solo ${studyPlannerPages.length} pÃ¡ginas de Study Planner`);
+    console.log(`âŒ Solo ${studyPlannerPages.length} páginas de Study Planner`);
     failed++;
   }
 
@@ -117,14 +117,14 @@ function testNewPageMetadata() {
 
   // Test 10: Verificar metadata de /dashboard
   if (hasPageMetadata('/dashboard')) {
-    console.log('âœ… PÃ¡gina /dashboard tiene metadata');
+    console.log('âœ… Página /dashboard tiene metadata');
     passed++;
   } else {
-    console.log('âŒ PÃ¡gina /dashboard no tiene metadata');
+    console.log('âŒ Página /dashboard no tiene metadata');
     failed++;
   }
 
-  // Test 11: Conteo de pÃ¡ginas por categorÃ­a
+  // Test 11: Conteo de páginas por categoría
   const categories = {
     admin: routes.filter(r => r.startsWith('/admin')).length,
     business: routes.filter(r => r.includes('business-panel') || r.includes('business-user')).length,
@@ -135,7 +135,7 @@ function testNewPageMetadata() {
   };
   categories.other = routes.length - Object.values(categories).reduce((a, b) => a + b, 0);
   
-  console.log('\nðŸ“Š DistribuciÃ³n de pÃ¡ginas:');
+  console.log('\nðŸ“Š Distribución de páginas:');
   console.log(`   Admin: ${categories.admin}`);
   console.log(`   Business: ${categories.business}`);
   console.log(`   Auth: ${categories.auth}`);
@@ -201,7 +201,7 @@ async function testUserContextProvider() {
     console.log('âœ… Sin userId retorna null');
     passed++;
   } else {
-    console.log('âŒ Sin userId deberÃ­a retornar null');
+    console.log('âŒ Sin userId debería retornar null');
     failed++;
   }
 
@@ -230,10 +230,10 @@ async function testUserContextProvider() {
     }
 
     if (withUserContext.content.includes('5 minutos')) {
-      console.log('âœ… Contexto incluye duraciÃ³n de sesiÃ³n');
+      console.log('âœ… Contexto incluye duración de sesión');
       passed++;
     } else {
-      console.log('âŒ Contexto no incluye duraciÃ³n de sesiÃ³n');
+      console.log('âŒ Contexto no incluye duración de sesión');
       failed++;
     }
 
@@ -245,7 +245,7 @@ async function testUserContextProvider() {
       failed++;
     }
   } else {
-    console.log('âŒ Con userId deberÃ­a retornar contexto');
+    console.log('âŒ Con userId debería retornar contexto');
     failed++;
   }
 
@@ -295,11 +295,11 @@ async function testPlatformContextProvider() {
     console.log('âœ… No se incluye en contexto "bug-report"');
     passed++;
   } else {
-    console.log('âŒ No deberÃ­a incluirse en "bug-report"');
+    console.log('âŒ No debería incluirse en "bug-report"');
     failed++;
   }
 
-  // Test 3: Genera contexto sin pÃ¡gina
+  // Test 3: Genera contexto sin página
   const generalContext = await provider.getContext({
     contextType: 'general'
   });
@@ -315,28 +315,28 @@ async function testPlatformContextProvider() {
       failed++;
     }
 
-    if (generalContext.content.includes('MÃ³dulos Principales')) {
-      console.log('âœ… Contexto incluye mÃ³dulos');
+    if (generalContext.content.includes('Módulos Principales')) {
+      console.log('âœ… Contexto incluye módulos');
       passed++;
     } else {
-      console.log('âŒ Contexto no incluye mÃ³dulos');
+      console.log('âŒ Contexto no incluye módulos');
       failed++;
     }
   } else {
-    console.log('âŒ DeberÃ­a generar contexto general');
+    console.log('âŒ Debería generar contexto general');
     failed++;
   }
 
-  // Test 4: Contexto con pÃ¡gina especÃ­fica
+  // Test 4: Contexto con página específica
   const courseContext = await provider.getContext({
     contextType: 'general',
     currentPage: '/courses/react-basics/learn'
   });
   if (courseContext && courseContext.content.includes('Cursos')) {
-    console.log('âœ… Contexto de curso incluye mÃ³dulo de Cursos');
+    console.log('âœ… Contexto de curso incluye módulo de Cursos');
     passed++;
   } else {
-    console.log('âŒ Contexto de curso deberÃ­a incluir mÃ³dulo de Cursos');
+    console.log('âŒ Contexto de curso debería incluir módulo de Cursos');
     failed++;
   }
 
@@ -348,7 +348,7 @@ async function testPlatformContextProvider() {
     console.log('âœ… Contexto de ayuda incluye roles');
     passed++;
   } else {
-    console.log('âŒ Contexto de ayuda deberÃ­a incluir roles');
+    console.log('âŒ Contexto de ayuda debería incluir roles');
     failed++;
   }
 
@@ -377,7 +377,7 @@ function testContextMetricsService() {
     failed++;
   }
 
-  // Test 2: Registrar mÃ©tricas
+  // Test 2: Registrar métricas
   recordContextUsage({
     contextType: 'general',
     currentPage: '/test/page',
@@ -445,7 +445,7 @@ function testContextMetricsService() {
     console.log('âœ… Performance de providers disponible');
     passed++;
   } else {
-    console.log('âŒ Performance de providers vacÃ­a');
+    console.log('âŒ Performance de providers vacía');
     failed++;
   }
 
@@ -455,7 +455,7 @@ function testContextMetricsService() {
     console.log(`âœ… Bug report stats: ${bugStats.total} total`);
     passed++;
   } else {
-    console.log('âŒ Bug report stats vacÃ­as');
+    console.log('âŒ Bug report stats vacías');
     failed++;
   }
 
@@ -481,7 +481,7 @@ function testLiaComponentUtilities() {
   let passed = 0;
   let failed = 0;
 
-  // Test 1: liaComponent bÃ¡sico
+  // Test 1: liaComponent básico
   const basic = liaComponent({ name: 'TestComponent' });
   if (basic[LIA_DATA_ATTRIBUTES.COMPONENT] === 'TestComponent') {
     console.log('âœ… liaComponent genera atributo correcto');
@@ -562,7 +562,7 @@ function testLiaComponentUtilities() {
     failed++;
   }
 
-  // Test 8: SanitizaciÃ³n de props sensibles
+  // Test 8: Sanitización de props sensibles
   const sensitiveProps = liaComponent({
     name: 'LoginForm',
     props: {
@@ -606,10 +606,10 @@ async function testContextBuilderWithNewProviders() {
   let failed = 0;
 
   const builder = new ContextBuilderService({
-    enableMetrics: false // Desactivar mÃ©tricas para este test
+    enableMetrics: false // Desactivar métricas para este test
   });
 
-  // Test 1: Verificar que los providers estÃ¡n registrados
+  // Test 1: Verificar que los providers están registrados
   const stats = builder.getStats();
   if (stats.registeredProviders >= 5) {
     console.log(`âœ… ${stats.registeredProviders} providers registrados`);
@@ -619,7 +619,7 @@ async function testContextBuilderWithNewProviders() {
     failed++;
   }
 
-  // Test 2: Verificar que user y platform estÃ¡n en la lista
+  // Test 2: Verificar que user y platform están en la lista
   if (stats.providerNames.includes('user')) {
     console.log('âœ… UserContextProvider registrado');
     passed++;
@@ -651,11 +651,11 @@ async function testContextBuilderWithNewProviders() {
     console.log(`âœ… Contexto general generado (${context.length} chars)`);
     passed++;
   } else {
-    console.log('âŒ Contexto general muy corto o vacÃ­o');
+    console.log('âŒ Contexto general muy corto o vacío');
     failed++;
   }
 
-  // Test 4: El contexto incluye informaciÃ³n de plataforma
+  // Test 4: El contexto incluye información de plataforma
   if (context.includes('SOFLIA')) {
     console.log('âœ… Contexto incluye info de SOFLIA');
     passed++;
@@ -701,10 +701,10 @@ async function runAllTests() {
 
   console.log('-'.repeat(60));
   console.log(`TOTAL: ${totalPassed} passed, ${totalFailed} failed`);
-  console.log(`ðŸ“ˆ Porcentaje de Ã©xito: ${Math.round((totalPassed / (totalPassed + totalFailed)) * 100)}%`);
+  console.log(`ðŸ“ˆ Porcentaje de éxito: ${Math.round((totalPassed / (totalPassed + totalFailed)) * 100)}%`);
 
   if (totalFailed === 0) {
-    console.log('\nðŸŽ‰ Â¡TODOS LOS TESTS PASARON!');
+    console.log('\nðŸŽ‰ ¡TODOS LOS TESTS PASARON!');
   } else {
     console.log(`\nâš ï¸ ${totalFailed} tests fallaron`);
     process.exit(1);

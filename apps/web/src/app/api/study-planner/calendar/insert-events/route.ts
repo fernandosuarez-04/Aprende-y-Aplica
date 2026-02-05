@@ -20,7 +20,7 @@ function createAdminClient() {
     });
 }
 
-// Tipo para la distribuciÃ³n de lecciones
+// Tipo para la distribución de lecciones
 interface LessonItem {
     courseTitle: string;
     lessonTitle: string;
@@ -52,7 +52,7 @@ interface InsertEventsRequest {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Verificar autenticaciÃ³n
+        // Verificar autenticación
         const user = await SessionService.getCurrentUser();
 
         if (!user) {
@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`ðŸ“… [Insert Events] Iniciando inserciÃ³n de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
+        console.log(`ðŸ“… [Insert Events] Iniciando inserción de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
 
-        // Obtener integraciÃ³n de calendario del usuario
+        // Obtener integración de calendario del usuario
         const supabase = createAdminClient();
         const { data: integrations, error: integrationError } = await supabase
             .from('calendar_integrations')
@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
         if (integration.provider === 'google') {
             calendarId = await CalendarIntegrationService.getOrCreatePlatformCalendar(accessToken);
             if (calendarId) {
-                // Guardar el ID del calendario secundario si aÃºn no estÃ¡ guardado
+                // Guardar el ID del calendario secundario si aún no está guardado
                 await CalendarIntegrationService.saveSecondaryCalendarId(user.id, calendarId);
                 console.log(`âœ… [Insert Events] Usando calendario secundario: ${calendarId}`);
             } else {
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
             }
         }
 
-        // Preparar eventos para inserciÃ³n
+        // Preparar eventos para inserción
         const eventsToInsert: Array<{
             title: string;
             description: string;
@@ -132,12 +132,12 @@ export async function POST(request: NextRequest) {
         for (const session of lessonDistribution) {
             const { slot, lessons } = session;
 
-            // Crear tÃ­tulo del evento
+            // Crear título del evento
             const lessonTitles = lessons.map(l => l.lessonTitle).join(' | ');
             const courseTitle = lessons[0]?.courseTitle || 'Curso';
             const title = `ðŸ“š ${courseTitle}: ${lessonTitles}`;
 
-            // Crear descripciÃ³n
+            // Crear descripción
             const description = createEventDescription(lessons, planName);
 
             // Crear fechas de inicio y fin
@@ -218,7 +218,7 @@ export async function POST(request: NextRequest) {
             calendarId,
             provider: integration.provider,
             message: failedCount === 0
-                ? `Â¡Listo! ${insertedCount} eventos insertados en tu calendario.`
+                ? `¡Listo! ${insertedCount} eventos insertados en tu calendario.`
                 : `Se insertaron ${insertedCount} de ${eventsToInsert.length} eventos. ${failedCount} fallaron.`
         });
 
@@ -232,7 +232,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Crea la descripciÃ³n del evento con detalles de las lecciones
+ * Crea la descripción del evento con detalles de las lecciones
  */
 function createEventDescription(lessons: LessonItem[], planName?: string): string {
     const lines: string[] = [];
@@ -242,7 +242,7 @@ function createEventDescription(lessons: LessonItem[], planName?: string): strin
         lines.push('');
     }
 
-    lines.push('ðŸ“š Lecciones en esta sesiÃ³n:');
+    lines.push('ðŸ“š Lecciones en esta sesión:');
 
     for (const lesson of lessons) {
         const moduleInfo = lesson.moduleTitle ? ` (${lesson.moduleTitle})` : '';
@@ -251,10 +251,10 @@ function createEventDescription(lessons: LessonItem[], planName?: string): strin
 
     const totalDuration = lessons.reduce((sum, l) => sum + l.durationMinutes, 0);
     lines.push('');
-    lines.push(`â±ï¸ DuraciÃ³n total: ${totalDuration} minutos`);
+    lines.push(`â±ï¸ Duración total: ${totalDuration} minutos`);
     lines.push('');
     lines.push('---');
-    lines.push('Creado automÃ¡ticamente por SOFLIA - Planificador de Estudios');
+    lines.push('Creado automáticamente por SOFLIA - Planificador de Estudios');
 
     return lines.join('\n');
 }

@@ -94,7 +94,7 @@ export function HeroSectionB2B() {
             <motion.div variants={fadeInUp} className="mb-6">
               <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#00D4B3]/10 text-[#00D4B3] text-sm font-medium">
                 <span className="w-2 h-2 rounded-full bg-[#00D4B3] animate-pulse" />
-                {t('landing.hero.tag', 'Plataforma B2B de CapacitaciÃ³n en IA')}
+                {t('landing.hero.tag', 'Plataforma B2B de Capacitación en IA')}
               </span>
             </motion.div>
 
@@ -103,11 +103,11 @@ export function HeroSectionB2B() {
               variants={fadeInUp}
               className="text-4xl lg:text-5xl xl:text-6xl font-bold leading-[1.1] text-[#0A2540] dark:text-white mb-6"
             >
-              {t('landing.hero.title', 'CapacitaciÃ³n en IA con')}{' '}
+              {t('landing.hero.title', 'Capacitación en IA con')}{' '}
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#00D4B3] to-[#10B981]">
                 {t('landing.hero.highlight', 'impacto medible')}
               </span>{' '}
-              {t('landing.hero.titleEnd', 'para tu organizaciÃ³n')}
+              {t('landing.hero.titleEnd', 'para tu organización')}
             </motion.h1>
 
             {/* Subheadline */}
@@ -115,7 +115,7 @@ export function HeroSectionB2B() {
               variants={fadeInUp}
               className="text-lg lg:text-xl text-[#6C757D] dark:text-white/70 mb-8 leading-relaxed"
             >
-              {t('landing.hero.description', 'SOFLIA es la plataforma de capacitaciÃ³n corporativa que combina inteligencia artificial, planificaciÃ³n inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.')}
+              {t('landing.hero.description', 'SOFLIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.')}
             </motion.p>
 
             {/* CTA Buttons */}
@@ -139,7 +139,7 @@ export function HeroSectionB2B() {
                   className="w-full sm:w-auto px-8 py-4 rounded-xl border-2 border-[#00D4B3] text-[#00D4B3] hover:bg-[#00D4B3]/10 font-medium text-lg flex items-center justify-center gap-3 transition-all duration-300"
                 >
                   <FileText size={20} />
-                  {t('landing.hero.ctaSecondary', 'Solicitar diagnÃ³stico')}
+                  {t('landing.hero.ctaSecondary', 'Solicitar diagnóstico')}
                 </motion.button>
               </Link>
             </motion.div>

@@ -18,7 +18,7 @@ interface DashboardNavbarProps {
 }
 
 const navigationItems: { id: string; nameKey: string; icon: typeof GraduationCap }[] = [
-  // BotÃ³n de Talleres eliminado
+  // Botón de Talleres eliminado
 ]
 
 export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarProps) {
@@ -28,7 +28,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
   const { clickCount, isActivated, handleLogoClick } = useLogoEasterEgg()
   const prefetchOnHover = usePrefetchOnHover()
 
-  // Determinar item activo basado en pathname para mÃ³vil
+  // Determinar item activo basado en pathname para móvil
   const getMobileActiveItem = (): string => {
     if (pathname.startsWith('/dashboard') || pathname.startsWith('/my-courses') || pathname.startsWith('/courses')) return 'workshops'
     return activeItem
@@ -78,7 +78,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                 alt="Aprende y Aplica" 
                 className="w-full h-full object-contain"
               />
-              {/* Efecto visual cuando estÃ¡ activado */}
+              {/* Efecto visual cuando está activado */}
               {isActivated && (
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-[#0A2540] to-[#00D4B3] rounded-lg opacity-50"
@@ -149,7 +149,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                     />
                   )}
                   
-                  {/* Icono con animaciÃ³n */}
+                  {/* Icono con animación */}
                   <motion.div
                     className="relative z-10"
                     whileHover={{ 
@@ -193,7 +193,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                     {t(item.nameKey)}
                   </span>
                   
-                  {/* LÃ­nea inferior decorativa cuando estÃ¡ activo */}
+                  {/* Línea inferior decorativa cuando está activo */}
                   {isActive && (
                     <motion.div
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 w-8 h-1 bg-gradient-to-r from-transparent via-[#00D4B3] to-transparent rounded-full"
@@ -227,7 +227,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
         </div>
       </div>
 
-      {/* Mobile Navigation - DiseÃ±o mejorado */}
+      {/* Mobile Navigation - Diseño mejorado */}
       <div className="lg:hidden border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white/95 dark:bg-[#0F1419]/95 backdrop-blur-md">
         <div className="grid grid-cols-1 h-[64px]">
           {navigationItems.map((item, index) => {
@@ -279,7 +279,7 @@ export function DashboardNavbar({ activeItem = 'workshops' }: DashboardNavbarPro
                     />
                   )}
 
-                  {/* Icono con animaciÃ³n */}
+                  {/* Icono con animación */}
                   <motion.div
                     className="relative z-10"
                     animate={isActive ? {

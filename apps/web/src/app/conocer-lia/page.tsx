@@ -54,40 +54,40 @@ export default function ConocerLiaPage() {
 
   const capabilitiesY = useTransform(capabilitiesScroll, [0, 1], [50, -50]);
 
-  // MetÃ¡foras centrales de LIA
+  // Metáforas centrales de LIA
   const metaphors = [
     {
       icon: Cpu,
       title: 'Sistema Operativo de Aprendizaje',
-      description: 'LIA es la capa que organiza, coordina y conecta todas las aplicaciones de formaciÃ³n, contenidos y experiencias. SOFLIA piensa, LIA te acompaÃ±a.',
+      description: 'LIA es la capa que organiza, coordina y conecta todas las aplicaciones de formación, contenidos y experiencias. SOFLIA piensa, LIA te acompaña.',
       color: '#00D4B3',
       gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
     },
     {
       icon: Brain,
       title: 'Cerebro Extendido',
-      description: 'LIA amplÃ­a tu capacidad de memoria, razonamiento y acceso a conocimiento. El nÃºcleo de IA procesa datos; LIA es la voz que explica y orienta.',
+      description: 'LIA amplía tu capacidad de memoria, razonamiento y acceso a conocimiento. El núcleo de IA procesa datos; LIA es la voz que explica y orienta.',
       color: '#10B981',
       gradient: 'from-[#10B981] to-[#10B981]/80'
     },
     {
       icon: Navigation,
       title: 'Copiloto de Aprendizaje',
-      description: 'Nadie recorre la ruta de desarrollo solo. LIA es tu copiloto visible que te ayuda a decidir el prÃ³ximo paso y te propone rutas personalizadas.',
+      description: 'Nadie recorre la ruta de desarrollo solo. LIA es tu copiloto visible que te ayuda a decidir el próximo paso y te propone rutas personalizadas.',
       color: '#F59E0B',
       gradient: 'from-[#F59E0B] to-[#F59E0B]/80'
     },
     {
       icon: Network,
       title: 'Sistema Nervioso del Talento',
-      description: 'LIA conecta seÃ±ales dispersas (datos, capacidades, necesidades) y las transforma en acciÃ³n coordinada. Detecta patrones y te interpreta las seÃ±ales.',
+      description: 'LIA conecta señales dispersas (datos, capacidades, necesidades) y las transforma en acción coordinada. Detecta patrones y te interpreta las señales.',
       color: '#0A2540',
       gradient: 'from-[#0A2540] to-[#0A2540]/80'
     },
     {
       icon: Layers,
       title: 'Infraestructura de Conocimiento',
-      description: 'LIA es la puerta de acceso a la infraestructura donde se almacena, organiza y actualiza el conocimiento crÃ­tico. Orquesta y ensambla tu aprendizaje.',
+      description: 'LIA es la puerta de acceso a la infraestructura donde se almacena, organiza y actualiza el conocimiento crítico. Orquesta y ensambla tu aprendizaje.',
       color: '#00D4B3',
       gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
     }
@@ -98,20 +98,20 @@ export default function ConocerLiaPage() {
     {
       icon: MessageSquare,
       title: 'PRL-1.0 Mini',
-      description: 'Modelo conversacional con contexto de pÃ¡gina. Resuelve dudas, explica conceptos y te guÃ­a en tu aprendizaje de forma personalizada.',
-      examples: ['Contexto inteligente de pÃ¡gina', 'Resuelve dudas al instante', 'Explica conceptos complejos']
+      description: 'Modelo conversacional con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje de forma personalizada.',
+      examples: ['Contexto inteligente de página', 'Resuelve dudas al instante', 'Explica conceptos complejos']
     },
     {
       icon: BookOpen,
-      title: 'ResÃºmenes y Explicaciones',
-      description: 'Â¿Necesitas un resumen para recordar lo que acabas de aprender? LIA resume y explica fragmentos de tus clases favoritas.',
-      examples: ['ResÃºmenes de clases', 'Explicaciones paso a paso', 'SÃ­ntesis de conceptos']
+      title: 'Resúmenes y Explicaciones',
+      description: '¿Necesitas un resumen para recordar lo que acabas de aprender? LIA resume y explica fragmentos de tus clases favoritas.',
+      examples: ['Resúmenes de clases', 'Explicaciones paso a paso', 'Síntesis de conceptos']
     },
     {
       icon: CheckCircle2,
-      title: 'CorrecciÃ³n de Ejercicios',
+      title: 'Corrección de Ejercicios',
       description: 'Revisa tus ejercicios con LIA. Resuelve tus dudas y pide ayuda para entender las partes con las que tienes dificultades.',
-      examples: ['Revisa tu cÃ³digo', 'Corrige ejercicios', 'Explica errores']
+      examples: ['Revisa tu código', 'Corrige ejercicios', 'Explica errores']
     },
     {
       icon: Target,
@@ -121,30 +121,30 @@ export default function ConocerLiaPage() {
     }
   ];
 
-  // CaracterÃ­sticas de personalidad
+  // Características de personalidad
   const personalityFeatures = [
     {
       icon: Sparkles,
-      title: 'Tono CÃ¡lido pero Profesional',
-      description: 'LIA habla de "nosotros" (equipo) mÃ¡s que de "yo mÃ¡quina". Siempre justifica sus recomendaciones y adapta la complejidad segÃºn tu perfil.',
+      title: 'Tono Cálido pero Profesional',
+      description: 'LIA habla de "nosotros" (equipo) más que de "yo máquina". Siempre justifica sus recomendaciones y adapta la complejidad según tu perfil.',
       color: '#00D4B3'
     },
     {
       icon: Users,
       title: 'Anticipa y Sugiere',
-      description: 'LIA no impone ni regaÃ±a. Anticipa tus necesidades, sugiere prÃ³ximos pasos y explica el porquÃ© de cada recomendaciÃ³n.',
+      description: 'LIA no impone ni regaña. Anticipa tus necesidades, sugiere próximos pasos y explica el porqué de cada recomendación.',
       color: '#10B981'
     },
     {
       icon: Clock,
       title: 'Disponible 24/7',
-      description: 'LIA estÃ¡ siempre disponible para ayudarte. Estudia las 24 horas, los 7 dÃ­as de la semana, cuando y donde quieras.',
+      description: 'LIA está siempre disponible para ayudarte. Estudia las 24 horas, los 7 días de la semana, cuando y donde quieras.',
       color: '#F59E0B'
     },
     {
       icon: TrendingUp,
       title: 'Transparencia Total',
-      description: 'LIA es transparente sobre lo que sabe, lo que infiere y lo que aÃºn necesita que definas. Sin lÃ­mites ocultos.',
+      description: 'LIA es transparente sobre lo que sabe, lo que infiere y lo que aún necesita que definas. Sin límites ocultos.',
       color: '#0A2540'
     }
   ];
@@ -279,7 +279,7 @@ export default function ConocerLiaPage() {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              Tu asistente inteligente de aprendizaje. LIA te guÃ­a, responde tus preguntas y te ayuda a dominar la inteligencia artificial.
+              Tu asistente inteligente de aprendizaje. LIA te guía, responde tus preguntas y te ayuda a dominar la inteligencia artificial.
             </motion.p>
 
             <motion.p
@@ -289,7 +289,7 @@ export default function ConocerLiaPage() {
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5, duration: 0.6 }}
             >
-              "SOFLIA piensa, LIA te acompaÃ±a"
+              "SOFLIA piensa, LIA te acompaña"
             </motion.p>
           </motion.div>
 
@@ -348,7 +348,7 @@ export default function ConocerLiaPage() {
         </div>
       </section>
 
-      {/* MetÃ¡foras Centrales Section */}
+      {/* Metáforas Centrales Section */}
       <section
         ref={metaphorsRef}
         className="py-32 relative bg-white dark:bg-[#0F1419]"
@@ -366,13 +366,13 @@ export default function ConocerLiaPage() {
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
               LIA: Tu{' '}
-              <span className="text-[#00D4B3]">SabidurÃ­a Aumentada</span>
+              <span className="text-[#00D4B3]">Sabiduría Aumentada</span>
             </h2>
             <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA es mÃ¡s que un asistente. Es la interfaz humana que traduce la inteligencia de SOFLIA en conversaciones, acciones y decisiones cotidianas.
+              LIA es más que un asistente. Es la interfaz humana que traduce la inteligencia de SOFLIA en conversaciones, acciones y decisiones cotidianas.
             </p>
           </motion.div>
 
@@ -461,7 +461,7 @@ export default function ConocerLiaPage() {
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
-              Â¿QuÃ© puede hacer{' '}
+              ¿Qué puede hacer{' '}
               <span className="text-[#00D4B3]">LIA</span>
               {' '}por ti?
             </h2>
@@ -558,73 +558,73 @@ export default function ConocerLiaPage() {
             {[
               {
                 icon: Target,
-                title: 'GeneraciÃ³n AutomÃ¡tica con IA',
+                title: 'Generación Automática con IA',
                 description: 'LIA crea tu plan de estudios considerando tu rol profesional, perfil completo, cursos adquiridos y progreso actual. Todo adaptado a tu disponibilidad y preferencias.',
                 color: '#00D4B3',
                 features: [
-                  'AnÃ¡lisis de tu perfil profesional',
-                  'CÃ¡lculo de disponibilidad granular',
-                  'DistribuciÃ³n inteligente de lecciones',
-                  'Ajuste segÃºn tu progreso'
+                  'Análisis de tu perfil profesional',
+                  'Cálculo de disponibilidad granular',
+                  'Distribución inteligente de lecciones',
+                  'Ajuste según tu progreso'
                 ]
               },
               {
                 icon: Clock,
-                title: 'GestiÃ³n Inteligente de Tiempo',
-                description: 'LIA calcula tiempos mÃ­nimos por lecciÃ³n, considera duraciÃ³n de videos, actividades y materiales. Valida que tu plan sea realista y alcanzable.',
+                title: 'Gestión Inteligente de Tiempo',
+                description: 'LIA calcula tiempos mínimos por lección, considera duración de videos, actividades y materiales. Valida que tu plan sea realista y alcanzable.',
                 color: '#10B981',
                 features: [
-                  'CÃ¡lculo preciso de tiempos',
-                  'ValidaciÃ³n de tiempos mÃ­nimos',
+                  'Cálculo preciso de tiempos',
+                  'Validación de tiempos mínimos',
                   'Sesiones cortas, medianas o largas',
-                  'OptimizaciÃ³n de tu tiempo'
+                  'Optimización de tu tiempo'
                 ]
               },
               {
                 icon: Navigation,
                 title: 'Rutas Personalizadas',
-                description: 'LIA propone rutas de aprendizaje basadas en tu nivel, Ã¡rea profesional y objetivos. Te sugiere el siguiente paso mÃ¡s adecuado para ti.',
+                description: 'LIA propone rutas de aprendizaje basadas en tu nivel, área profesional y objetivos. Te sugiere el siguiente paso más adecuado para ti.',
                 color: '#F59E0B',
                 features: [
                   'Rutas adaptadas a tu nivel',
                   'Secuencias optimizadas',
                   'Recomendaciones contextuales',
-                  'ProgresiÃ³n natural'
+                  'Progresión natural'
                 ]
               },
               {
                 icon: TrendingUp,
                 title: 'Seguimiento de Progreso',
-                description: 'LIA monitorea tu avance, detecta patrones de estudio y ajusta tu plan dinÃ¡micamente. Te ayuda a mantener rachas y cumplir objetivos.',
+                description: 'LIA monitorea tu avance, detecta patrones de estudio y ajusta tu plan dinámicamente. Te ayuda a mantener rachas y cumplir objetivos.',
                 color: '#0A2540',
                 features: [
                   'Monitoreo continuo',
-                  'Ajustes automÃ¡ticos',
+                  'Ajustes automáticos',
                   'Sistema de rachas',
-                  'MÃ©tricas de progreso'
+                  'Métricas de progreso'
                 ]
               },
               {
                 icon: Calendar,
-                title: 'IntegraciÃ³n con Calendarios',
+                title: 'Integración con Calendarios',
                 description: 'LIA sincroniza tu plan de estudios con tus calendarios externos. Respeta tus compromisos y encuentra los mejores momentos para estudiar.',
                 color: '#00D4B3',
                 features: [
-                  'SincronizaciÃ³n automÃ¡tica',
-                  'DetecciÃ³n de conflictos',
+                  'Sincronización automática',
+                  'Detección de conflictos',
                   'Reagendamiento inteligente',
                   'Recordatorios personalizados'
                 ]
               },
               {
                 icon: Brain,
-                title: 'Mejores PrÃ¡cticas de Estudio',
-                description: 'LIA aplica tÃ©cnicas comprobadas como repeticiÃ³n espaciada, prÃ¡ctica distribuida y recall activo para maximizar tu retenciÃ³n y aprendizaje.',
+                title: 'Mejores Prácticas de Estudio',
+                description: 'LIA aplica técnicas comprobadas como repetición espaciada, práctica distribuida y recall activo para maximizar tu retención y aprendizaje.',
                 color: '#10B981',
                 features: [
-                  'RepeticiÃ³n espaciada',
-                  'PrÃ¡ctica distribuida',
-                  'TÃ©cnica Pomodoro',
+                  'Repetición espaciada',
+                  'Práctica distribuida',
+                  'Técnica Pomodoro',
                   'Recall activo'
                 ]
               }
@@ -709,7 +709,7 @@ export default function ConocerLiaPage() {
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA no es solo tecnologÃ­a, es tu compaÃ±ero de aprendizaje con una personalidad Ãºnica
+              LIA no es solo tecnología, es tu compañero de aprendizaje con una personalidad única
             </p>
           </motion.div>
 
@@ -781,13 +781,13 @@ export default function ConocerLiaPage() {
                 ease: 'easeInOut'
               }}
             >
-              Â¿Listo para comenzar con LIA?
+              ¿Listo para comenzar con LIA?
             </motion.h2>
             <p
               className="text-xl lg:text-2xl mb-12 text-white/90"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              Ãšnete a miles de estudiantes que ya estÃ¡n transformando su aprendizaje con inteligencia artificial
+              Únete a miles de estudiantes que ya están transformando su aprendizaje con inteligencia artificial
             </p>
             <Link href="/auth">
               <motion.button

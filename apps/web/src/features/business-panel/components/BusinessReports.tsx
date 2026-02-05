@@ -62,7 +62,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
   const reportRef = useRef<HTMLDivElement>(null)
   const printRef = useRef<HTMLDivElement>(null)
   const [isDownloading, setIsDownloading] = useState(false)
-  const [orgName, setOrgName] = useState<string>('Mi OrganizaciÃ³n')
+  const [orgName, setOrgName] = useState<string>('Mi Organización')
 
   // Fetch Organization Name
   useEffect(() => {
@@ -82,13 +82,13 @@ function LiaAnalysisReport({ data }: { data: any }) {
     fetchOrgName()
   }, [user?.organization_id])
 
-  // Procesar datos para la grÃ¡fica
+  // Procesar datos para la gráfica
   const monthlyData = useCallback(() => {
     const activities = data.raw_data?.activity?.activities || []
     const months: Record<string, number> = {}
     const now = new Date()
     
-    // Inicializar Ãºltimos 6 meses
+    // Inicializar últimos 6 meses
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
       const key = d.toLocaleString('es-ES', { month: 'short' })
@@ -142,11 +142,11 @@ function LiaAnalysisReport({ data }: { data: any }) {
       const imgWidth = pageWidth
       const imgHeight = (canvas.height * pageWidth) / canvas.width
       
-      // Si la imagen cabe en una pÃ¡gina
+      // Si la imagen cabe en una página
       if (imgHeight <= pageHeight) {
         pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight)
       } else {
-        // MÃºltiples pÃ¡ginas: dividir la imagen
+        // Múltiples páginas: dividir la imagen
         const totalPages = Math.ceil(imgHeight / pageHeight)
         
         for (let page = 0; page < totalPages; page++) {
@@ -154,7 +154,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
             pdf.addPage()
           }
           
-          // PosiciÃ³n Y para esta pÃ¡gina (negativa para "subir" la imagen)
+          // Posición Y para esta página (negativa para "subir" la imagen)
           const yPos = -(page * pageHeight)
           pdf.addImage(imgData, 'PNG', 0, yPos, imgWidth, imgHeight)
         }
@@ -169,7 +169,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
     }
   }
 
-  // Componente de GrÃ¡fica Reutilizable
+  // Componente de Gráfica Reutilizable
   const ChartComponent = ({ height = 200, showTooltip = true, barColor = accentColor }: any) => (
       <ResponsiveContainer width="100%" height={height}>
         <BarChart data={monthlyData}>
@@ -204,7 +204,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6" ref={reportRef}>
         
-      {/* VISTA OCULTA PARA IMPRESIÃ“N (PDF) 
+      {/* VISTA OCULTA PARA IMPRESIÓN (PDF) 
           Se renderiza fuera de pantalla pero se usa para generar el PDF con formato A4 limpio */}
       <div 
         ref={printRef} 
@@ -214,7 +214,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
             left: '-9999px', 
             width: '794px', // Ancho A4 en px a 96 DPI
             minHeight: '1123px', // Alto A4
-            padding: '60px 60px 120px 60px', // MÃ¡rgenes ampliados, especialmente inferior
+            padding: '60px 60px 120px 60px', // Márgenes ampliados, especialmente inferior
             backgroundColor: '#FFFFFF',
             color: '#1e293b',
             fontFamily: 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
@@ -248,20 +248,20 @@ function LiaAnalysisReport({ data }: { data: any }) {
                 </div>
                 <div>
                      <h1 style={{ fontSize: '24px', fontWeight: '800', color: '#0A2540', margin: 0, textTransform: 'uppercase', letterSpacing: '1px' }}>Reporte LIA</h1>
-                     <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0', fontWeight: '500' }}>AnÃ¡lisis Predictivo & Inteligencia Artificial</p>
+                     <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 0 0', fontWeight: '500' }}>Análisis Predictivo & Inteligencia Artificial</p>
                 </div>
             </div>
             <div style={{ textAlign: 'right', fontSize: '11px', color: '#64748b', lineHeight: '1.5' }}>
-                <p style={{ margin: 0 }}><strong>OrganizaciÃ³n:</strong> {orgName}</p>
+                <p style={{ margin: 0 }}><strong>Organización:</strong> {orgName}</p>
                 <p style={{ margin: 0 }}><strong>Generado por:</strong> {user?.display_name || 'Sistema SOFLIA'}</p>
-                <p style={{ margin: 0 }}><strong>Fecha de EmisiÃ³n:</strong> {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+                <p style={{ margin: 0 }}><strong>Fecha de Emisión:</strong> {new Date().toLocaleDateString('es-ES', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
             </div>
         </div>
 
         {/* Contenido PDF */}
         <div style={{ position: 'relative', zIndex: 10, flex: 1 }}>
             <div className="prose max-w-none text-justify" style={{ color: '#334155', fontSize: '14px', lineHeight: '1.8', textAlign: 'justify' }}>
-                {/* Aplicamos estilos especÃ­ficos a los elementos del markdown para asegurar el formato en PDF */}
+                {/* Aplicamos estilos específicos a los elementos del markdown para asegurar el formato en PDF */}
                 <style jsx global>{`
                     .prose h1, .prose h2, .prose h3 { color: #0A2540 !important; margin-top: 24px; margin-bottom: 12px; }
                     .prose strong { color: #0f172a !important; font-weight: 700; }
@@ -306,7 +306,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
                         </div>
                         <div>
                             <h2 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-500 to-cyan-500">
-                                AnÃ¡lisis Predictivo SOFLIA LIA
+                                Análisis Predictivo SOFLIA LIA
                             </h2>
                             <p className="text-sm text-gray-500 dark:text-gray-400">
                                 Reporte ejecutivo generado con Inteligencia Artificial
@@ -365,7 +365,7 @@ function LiaAnalysisReport({ data }: { data: any }) {
         </motion.div>
       </div>
 
-      {/* Columna Lateral - MÃ©tricas Clave (Visible) */}
+      {/* Columna Lateral - Métricas Clave (Visible) */}
       <div className="space-y-4">
          <StatCard 
             label="Total Usuarios" 
@@ -394,16 +394,16 @@ function LiaAnalysisReport({ data }: { data: any }) {
             <div className="h-40 w-full">
                 <ChartComponent />
             </div>
-            <p className="text-xs text-center mt-4 text-gray-400">Interracciones Ãºltimos 6 meses</p>
+            <p className="text-xs text-center mt-4 text-gray-400">Interracciones últimos 6 meses</p>
          </div>
       </div>
     </div>
   )
 }
-// Los colores se definirÃ¡n dinÃ¡micamente basados en el accent color de la organizaciÃ³n
+// Los colores se definirán dinámicamente basados en el accent color de la organización
 const getReportTypes = (accentColor: string) => [
-  { value: 'lia-analysis' as ReportType, label: 'AnÃ¡lisis LIA', icon: Sparkles, description: 'AnÃ¡lisis predictivo con IA', color: '#0EA5E9' },
-  { value: 'users' as ReportType, label: 'Usuarios', icon: Users, description: 'InformaciÃ³n detallada de usuarios', color: accentColor },
+  { value: 'lia-analysis' as ReportType, label: 'Análisis LIA', icon: Sparkles, description: 'Análisis predictivo con IA', color: '#0EA5E9' },
+  { value: 'users' as ReportType, label: 'Usuarios', icon: Users, description: 'Información detallada de usuarios', color: accentColor },
   { value: 'activity' as ReportType, label: 'Actividad', icon: Activity, description: 'Seguimiento de actividad reciente', color: '#10b981' },
   { value: 'certificates' as ReportType, label: 'Certificados', icon: Award, description: 'Certificados emitidos', color: '#8b5cf6' }
 ]
@@ -427,7 +427,7 @@ export function BusinessReports() {
   const primaryColor = panelStyles?.primary_button_color || '#0A2540'
   const secondaryColor = panelStyles?.secondary_button_color || '#10b981'
 
-  // Colores dinÃ¡micos basados en el accent de la organizaciÃ³n
+  // Colores dinámicos basados en el accent de la organización
   const REPORT_TYPES = getReportTypes(accentColor)
   const CHART_COLORS = getChartColors(accentColor)
 
@@ -491,7 +491,7 @@ export function BusinessReports() {
               'Cargo': u.job_title || 'No especificado',
               'Estado': u.status,
               'Fecha de Ingreso': u.joined_at ? new Date(u.joined_at).toLocaleDateString('es-ES') : '',
-              'Ãšltima ConexiÃ³n': u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('es-ES') : 'Nunca',
+              'Última Conexión': u.last_login_at ? new Date(u.last_login_at).toLocaleDateString('es-ES') : 'Nunca',
               'Total Cursos': u.progress?.total_courses || 0,
               'Cursos Completados': u.progress?.completed_courses || 0,
               'Progreso Promedio': `${u.progress?.average_progress?.toFixed(1) || 0}%`
@@ -505,8 +505,8 @@ export function BusinessReports() {
               'Email': a.user_email || '',
               'Curso': a.course_title || a.course_id,
               'Estado': a.enrollment_status,
-              'Fecha InscripciÃ³n': a.enrolled_at || '',
-              'Ãšltimo Acceso': a.last_accessed_at || ''
+              'Fecha Inscripción': a.enrolled_at || '',
+              'Último Acceso': a.last_accessed_at || ''
             }))
           )
           break
@@ -516,19 +516,19 @@ export function BusinessReports() {
               'Usuario': c.user_name || c.user_id,
               'Email': c.user_email || '',
               'Curso': c.course_title || c.course_id,
-              'CategorÃ­a': c.course_category || '',
-              'Fecha EmisiÃ³n': c.issued_at || ''
+              'Categoría': c.course_category || '',
+              'Fecha Emisión': c.issued_at || ''
             }))
           )
           break
         case 'lia-analysis':
-            // Exportar datos crudos para el anÃ¡lisis
+            // Exportar datos crudos para el análisis
              worksheet = XLSX.utils.json_to_sheet(
                 (reportData.data.raw_data?.users?.users || []).map((u: any) => ({
                   'Username': u.username,
                   'Cargo': u.job_title,
                   'Progreso': u.progress?.average_progress,
-                  'Ult. ConexiÃ³n': u.last_login_at
+                  'Ult. Conexión': u.last_login_at
                 }))
              );
             break;
@@ -600,7 +600,7 @@ export function BusinessReports() {
             className="text-3xl md:text-4xl font-bold mb-3 tracking-tight drop-shadow-md"
             style={{ color: '#FFFFFF' }}
           >
-            Reportes y AnÃ¡lisis
+            Reportes y Análisis
           </h1>
           
           <p 
@@ -608,7 +608,7 @@ export function BusinessReports() {
             style={{ color: '#EFF6FF' }}
           >
             Genera reportes detallados de usuarios, actividad y certificados. 
-            Exporta los datos en formato Excel para un anÃ¡lisis mÃ¡s profundo.
+            Exporta los datos en formato Excel para un análisis más profundo.
           </p>
         </div>
       </motion.div>
@@ -895,7 +895,7 @@ function UsersReport({ data }: { data: any }) {
     value: value as number
   }))
 
-  // CustomTooltip para grÃ¡ficos de pastel
+  // CustomTooltip para gráficos de pastel
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0]
@@ -949,18 +949,18 @@ function UsersReport({ data }: { data: any }) {
 
   return (
     <div className="space-y-6">
-      {/* MÃ©tricas */}
+      {/* Métricas */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard label="Total Usuarios" value={data.total_users || 0} icon={Users} color={accentColor} />
         <StatCard label="Usuarios Activos" value={data.summary?.by_status?.active || 0} icon={TrendingUp} color="#10b981" />
         <StatCard label="Cargos Diferentes" value={Object.keys(data.summary?.by_job_title || {}).length} icon={Award} color="#8b5cf6" />
       </div>
 
-      {/* GrÃ¡ficos */}
+      {/* Gráficos */}
       {(roleData.length > 0 || statusData.length > 0) && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
           {roleData.length > 0 && (
-            <ChartCard title="DistribuciÃ³n por Rol">
+            <ChartCard title="Distribución por Rol">
               <ResponsiveContainer width="100%" height={250}>
                 <PieChart>
                   <Pie data={roleData} cx="50%" cy="50%" outerRadius={80} dataKey="value" label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}>
@@ -972,7 +972,7 @@ function UsersReport({ data }: { data: any }) {
             </ChartCard>
           )}
           {statusData.length > 0 && (
-            <ChartCard title="DistribuciÃ³n por Estado">
+            <ChartCard title="Distribución por Estado">
               <ResponsiveContainer width="100%" height={250}>
                 <BarChart data={statusData}>
                   <CartesianGrid strokeDasharray="3 3" stroke={cardBorder} opacity={0.3} />
@@ -1023,7 +1023,7 @@ function ActivityReport({ data }: { data: any }) {
     { name: 'Inactivos', value: data.inactive_count || 0 }
   ].filter(s => s.value > 0)
 
-  // CustomTooltip para grÃ¡ficos de pastel
+  // CustomTooltip para gráficos de pastel
   const CustomPieTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       const data = payload[0]
@@ -1066,8 +1066,8 @@ function ActivityReport({ data }: { data: any }) {
         </span>
       )
     }},
-    { accessorKey: 'enrolled_at', header: 'InscripciÃ³n', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' },
-    { accessorKey: 'last_accessed_at', header: 'Ãšltimo Acceso', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' }
+    { accessorKey: 'enrolled_at', header: 'Inscripción', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' },
+    { accessorKey: 'last_accessed_at', header: 'Último Acceso', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' }
   ]
 
   return (
@@ -1119,8 +1119,8 @@ function CertificatesReport({ data }: { data: any }) {
   const columns: ColumnDef<any>[] = [
     { accessorKey: 'user_name', header: 'Usuario' },
     { accessorKey: 'course_title', header: 'Curso' },
-    { accessorKey: 'course_category', header: 'CategorÃ­a', cell: (info) => info.getValue() || '-' },
-    { accessorKey: 'issued_at', header: 'Fecha EmisiÃ³n', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' },
+    { accessorKey: 'course_category', header: 'Categoría', cell: (info) => info.getValue() || '-' },
+    { accessorKey: 'issued_at', header: 'Fecha Emisión', cell: (info) => info.getValue() ? new Date(info.getValue() as string).toLocaleDateString('es-ES') : '-' },
     { id: 'actions', header: 'Ver', cell: (info) => {
       const url = info.row.original.certificate_url
       return url ? (

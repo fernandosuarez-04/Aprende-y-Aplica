@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
 
-// âš¡ OPTIMIZACIÃ“N: Lazy load de AuthTabs (contiene RegisterForm pesado)
+// âš¡ OPTIMIZACIÓN: Lazy load de AuthTabs (contiene RegisterForm pesado)
 const AuthTabs = dynamic(
   () => import('../../features/auth/components/AuthTabs').then(mod => ({ default: mod.AuthTabs })),
   {
@@ -26,9 +26,9 @@ function AuthPageContent() {
 
   return (
     <div className="min-h-screen flex items-center justify-center p-0 relative overflow-hidden bg-gradient-to-br from-white via-[#F8F9FA] to-white dark:from-[#0F1419] dark:via-[#0A0D12] dark:to-[#0F1419]">
-      {/* Fondo animado con formas geomÃ©tricas */}
+      {/* Fondo animado con formas geométricas */}
       <div className="absolute inset-0 overflow-hidden">
-        {/* CÃ­rculos animados de fondo */}
+        {/* Círculos animados de fondo */}
         <motion.div
           className="absolute top-20 left-10 w-72 h-72 bg-[#00D4B3]/5 dark:bg-[#00D4B3]/10 rounded-full blur-3xl"
           animate={{
@@ -68,7 +68,7 @@ function AuthPageContent() {
           }}
         />
 
-        {/* PatrÃ³n de grid sutil */}
+        {/* Patrón de grid sutil */}
         <div 
           className="absolute inset-0 opacity-[0.02] dark:opacity-[0.03] bg-[linear-gradient(#0A2540_1px,transparent_1px),linear-gradient(90deg,#0A2540_1px,transparent_1px)] bg-[length:50px_50px]"
         />
@@ -77,7 +77,7 @@ function AuthPageContent() {
       {/* Contenido principal */}
       <div className="relative z-10 w-full min-h-screen flex items-center justify-center p-4 sm:p-6 lg:p-12 overflow-y-auto">
         <div className="w-full max-w-7xl grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          {/* Logo - Izquierda en desktop, arriba en mÃ³vil */}
+          {/* Logo - Izquierda en desktop, arriba en móvil */}
           <motion.div
             initial={{ opacity: 0, x: -50, y: 0 }}
             animate={{ opacity: 1, x: 0, y: 0 }}
@@ -115,7 +115,7 @@ function AuthPageContent() {
             </div>
           </motion.div>
 
-          {/* Formulario a la derecha en desktop, abajo en mÃ³vil */}
+          {/* Formulario a la derecha en desktop, abajo en móvil */}
           <div className="w-full max-w-md mx-auto lg:max-w-lg">
           <Suspense fallback={
             <div className="w-full h-40 sm:h-56 flex items-center justify-center">

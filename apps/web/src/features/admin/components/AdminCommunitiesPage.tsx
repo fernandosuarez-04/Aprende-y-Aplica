@@ -183,7 +183,7 @@ function CommunityCard({ community, index, onView, onEdit, onDelete, onToggleVis
     if (community.access_type === 'moderated') {
       return { label: 'Moderada', icon: UserCheck, color: '#8B5CF6', bg: 'rgba(139, 92, 246, 0.2)' }
     }
-    return { label: 'PÃºblica', icon: Globe, color: colors.success, bg: `${colors.success}20` }
+    return { label: 'Pública', icon: Globe, color: colors.success, bg: `${colors.success}20` }
   }
   
   const typeInfo = getTypeInfo()
@@ -513,7 +513,7 @@ export function AdminCommunitiesPage() {
                            (community.creator_name || '').toLowerCase().includes(searchTerm.toLowerCase())
       
       const communityCategory = community.visibility === 'private' ? 'Privada' : 
-                               community.access_type === 'moderated' ? 'Moderada' : 'PÃºblica'
+                               community.access_type === 'moderated' ? 'Moderada' : 'Pública'
       const matchesCategory = filterCategory === 'all' || communityCategory === filterCategory
       const matchesStatus = filterStatus === 'all' || 
                            (filterStatus === 'active' && community.is_active) ||
@@ -652,7 +652,7 @@ export function AdminCommunitiesPage() {
                   className="text-sm font-medium tracking-widest uppercase"
                   style={{ color: colors.accent }}
                 >
-                  Panel de GestiÃ³n
+                  Panel de Gestión
                 </span>
               </div>
               
@@ -729,7 +729,7 @@ export function AdminCommunitiesPage() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
             <input
               type="text"
-              placeholder="Buscar comunidades por nombre, descripciÃ³n o creador..."
+              placeholder="Buscar comunidades por nombre, descripción o creador..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-[#0F1419] border border-white/10 text-white placeholder-gray-500 focus:outline-none focus:border-[#00D4B3] focus:ring-1 focus:ring-[#00D4B3] transition-all"
@@ -747,8 +747,8 @@ export function AdminCommunitiesPage() {
               onChange={(e) => setFilterCategory(e.target.value)}
               className="px-4 py-3.5 rounded-xl bg-[#0F1419] border border-white/10 text-white focus:outline-none focus:border-[#00D4B3] transition-all cursor-pointer"
             >
-              <option value="all">Todas las categorÃ­as</option>
-              <option value="PÃºblica">PÃºblicas</option>
+              <option value="all">Todas las categorías</option>
+              <option value="Pública">Públicas</option>
               <option value="Privada">Privadas</option>
               <option value="Moderada">Moderadas</option>
             </select>

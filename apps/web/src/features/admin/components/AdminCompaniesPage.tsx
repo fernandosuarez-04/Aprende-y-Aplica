@@ -612,7 +612,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
             style={{ backgroundColor: colors.bgTertiary }}
           >
             <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.accent }}>
-              InformaciÃ³n de Contacto
+              Información de Contacto
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-start gap-2">
@@ -625,7 +625,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
               <div className="flex items-start gap-2">
                 <PhoneIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: colors.grayMedium }} />
                 <div>
-                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>TelÃ©fono</p>
+                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>Teléfono</p>
                   <p className="text-sm text-white">{company.contact_phone || 'No definido'}</p>
                 </div>
               </div>
@@ -674,7 +674,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
                 style={{ backgroundColor: `${colors.accent}15` }}
               >
                 <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || 'âˆž'}</p>
-                <p className="text-[10px]" style={{ color: colors.grayMedium }}>MÃ¡ximo</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Máximo</p>
               </div>
             </div>
           </div>
@@ -688,7 +688,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
             style={{ backgroundColor: colors.accent, color: colors.primary }}
           >
             <PencilSquareIcon className="h-4 w-4" />
-            Editar informaciÃ³n de la empresa
+            Editar información de la empresa
           </motion.button>
         </div>
       </motion.div>
@@ -825,11 +825,11 @@ export function AdminCompaniesPage() {
             <div className="flex items-center gap-2 mb-2">
               <SparklesIcon className="h-5 w-5" style={{ color: colors.accent }} />
               <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
-                GestiÃ³n B2B
+                Gestión B2B
               </span>
             </div>
             <h1 className="text-3xl lg:text-4xl font-bold text-white">
-              AdministraciÃ³n de Empresas
+              Administración de Empresas
             </h1>
             <p style={{ color: colors.grayMedium }} className="mt-2">
               Gestiona organizaciones, planes y usuarios empresariales
@@ -854,7 +854,7 @@ export function AdminCompaniesPage() {
               style={{ backgroundColor: colors.success, color: 'white' }}
             >
               <BuildingOffice2Icon className="h-5 w-5" />
-              Nueva OrganizaciÃ³n
+              Nueva Organización
             </motion.button>
 
           </div>
@@ -897,7 +897,7 @@ export function AdminCompaniesPage() {
         <StatCard
           title="Pausadas"
           value={stats?.pausedCompanies ?? 0}
-          subtitle="Revisar facturaciÃ³n"
+          subtitle="Revisar facturación"
           icon={PauseCircleIcon}
           color={colors.warning}
           delay={2}
@@ -997,7 +997,7 @@ export function AdminCompaniesPage() {
             >
               <BuildingOffice2Icon className="h-16 w-16 mx-auto mb-4" style={{ color: colors.grayMedium }} />
               <p className="text-lg font-medium text-white mb-2">No se encontraron empresas</p>
-              <p style={{ color: colors.grayMedium }}>Intenta ajustar los filtros de bÃºsqueda</p>
+              <p style={{ color: colors.grayMedium }}>Intenta ajustar los filtros de búsqueda</p>
             </motion.div>
           ) : (
             filteredCompanies.map((company, index) => (

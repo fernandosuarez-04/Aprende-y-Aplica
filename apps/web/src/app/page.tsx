@@ -28,19 +28,19 @@ export default function HomePage() {
       
 
       
-      {/* SeÃ±ales de Confianza - Enterprise-ready */}
+      {/* Señales de Confianza - Enterprise-ready */}
       <TrustSection />
       
-      {/* QuÃ© es SOFLIA - ExplicaciÃ³n ejecutiva */}
+      {/* Qué es SOFLIA - Explicación ejecutiva */}
       <PlatformOverview />
       
       {/* Capacidades Clave - Feature â†’ Beneficio â†’ Resultado */}
       <CapabilitiesGrid />
       
-      {/* Casos de Uso - Dolor â†’ SoluciÃ³n â†’ Resultado */}
+      {/* Casos de Uso - Dolor â†’ Solución â†’ Resultado */}
       <UseCasesSection />
       
-      {/* Impacto ROI - MÃ©tricas para CFO */}
+      {/* Impacto ROI - Métricas para CFO */}
       <ROIImpactSection />
       
       {/* Integraciones - Stack corporativo */}

@@ -63,7 +63,7 @@ export function Navbar() {
                 height={56}
                 className="w-full h-full object-contain logo-adaptive"
               />
-              {/* Efecto visual cuando estÃ¡ activado */}
+              {/* Efecto visual cuando está activado */}
               {isActivated && (
                 <motion.div
                   className="absolute inset-0 bg-gradient-to-r from-[#0A2540] to-[#00D4B3] rounded-xl opacity-50" /* Azul Profundo a Aqua */

@@ -6,14 +6,14 @@ import { SessionService } from '../services/session.service'
 import { RefreshTokenService } from '../../../lib/auth/refreshToken.service'
 import { SECURE_COOKIE_OPTIONS, getCustomCookieOptions } from '../../../lib/auth/cookie-config'
 import { z } from 'zod'
-// redirect no se usa directamente - devolvemos redirectTo para que el cliente maneje la navegaciÃ³n
+// redirect no se usa directamente - devolvemos redirectTo para que el cliente maneje la navegación
 import bcrypt from 'bcryptjs'
 import { cookies, headers } from 'next/headers'
 import { logger } from '../../../lib/logger'
 
 const loginSchema = z.object({
   emailOrUsername: z.string().min(1, 'El correo o usuario es requerido'),
-  password: z.string().min(1, 'La contraseÃ±a es requerida'),
+  password: z.string().min(1, 'La contraseña es requerida'),
   rememberMe: z.boolean().default(false),
 })
 
@@ -30,11 +30,11 @@ export async function loginAction(formData: FormData) {
     // 2. Crear cliente Supabase
     const supabase = await createClient()
 
-    // 3. Obtener contexto de organizaciÃ³n si viene de login personalizado
+    // 3. Obtener contexto de organización si viene de login personalizado
     const organizationId = formData.get('organizationId')?.toString()
     const organizationSlug = formData.get('organizationSlug')?.toString()
 
-    // 3. Buscar usuario y validar contraseÃ±a
+    // 3. Buscar usuario y validar contraseña
     // OPTIMIZADO: Una sola consulta con OR en lugar de dos secuenciales
     const { data: user, error } = await supabase
       .from('users')
@@ -43,7 +43,7 @@ export async function loginAction(formData: FormData) {
       .maybeSingle()
 
     if (error || !user) {
-      return { error: 'Credenciales invÃ¡lidas' }
+      return { error: 'Credenciales inválidas' }
     }
 
     console.log('ðŸ‘¤ [loginAction] Usuario encontrado:', {
@@ -53,7 +53,7 @@ export async function loginAction(formData: FormData) {
       cargo_rol: user.cargo_rol
     });
 
-    // â­ MODERACIÃ“N: Verificar si el usuario estÃ¡ baneado
+    // â­ MODERACIÓN: Verificar si el usuario está baneado
     if ((user as any).is_banned) {
       return {
         error: `âŒ Tu cuenta ha sido suspendida por violaciones de las reglas de la comunidad. ${(user as any).ban_reason || ''}`,
@@ -61,17 +61,17 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    // 4. Verificar contraseÃ±a con bcrypt (como en tu sistema anterior)
+    // 4. Verificar contraseña con bcrypt (como en tu sistema anterior)
     if (!user.password_hash) {
 
-      return { error: 'Error en la configuraciÃ³n de la cuenta. Por favor, contacta al soporte.' }
+      return { error: 'Error en la configuración de la cuenta. Por favor, contacta al soporte.' }
     }
 
     const passwordValid = await bcrypt.compare(parsed.password, user.password_hash)
 
     if (!passwordValid) {
 
-      // Crear notificaciÃ³n de intento de inicio de sesiÃ³n fallido
+      // Crear notificación de intento de inicio de sesión fallido
       try {
         const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
         const headersList = await headers()
@@ -85,16 +85,16 @@ export async function loginAction(formData: FormData) {
         })
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
-        // Error silenciado para no exponer informaciÃ³n
+        // Error silenciado para no exponer información
       }
 
-      return { error: 'Credenciales invÃ¡lidas' }
+      return { error: 'Credenciales inválidas' }
     }
 
-    // 4.5. Validar contexto de organizaciÃ³n si viene de login personalizado
+    // 4.5. Validar contexto de organización si viene de login personalizado
     if (organizationId && organizationSlug) {
 
-      // Verificar que la organizaciÃ³n existe y tiene suscripciÃ³n vÃ¡lida
+      // Verificar que la organización existe y tiene suscripción válida
       const { data: organization, error: orgError } = await supabase
         .from('organizations')
         .select('id, slug, subscription_plan, subscription_status, is_active')
@@ -103,11 +103,11 @@ export async function loginAction(formData: FormData) {
         .single()
 
       if (orgError || !organization) {
-        return { error: 'OrganizaciÃ³n no encontrada' }
+        return { error: 'Organización no encontrada' }
       }
 
       // Validar que puede usar login personalizado
-      // Ampliamos planes y estados para evitar falsos negativos en organizaciones vÃ¡lidas
+      // Ampliamos planes y estados para evitar falsos negativos en organizaciones válidas
       const allowedPlans = ['team', 'business', 'enterprise', 'pro', 'premium', 'basic']
       const activeStatuses = ['active', 'trial', 'trialing']
 
@@ -116,10 +116,10 @@ export async function loginAction(formData: FormData) {
       const isActiveOk = organization.is_active === undefined || organization.is_active === null || organization.is_active === true
 
       if (!planOk || !statusOk || !isActiveOk) {
-        return { error: 'Esta organizaciÃ³n no tiene acceso a login personalizado' }
+        return { error: 'Esta organización no tiene acceso a login personalizado' }
       }
 
-      // Verificar pertenencia a organizaciÃ³n solo via organization_users
+      // Verificar pertenencia a organización solo via organization_users
       // (users.organization_id fue eliminada)
 
       // Verificar organization_users
@@ -134,10 +134,10 @@ export async function loginAction(formData: FormData) {
       const belongsToOrganization = !!orgUser
 
       if (!belongsToOrganization) {
-        // Usuario NO pertenece a esta organizaciÃ³n - buscar su organizaciÃ³n correcta
+        // Usuario NO pertenece a esta organización - buscar su organización correcta
         let correctSlug: string | null = null
 
-        // Buscar en organization_users (mÃ¡s reciente por joined_at)
+        // Buscar en organization_users (más reciente por joined_at)
         const { data: userOrgs } = await supabase
           .from('organization_users')
           .select('organization_id, joined_at, organizations!inner(slug)')
@@ -150,18 +150,18 @@ export async function loginAction(formData: FormData) {
           correctSlug = userOrgs[0].organizations?.slug || null
         }
 
-        // Retornar error con informaciÃ³n de redirecciÃ³n
+        // Retornar error con información de redirección
         if (correctSlug) {
           return {
-            error: 'Este usuario no pertenece a esta organizaciÃ³n',
+            error: 'Este usuario no pertenece a esta organización',
             redirectTo: `/auth/${correctSlug}`,
-            redirectMessage: `SerÃ¡s redirigido a tu organizaciÃ³n en 5 segundos...`
+            redirectMessage: `Serás redirigido a tu organización en 5 segundos...`
           }
         } else {
           return {
-            error: 'Este usuario no pertenece a esta organizaciÃ³n',
+            error: 'Este usuario no pertenece a esta organización',
             redirectTo: '/auth',
-            redirectMessage: 'SerÃ¡s redirigido al login principal en 5 segundos...'
+            redirectMessage: 'Serás redirigido al login principal en 5 segundos...'
           }
         }
       }
@@ -170,13 +170,13 @@ export async function loginAction(formData: FormData) {
     // 5. Verificar email (RF-012) - TEMPORAL: Comentado
     // if (!user.email_verified) {
     //   return { 
-    //     error: 'Debes verificar tu email antes de iniciar sesiÃ³n',
+    //     error: 'Debes verificar tu email antes de iniciar sesión',
     //     requiresVerification: true,
     //     userId: user.id 
     //   }
     // }
 
-    // 6. Crear sesiÃ³n personalizada (sin Supabase Auth)
+    // 6. Crear sesión personalizada (sin Supabase Auth)
 
     try {
       // âœ… Obtener cookieStore DENTRO del try para mantener el contexto AsyncLocalStorage
@@ -201,7 +201,7 @@ export async function loginAction(formData: FormData) {
         headers: requestHeaders
       })
 
-      // 6.1. Crear sesiÃ³n con refresh tokens (genera tokens y los guarda en DB)
+      // 6.1. Crear sesión con refresh tokens (genera tokens y los guarda en DB)
 
       const sessionInfo = await RefreshTokenService.createSession(
         user.id,
@@ -209,7 +209,7 @@ export async function loginAction(formData: FormData) {
         mockRequest
       )
 
-      // 6.2. Crear sesiÃ³n legacy ANTES de establecer cookies
+      // 6.2. Crear sesión legacy ANTES de establecer cookies
 
       const legacySession = await SessionService.createLegacySession(
         user.id,
@@ -239,12 +239,12 @@ export async function loginAction(formData: FormData) {
         expires: legacySession.expiresAt,
       });
 
-      // Crear notificaciÃ³n de login (con timeout para no bloquear demasiado)
+      // Crear notificación de login (con timeout para no bloquear demasiado)
       try {
-        logger.info('ðŸ”” Iniciando creaciÃ³n de notificaciÃ³n de login', { userId: user.id })
+        logger.info('ðŸ”” Iniciando creación de notificación de login', { userId: user.id })
         const { AutoNotificationsService } = await import('../../notifications/services/auto-notifications.service')
 
-        // Usar Promise.race con timeout para no bloquear el login mÃ¡s de 2 segundos
+        // Usar Promise.race con timeout para no bloquear el login más de 2 segundos
         await Promise.race([
           AutoNotificationsService.notifyLoginSuccess(user.id, ip, userAgent, {
             rememberMe: parsed.rememberMe,
@@ -256,18 +256,18 @@ export async function loginAction(formData: FormData) {
         ]).catch((error) => {
           // Si es timeout, continuar sin bloquear
           if (error instanceof Error && error.message === 'Timeout') {
-            logger.warn('â±ï¸ Timeout en notificaciÃ³n de login, continuando', { userId: user.id })
+            logger.warn('â±ï¸ Timeout en notificación de login, continuando', { userId: user.id })
           } else {
-            logger.error('âŒ Error en notificaciÃ³n de login:', {
+            logger.error('âŒ Error en notificación de login:', {
               userId: user.id,
               error: error instanceof Error ? error.message : String(error)
             })
           }
         })
-        logger.info('âœ… NotificaciÃ³n de login procesada', { userId: user.id })
+        logger.info('âœ… Notificación de login procesada', { userId: user.id })
       } catch (notificationError) {
         // Log del error pero no bloquear el login
-        logger.error('âŒ Error en notificaciÃ³n de login:', {
+        logger.error('âŒ Error en notificación de login:', {
           userId: user.id,
           error: notificationError instanceof Error ? notificationError.message : String(notificationError)
         })
@@ -275,12 +275,12 @@ export async function loginAction(formData: FormData) {
 
     } catch (sessionError) {
       // Log del error para debugging
-      console.error('âŒ [loginAction] Error crÃ­tico creando sesiÃ³n:', {
+      console.error('âŒ [loginAction] Error crítico creando sesión:', {
         error: sessionError,
         message: (sessionError as any)?.message,
         stack: (sessionError as any)?.stack
       })
-      return { error: 'Error al crear la sesiÃ³n. Por favor, intenta nuevamente.' }
+      return { error: 'Error al crear la sesión. Por favor, intenta nuevamente.' }
     }
 
     // 7. Limpiar sesiones expiradas (mantenimiento)
@@ -301,23 +301,23 @@ export async function loginAction(formData: FormData) {
         console.warn('âš ï¸ No se pudo actualizar last_login_at:', updateLoginError)
       }
     } catch (loginUpdateError) {
-      // No fallar el login si falla la actualizaciÃ³n del timestamp
+      // No fallar el login si falla la actualización del timestamp
     }
 
-    // 8. REDIRECCIÃ“N BASADA EN CARGO_ROL (Enfoque B2B)
+    // 8. REDIRECCIÓN BASADA EN CARGO_ROL (Enfoque B2B)
     // - Administrador â†’ /admin/dashboard
     // - Instructor â†’ /instructor/dashboard (Panel de Instructor)
-    // - Business â†’ /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organizaciÃ³n
-    // - Business User â†’ /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organizaciÃ³n
+    // - Business â†’ /business-panel/dashboard (Panel Admin Empresas) - REQUIERE organización
+    // - Business User â†’ /business-user/dashboard (Dashboard Usuario Business) - REQUIERE organización
     // - Usuario (o cualquier otro) â†’ /dashboard (Tour SOFLIA + Planes)
 
     const normalizedRole = user.cargo_rol?.toLowerCase().trim();
-    console.log('ðŸŽ¯ [loginAction] Determinando redirecciÃ³n segÃºn cargo_rol:', {
+    console.log('ðŸŽ¯ [loginAction] Determinando redirección según cargo_rol:', {
       cargo_rol: user.cargo_rol,
       normalizedRole
     });
 
-    // En lugar de usar redirect(), devolver la URL para que el cliente maneje la navegaciÃ³n
+    // En lugar de usar redirect(), devolver la URL para que el cliente maneje la navegación
     // Esto evita problemas de "redirect count exceeded" en Next.js
     let redirectTo = '/dashboard'; // Default
 
@@ -336,33 +336,33 @@ export async function loginAction(formData: FormData) {
         .order('joined_at', { ascending: true })
 
       if (orgError || !userOrgs || userOrgs.length === 0) {
-        console.log('âš ï¸ [loginAction] Usuario Business sin organizaciÃ³n activa:', {
+        console.log('âš ï¸ [loginAction] Usuario Business sin organización activa:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           error: orgError?.message
         })
-        redirectTo = '/dashboard'; // Sin organizaciÃ³n, ir al dashboard normal
+        redirectTo = '/dashboard'; // Sin organización, ir al dashboard normal
       } else if (userOrgs.length > 1) {
-        // Usuario pertenece a MÃšLTIPLES organizaciones - mostrar selector
-        console.log('ðŸ¢ [loginAction] Usuario Business con mÃºltiples organizaciones:', {
+        // Usuario pertenece a MÚLTIPLES organizaciones - mostrar selector
+        console.log('ðŸ¢ [loginAction] Usuario Business con múltiples organizaciones:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationCount: userOrgs.length
         })
         redirectTo = '/auth/select-organization';
       } else {
-        // Usuario pertenece a UNA sola organizaciÃ³n - redirigir directamente
+        // Usuario pertenece a UNA sola organización - redirigir directamente
         const userOrg = userOrgs[0]
         const orgSlug = (userOrg.organizations as any)?.slug
 
-        console.log('âœ… [loginAction] Usuario Business con organizaciÃ³n Ãºnica:', {
+        console.log('âœ… [loginAction] Usuario Business con organización única:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationId: userOrg.organization_id,
           organizationSlug: orgSlug
         })
 
-        // Redirigir a la ruta de la organizaciÃ³n
+        // Redirigir a la ruta de la organización
         if (orgSlug) {
           redirectTo = `/${orgSlug}/dashboard`;
         } else {
@@ -374,37 +374,37 @@ export async function loginAction(formData: FormData) {
 
     console.log('ðŸš€ [loginAction] Redirigiendo a:', redirectTo);
 
-    // Devolver success con la URL de redirecciÃ³n
+    // Devolver success con la URL de redirección
     return { success: true, redirectTo }
   } catch (error) {
     // Manejar redirect de Next.js (no es un error real)
     if (error && typeof error === 'object' && 'digest' in error) {
       const digest = (error as any).digest
       if (typeof digest === 'string' && digest.startsWith('NEXT_REDIRECT')) {
-        // Es una redirecciÃ³n, no un error - re-lanzar para que Next.js la maneje
+        // Es una redirección, no un error - re-lanzar para que Next.js la maneje
         throw error
       }
     }
 
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
-      return { error: firstError?.message || 'Error de validaciÃ³n' }
+      return { error: firstError?.message || 'Error de validación' }
     }
 
-    // Proporcionar mensajes de error mÃ¡s especÃ­ficos
+    // Proporcionar mensajes de error más específicos
     if (error instanceof Error) {
-      // Mensajes de error mÃ¡s especÃ­ficos segÃºn el tipo
+      // Mensajes de error más específicos según el tipo
       if (error.message.includes('password_hash') || error.message.includes('password')) {
         return { error: 'Error al verificar las credenciales. Por favor, intenta nuevamente.' }
       }
 
       if (error.message.includes('session') || error.message.includes('cookie')) {
-        return { error: 'Error al crear la sesiÃ³n. Por favor, verifica las cookies de tu navegador.' }
+        return { error: 'Error al crear la sesión. Por favor, verifica las cookies de tu navegador.' }
       }
     }
 
-    // Proporcionar mensaje de error mÃ¡s descriptivo
-    const errorMessage = (error as any)?.message || 'Error inesperado al iniciar sesiÃ³n';
+    // Proporcionar mensaje de error más descriptivo
+    const errorMessage = (error as any)?.message || 'Error inesperado al iniciar sesión';
     return { error: errorMessage }
   }
 }

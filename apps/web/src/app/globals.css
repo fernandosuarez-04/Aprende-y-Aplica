@@ -67,7 +67,7 @@
 
 :root {
   /* Nueva Paleta SOFLIA - Colores Principales */
-  --color-primary: #0A2540; /* Azul Profundo - TecnologÃ­a + confianza */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
   --color-bg-light: #FFFFFF; /* Fondo claro para cards */
@@ -79,8 +79,8 @@
   --color-error: #ef4444;
   --color-secondary: #8b5cf6; /* Mantener para compatibilidad */
   
-  /* Variables especÃ­ficas para LIA y Progreso */
-  --color-lia: #00D4B3; /* EspecÃ­fico para elementos de LIA */
+  /* Variables específicas para LIA y Progreso */
+  --color-lia: #00D4B3; /* Específico para elementos de LIA */
   --color-progress: #00D4B3; /* Barras de progreso */
   --color-card-bg: #FFFFFF; /* Fondo de cards principales */
   
@@ -90,18 +90,18 @@
   --color-gray-200: #E9ECEF; /* Light gray - Estructura */
   --color-gray-300: #dee2e6;
   --color-gray-400: #ced4da;
-  --color-gray-500: #6C757D; /* Dark gray - TipografÃ­a y bordes */
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
   --color-gray-600: #495057;
   --color-gray-700: #343a40;
   --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
   --color-gray-900: #0F1419; /* Fondo oscuro principal */
-  --color-gray-950: #0A0D12; /* Fondo mÃ¡s oscuro */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 /* Light mode variables */
 .light {
   /* Nueva Paleta SOFLIA - Modo Claro */
-  --color-primary: #0A2540; /* Azul Profundo - TecnologÃ­a + confianza */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #ffffff; /* Fondo claro en modo light */
   --color-bg-light: #FFFFFF; /* Fondo de cards (blanco) */
@@ -113,7 +113,7 @@
   --color-error: #ef4444;
   --color-secondary: #8b5cf6;
   
-  /* Variables especÃ­ficas */
+  /* Variables específicas */
   --color-lia: #00D4B3;
   --color-progress: #00D4B3;
   --color-card-bg: #FFFFFF;
@@ -124,18 +124,18 @@
   --color-gray-200: #E9ECEF; /* Light gray - Estructura */
   --color-gray-300: #dee2e6;
   --color-gray-400: #ced4da;
-  --color-gray-500: #6C757D; /* Dark gray - TipografÃ­a y bordes */
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
   --color-gray-600: #495057;
   --color-gray-700: #343a40;
   --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
   --color-gray-900: #0F1419; /* Fondo oscuro principal */
-  --color-gray-950: #0A0D12; /* Fondo mÃ¡s oscuro */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 /* Dark mode variables (explicit) */
 .dark {
   /* Nueva Paleta SOFLIA - Modo Oscuro */
-  --color-primary: #0A2540; /* Azul Profundo - TecnologÃ­a + confianza */
+  --color-primary: #0A2540; /* Azul Profundo - Tecnología + confianza */
   --color-accent: #00D4B3; /* Aqua/Verde Azulado - Aprendizaje + IA viva */
   --color-bg-dark: #0F1419; /* Fondo oscuro base - Gris azulado oscuro */
   --color-bg-light: #FFFFFF; /* Fondo de cards (blanco sobre oscuro) */
@@ -147,7 +147,7 @@
   --color-error: #ef4444;
   --color-secondary: #8b5cf6;
   
-  /* Variables especÃ­ficas */
+  /* Variables específicas */
   --color-lia: #00D4B3;
   --color-progress: #00D4B3;
   --color-card-bg: #FFFFFF;
@@ -158,12 +158,12 @@
   --color-gray-200: #E9ECEF; /* Light gray - Estructura */
   --color-gray-300: #dee2e6;
   --color-gray-400: #ced4da;
-  --color-gray-500: #6C757D; /* Dark gray - TipografÃ­a y bordes */
+  --color-gray-500: #6C757D; /* Dark gray - Tipografía y bordes */
   --color-gray-600: #495057;
   --color-gray-700: #343a40;
   --color-gray-800: #1E2329; /* Gris oscuro con tinte azulado */
   --color-gray-900: #0F1419; /* Fondo oscuro principal */
-  --color-gray-950: #0A0D12; /* Fondo mÃ¡s oscuro */
+  --color-gray-950: #0A0D12; /* Fondo más oscuro */
 }
 
 * {
@@ -234,7 +234,7 @@ a {
   background: var(--color-gray-500);
 }
 
-/* Custom scrollbar para textarea de LIA - mÃ¡s pequeÃ±o y discreto */
+/* Custom scrollbar para textarea de LIA - más pequeño y discreto */
 .lia-textarea-scrollbar {
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
@@ -1278,7 +1278,7 @@ a {
   background-clip: text;
 }
 
-/* Scrollbar invisible para elementos especÃ­ficos */
+/* Scrollbar invisible para elementos específicos */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */
   scrollbar-width: none; /* Firefox */
@@ -1357,7 +1357,7 @@ a {
   -webkit-backdrop-filter: blur(12px);
 }
 
-/* Regla especÃ­fica para tarjetas con bg-gradient-to-br */
+/* Regla específica para tarjetas con bg-gradient-to-br */
 .business-panel-layout .bg-gradient-to-br.from-carbon-700.to-carbon-800,
 .business-panel-layout [class*="bg-gradient-to-br"][class*="from-carbon"] {
   background: rgba(var(--org-card-background-rgb, 15, 23, 42), var(--org-card-opacity, 1)) !important;
@@ -1400,7 +1400,7 @@ a {
   border-color: var(--org-border-color, #334155) !important;
 }
 
-/* Inputs de bÃºsqueda y texto */
+/* Inputs de búsqueda y texto */
 .business-panel-layout input:not([type="color"]):not([type="range"]):not([type="checkbox"]):not([type="radio"]) {
   background-color: rgba(var(--org-card-background-rgb, 30, 41, 59), var(--org-card-opacity, 1)) !important;
   color: var(--org-text-color, #ffffff) !important;
@@ -1603,7 +1603,7 @@ select::-webkit-scrollbar-thumb:hover {
   z-index: 10001 !important;
 }
 
-/* Fix especÃ­fico para tabs del curso - forzar que el contenedor no afecte el cÃ¡lculo de posiciÃ³n */
+/* Fix específico para tabs del curso - forzar que el contenedor no afecte el cálculo de posición */
 [id^="tour-tab-"] {
   position: relative;
   z-index: 1;
@@ -1636,7 +1636,7 @@ select::-webkit-scrollbar-thumb:hover {
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
 }
 
-/* BotÃ³n de cierre - visible en ambos modos con fondo que contrasta */
+/* Botón de cierre - visible en ambos modos con fondo que contrasta */
 .leaflet-popup-close-button {
   color: rgba(0, 0, 0, 0.7) !important;
   font-size: 18px !important;
@@ -1682,7 +1682,7 @@ select::-webkit-scrollbar-thumb:hover {
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.15) !important;
 }
 
-/* AnimaciÃ³n suave al abrir el popup */
+/* Animación suave al abrir el popup */
 .leaflet-popup {
   animation: popupFadeIn 0.2s ease-out !important;
 }

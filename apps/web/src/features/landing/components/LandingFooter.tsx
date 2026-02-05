@@ -73,7 +73,7 @@ export function LandingFooter() {
             </Link>
             
             <p className="text-white/60 text-sm leading-relaxed max-w-sm">
-              {t('landing.footer.description', 'Plataforma de capacitaciÃ³n corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificaciÃ³n inteligente y certificaciones verificables.')}
+              {t('landing.footer.description', 'Plataforma de capacitación corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificación inteligente y certificaciones verificables.')}
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export function LandingFooter() {
               <span className="hidden md:inline">Â·</span>
               <span className="hidden md:flex items-center gap-1">
                 <MapPin size={14} />
-                MÃ©xico
+                México
               </span>
             </div>
 
@@ -120,7 +120,7 @@ export function LandingFooter() {
                 {t('landing.footer.legal.privacy', 'Privacidad')}
               </a>
               <a href="/terms" className="text-white/40 hover:text-white/80 transition-colors">
-                {t('landing.footer.legal.terms', 'TÃ©rminos')}
+                {t('landing.footer.legal.terms', 'Términos')}
               </a>
               <a href="#contact" className="text-white/40 hover:text-white/80 transition-colors">
                 {t('landing.footer.legal.contact', 'Contacto')}

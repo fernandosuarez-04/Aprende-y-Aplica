@@ -420,7 +420,7 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
               <div>
                 <SectionHeader 
                   icon={<Users className="w-5 h-5" style={{ color: colors.accent }} />}
-                  title="InformaciÃ³n BÃ¡sica"
+                  title="Información Básica"
                   subtitle="Datos principales de la comunidad"
                   color={colors.accent}
                 />
@@ -449,11 +449,11 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
 
                 <div className="mt-5">
                   <PremiumTextarea
-                    label="DescripciÃ³n"
+                    label="Descripción"
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Describe el propÃ³sito y objetivos de la comunidad..."
+                    placeholder="Describe el propósito y objetivos de la comunidad..."
                     required
                     rows={3}
                   />
@@ -492,8 +492,8 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
               <div>
                 <SectionHeader 
                   icon={<Shield className="w-5 h-5" style={{ color: '#8B5CF6' }} />}
-                  title="ConfiguraciÃ³n de Privacidad"
-                  subtitle="Controla quiÃ©n puede ver y acceder a la comunidad"
+                  title="Configuración de Privacidad"
+                  subtitle="Controla quién puede ver y acceder a la comunidad"
                   color="#8B5CF6"
                 />
                 
@@ -505,7 +505,7 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                     onChange={handleChange}
                     icon={<Globe className="w-5 h-5" />}
                     options={[
-                      { value: 'public', label: 'ðŸŒ PÃºblica - Visible para todos' },
+                      { value: 'public', label: 'ðŸŒ Pública - Visible para todos' },
                       { value: 'private', label: 'ðŸ”’ Privada - Solo miembros' }
                     ]}
                     required
@@ -519,8 +519,8 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                     icon={<Lock className="w-5 h-5" />}
                     options={[
                       { value: 'open', label: 'âœ… Abierto - Cualquiera puede unirse' },
-                      { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobaciÃ³n' },
-                      { value: 'invite_only', label: 'âœ‰ï¸ Solo invitaciÃ³n' }
+                      { value: 'moderated', label: 'ðŸ‘€ Moderado - Requiere aprobación' },
+                      { value: 'invite_only', label: 'âœ‰ï¸ Solo invitación' }
                     ]}
                     required
                   />
@@ -532,7 +532,7 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                 <SectionHeader 
                   icon={formData.is_active ? <Eye className="w-5 h-5" style={{ color: colors.success }} /> : <EyeOff className="w-5 h-5" style={{ color: colors.grayMedium }} />}
                   title="Estado de la Comunidad"
-                  subtitle="Controla si la comunidad estÃ¡ activa y visible"
+                  subtitle="Controla si la comunidad está activa y visible"
                   color={formData.is_active ? colors.success : colors.grayMedium}
                 />
                 
@@ -608,10 +608,10 @@ export function EditCommunityModal({ community, isOpen, onClose, onSave }: EditC
                 </div>
                 <div>
                   <h5 className="text-sm font-semibold" style={{ color: colors.accent }}>
-                    ProtecciÃ³n de Datos
+                    Protección de Datos
                   </h5>
                   <p className="text-xs text-gray-400 mt-1 leading-relaxed">
-                    La modificaciÃ³n serÃ¡ registrada en el log de auditorÃ­a conforme a la LFPDPPP y las normas ISO 27001.
+                    La modificación será registrada en el log de auditoría conforme a la LFPDPPP y las normas ISO 27001.
                   </p>
                 </div>
               </motion.div>

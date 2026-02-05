@@ -10,12 +10,12 @@ interface EmailConfig {
 }
 
 /**
- * Servicio de envÃ­o de emails para autenticaciÃ³n
+ * Servicio de envío de emails para autenticación
  *
  * Funcionalidades:
- * - EnvÃ­o de emails de recuperaciÃ³n de contraseÃ±a
+ * - Envío de emails de recuperación de contraseña
  * - Templates HTML y texto plano profesionales
- * - ValidaciÃ³n de configuraciÃ³n SMTP
+ * - Validación de configuración SMTP
  * - Manejo robusto de errores
  * - Logging detallado para debugging
  */
@@ -27,7 +27,7 @@ class EmailService {
   }
 
   /**
-   * Inicializa el transporter de Nodemailer con configuraciÃ³n SMTP
+   * Inicializa el transporter de Nodemailer con configuración SMTP
    */
   private initTransporter() {
     const config = this.getConfig();
@@ -47,7 +47,7 @@ class EmailService {
           pass: config.pass,
         },
         tls: {
-          // âœ… Seguridad mejorada: solo permite certs invÃ¡lidos en desarrollo
+          // âœ… Seguridad mejorada: solo permite certs inválidos en desarrollo
           rejectUnauthorized: process.env.NODE_ENV === 'production',
           minVersion: 'TLSv1.2', // Forzar TLS 1.2 o superior
           ciphers: 'HIGH:!aNULL:!MD5', // Solo ciphers seguros
@@ -62,7 +62,7 @@ class EmailService {
   }
 
   /**
-   * Obtiene la configuraciÃ³n SMTP desde variables de entorno
+   * Obtiene la configuración SMTP desde variables de entorno
    */
   private getConfig(): EmailConfig {
     return {
@@ -74,14 +74,14 @@ class EmailService {
   }
 
   /**
-   * Verifica si el servicio estÃ¡ configurado correctamente
+   * Verifica si el servicio está configurado correctamente
    */
   private isConfigured(config: EmailConfig): boolean {
     return !!(config.host && config.user && config.pass);
   }
 
   /**
-   * Verifica si el servicio de email estÃ¡ configurado y listo para usar
+   * Verifica si el servicio de email está configurado y listo para usar
    */
   public isReady(): boolean {
     const config = this.getConfig();
@@ -90,10 +90,10 @@ class EmailService {
 
 
   /**
-   * EnvÃ­a email de recuperaciÃ³n de contraseÃ±a
+   * Envía email de recuperación de contraseña
    *
    * @param to - Email del destinatario
-   * @param resetToken - Token de recuperaciÃ³n
+   * @param resetToken - Token de recuperación
    * @param username - Nombre del usuario
    * @returns Objeto con success y messageId
    */
@@ -116,7 +116,7 @@ class EmailService {
       const info = await this.transporter.sendMail({
         from: `"SOFLIA" <noreply@soflia.com>`,
         to,
-        subject: 'RecuperaciÃ³n de ContraseÃ±a - SOFLIA',
+        subject: 'Recuperación de Contraseña - SOFLIA',
         text: textContent,
         html: htmlContent,
       });
@@ -134,7 +134,7 @@ class EmailService {
   }
 
   /**
-   * Genera el template HTML para el email de recuperaciÃ³n
+   * Genera el template HTML para el email de recuperación
    */
   private generatePasswordResetHTML(resetUrl: string, username: string): string {
     return `
@@ -143,7 +143,7 @@ class EmailService {
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>RecuperaciÃ³n de ContraseÃ±a</title>
+        <title>Recuperación de Contraseña</title>
         <style>
           body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -220,16 +220,16 @@ class EmailService {
         <div class="container">
           <div class="header">
             <div class="logo">ðŸ” Aprende y Aplica</div>
-            <h1>RecuperaciÃ³n de ContraseÃ±a</h1>
+            <h1>Recuperación de Contraseña</h1>
           </div>
 
           <p>Hola <strong>${username}</strong>,</p>
 
-          <p>Recibimos una solicitud para restablecer la contraseÃ±a de tu cuenta.</p>
+          <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta.</p>
 
           <div style="text-align: center; margin: 30px 0;">
             <a href="${resetUrl}" class="button">
-              ðŸ”“ Restablecer mi contraseÃ±a
+              ðŸ”“ Restablecer mi contraseña
             </a>
           </div>
 
@@ -247,17 +247,17 @@ class EmailService {
               <li>Este enlace expira en <strong>1 hora</strong></li>
               <li>Solo puedes usar este enlace una vez</li>
               <li>Si no solicitaste este cambio, ignora este email</li>
-              <li>Tu contraseÃ±a actual permanece segura hasta que la cambies</li>
+              <li>Tu contraseña actual permanece segura hasta que la cambies</li>
             </ul>
           </div>
 
           <p style="margin-top: 30px;">
-            Si no solicitaste restablecer tu contraseÃ±a, puedes ignorar este correo.
+            Si no solicitaste restablecer tu contraseña, puedes ignorar este correo.
             Tu cuenta permanece segura.
           </p>
 
           <div class="footer">
-            <p>Este es un email automÃ¡tico, por favor no respondas a este mensaje.</p>
+            <p>Este es un email automático, por favor no respondas a este mensaje.</p>
             <p>Si tienes problemas, contacta a nuestro equipo de soporte.</p>
             <p>&copy; 2025 Aprende y Aplica. Todos los derechos reservados.</p>
           </div>
@@ -268,17 +268,17 @@ class EmailService {
   }
 
   /**
-   * Genera el template de texto plano para el email de recuperaciÃ³n
+   * Genera el template de texto plano para el email de recuperación
    */
   private generatePasswordResetText(resetUrl: string, username: string): string {
     return `
-RecuperaciÃ³n de ContraseÃ±a - Aprende y Aplica
+Recuperación de Contraseña - Aprende y Aplica
 
 Hola ${username},
 
-Recibimos una solicitud para restablecer la contraseÃ±a de tu cuenta.
+Recibimos una solicitud para restablecer la contraseña de tu cuenta.
 
-Para crear una nueva contraseÃ±a, haz clic en el siguiente enlace:
+Para crear una nueva contraseña, haz clic en el siguiente enlace:
 ${resetUrl}
 
 IMPORTANTE:
@@ -292,23 +292,23 @@ Saludos,
 Equipo Aprende y Aplica
 
 ---
-Este es un email automÃ¡tico, por favor no respondas a este mensaje.
+Este es un email automático, por favor no respondas a este mensaje.
     `.trim();
   }
 
   // ============================================================================
-  // EMAILS DE INVITACIÃ“N A ORGANIZACIÃ“N
+  // EMAILS DE INVITACIÓN A ORGANIZACIÓN
   // ============================================================================
 
   /**
-   * EnvÃ­a email de invitaciÃ³n a una organizaciÃ³n
+   * Envía email de invitación a una organización
    *
    * @param to - Email del destinatario
-   * @param invitationToken - Token de invitaciÃ³n (64 chars hex)
-   * @param organizationName - Nombre de la organizaciÃ³n
+   * @param invitationToken - Token de invitación (64 chars hex)
+   * @param organizationName - Nombre de la organización
    * @param organizationSlug - Slug para la URL de registro
    * @param customMessage - Mensaje personalizado opcional del admin
-   * @param organizationLogoUrl - URL del logo de la organizaciÃ³n (opcional)
+   * @param organizationLogoUrl - URL del logo de la organización (opcional)
    * @returns Objeto con success y messageId
    */
   async sendOrganizationInvitationEmail(
@@ -333,7 +333,7 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
       const info = await this.transporter.sendMail({
         from: `"${organizationName}" <noreply@soflia.com>`,
         to,
-        subject: `InvitaciÃ³n a ${organizationName}`,
+        subject: `Invitación a ${organizationName}`,
         text: textContent,
         html: htmlContent,
       });
@@ -353,8 +353,8 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
   }
 
   /**
-   * Genera el template HTML para el email de invitaciÃ³n
-   * DiseÃ±o minimalista y formal sin emojis
+   * Genera el template HTML para el email de invitación
+   * Diseño minimalista y formal sin emojis
    */
   private generateInvitationHTML(
     registerUrl: string,
@@ -371,7 +371,7 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
       <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>InvitaciÃ³n - ${organizationName}</title>
+        <title>Invitación - ${organizationName}</title>
         <style>
           body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -536,11 +536,11 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
           </div>
 
           <div class="content">
-            <h1 class="title">InvitaciÃ³n a la plataforma</h1>
+            <h1 class="title">Invitación a la plataforma</h1>
             
             <p class="text">Estimado/a usuario,</p>
 
-            <p class="text">Ha sido invitado/a a formar parte de <strong>${organizationName}</strong> en nuestra plataforma de capacitaciÃ³n y desarrollo profesional.</p>
+            <p class="text">Ha sido invitado/a a formar parte de <strong>${organizationName}</strong> en nuestra plataforma de capacitación y desarrollo profesional.</p>
 
             ${customMessage ? `
             <div class="custom-message">
@@ -549,29 +549,29 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
             ` : ''}
 
             <div class="button-container">
-              <a href="${registerUrl}" class="button">Aceptar invitaciÃ³n</a>
+              <a href="${registerUrl}" class="button">Aceptar invitación</a>
             </div>
 
             <div class="divider"></div>
 
             <div class="link-section">
-              <p class="link-label">Si el botÃ³n no funciona, copie y pegue el siguiente enlace en su navegador:</p>
+              <p class="link-label">Si el botón no funciona, copie y pegue el siguiente enlace en su navegador:</p>
               <div class="link-box">${registerUrl}</div>
             </div>
 
             <div class="info-section">
-              <p class="info-title">InformaciÃ³n importante</p>
+              <p class="info-title">Información importante</p>
               <ul class="info-list">
-                <li>Esta invitaciÃ³n tiene una validez de 7 dÃ­as.</li>
-                <li>El enlace es de uso Ãºnico.</li>
-                <li>Su correo electrÃ³nico ha sido pre-registrado en el sistema.</li>
+                <li>Esta invitación tiene una validez de 7 días.</li>
+                <li>El enlace es de uso único.</li>
+                <li>Su correo electrónico ha sido pre-registrado en el sistema.</li>
               </ul>
             </div>
           </div>
 
           <div class="footer">
             <img src="${SOFLIALogoUrl}" alt="SOFLIA" class="footer-logo" />
-            <p class="footer-text">Este es un mensaje automÃ¡tico. Por favor, no responda a este correo.</p>
+            <p class="footer-text">Este es un mensaje automático. Por favor, no responda a este correo.</p>
             <p class="footer-copyright">&copy; ${new Date().getFullYear()} SOFLIA. Todos los derechos reservados.</p>
           </div>
         </div>
@@ -581,8 +581,8 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
   }
 
   /**
-   * Genera el template de texto plano para el email de invitaciÃ³n
-   * VersiÃ³n formal y minimalista
+   * Genera el template de texto plano para el email de invitación
+   * Versión formal y minimalista
    */
   private generateInvitationText(
     registerUrl: string,
@@ -591,29 +591,29 @@ Este es un email automÃ¡tico, por favor no respondas a este mensaje.
   ): string {
     return `
 ${organizationName}
-InvitaciÃ³n a la plataforma
+Invitación a la plataforma
 
 Estimado/a usuario,
 
-Ha sido invitado/a a formar parte de ${organizationName} en nuestra plataforma de capacitaciÃ³n y desarrollo profesional.
+Ha sido invitado/a a formar parte de ${organizationName} en nuestra plataforma de capacitación y desarrollo profesional.
 
 ${customMessage ? `Mensaje del administrador:\n${customMessage}\n` : ''}
 Para completar su registro, acceda al siguiente enlace:
 ${registerUrl}
 
-INFORMACIÃ“N IMPORTANTE:
-- Esta invitaciÃ³n tiene una validez de 7 dÃ­as.
-- El enlace es de uso Ãºnico.
-- Su correo electrÃ³nico ha sido pre-registrado en el sistema.
+INFORMACIÓN IMPORTANTE:
+- Esta invitación tiene una validez de 7 días.
+- El enlace es de uso único.
+- Su correo electrónico ha sido pre-registrado en el sistema.
 
 Atentamente,
 Equipo de ${organizationName}
 
 ---
-Este es un mensaje automÃ¡tico. Por favor, no responda a este correo.
+Este es un mensaje automático. Por favor, no responda a este correo.
     `.trim();
   }
 }
 
-// Exportar instancia Ãºnica (singleton)
+// Exportar instancia única (singleton)
 export const emailService = new EmailService();

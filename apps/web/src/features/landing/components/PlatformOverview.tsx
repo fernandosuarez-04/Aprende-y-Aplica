@@ -103,11 +103,11 @@ export function PlatformOverview() {
             </motion.span>
 
             <h2 className="text-3xl lg:text-5xl font-bold text-[#0A2540] dark:text-white mb-6 leading-tight">
-              {t('landing.platform.title', 'CapacitaciÃ³n corporativa potenciada por inteligencia artificial')}
+              {t('landing.platform.title', 'Capacitación corporativa potenciada por inteligencia artificial')}
             </h2>
 
             <p className="text-lg text-[#6C757D] dark:text-white/60 mb-10 leading-relaxed">
-              {t('landing.platform.description', 'SOFLIA combina tecnologÃ­a de punta con diseÃ±o centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organizaciÃ³n.')}
+              {t('landing.platform.description', 'SOFLIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.')}
             </p>
 
             {/* Features List */}

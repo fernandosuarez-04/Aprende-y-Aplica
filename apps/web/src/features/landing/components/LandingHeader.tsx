@@ -33,7 +33,7 @@ export function LandingHeader() {
   const { language, setLanguage } = useLanguage();
   
   const languageOptions: { value: SupportedLanguage; label: string; flag: string }[] = [
-    { value: 'es', label: 'EspaÃ±ol', flag: 'ðŸ‡ªðŸ‡¸' },
+    { value: 'es', label: 'Español', flag: 'ðŸ‡ªðŸ‡¸' },
     { value: 'en', label: 'English', flag: 'ðŸ‡ºðŸ‡¸' },
     { value: 'pt', label: 'PortuguÃªs', flag: 'ðŸ‡§ðŸ‡·' },
   ];

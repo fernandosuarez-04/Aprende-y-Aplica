@@ -2,14 +2,14 @@
  * ðŸ¤– Proactive LIA Assistant Component
  * 
  * Componente que muestra intervenciones proactivas de LIA cuando
- * se detectan patrones de dificultad en la sesiÃ³n del usuario.
+ * se detectan patrones de dificultad en la sesión del usuario.
  * 
- * CaracterÃ­sticas:
- * - âœ¨ AnimaciÃ³n suave de entrada
+ * Características:
+ * - âœ¨ Animación suave de entrada
  * - ðŸ’¬ Mensaje contextual de LIA
- * - âœ… BotÃ³n para aceptar ayuda
- * - âŒ BotÃ³n para dismissar
- * - ðŸ”” NotificaciÃ³n no intrusiva
+ * - âœ… Botón para aceptar ayuda
+ * - âŒ Botón para dismissar
+ * - ðŸ”” Notificación no intrusiva
  */
 
 'use client';
@@ -27,7 +27,7 @@ export interface OrganizationColors {
 }
 
 export interface ProactiveLIAAssistantProps {
-  /** AnÃ¡lisis de dificultad detectado */
+  /** Análisis de dificultad detectado */
   analysis: DifficultyAnalysis | null;
 
   /** Si se debe mostrar el componente */
@@ -39,13 +39,13 @@ export interface ProactiveLIAAssistantProps {
   /** Callback cuando usuario dismissea */
   onDismiss: () => void;
 
-  /** PosiciÃ³n del componente (default: 'bottom-right') */
+  /** Posición del componente (default: 'bottom-right') */
   position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 
-  /** Modo compacto (mÃ¡s pequeÃ±o) */
+  /** Modo compacto (más pequeño) */
   compact?: boolean;
 
-  /** Colores personalizados de la organizaciÃ³n */
+  /** Colores personalizados de la organización */
   colors?: OrganizationColors;
 }
 
@@ -63,7 +63,7 @@ export function ProactiveLIAAssistant({
   const [isDetectedLightMode, setIsDetectedLightMode] = useState(false);
 
   useEffect(() => {
-    // Detectar modo claro basado en color-scheme o background del body si no se pasan colores explÃ­citos
+    // Detectar modo claro basado en color-scheme o background del body si no se pasan colores explícitos
     if (!colors) {
       const checkTheme = () => {
         if (typeof window === 'undefined') return;
@@ -72,7 +72,7 @@ export function ProactiveLIAAssistant({
         const colorScheme = rootStyle.colorScheme;
         const bodyBg = window.getComputedStyle(document.body).backgroundColor;
         
-        // DetecciÃ³n simple de modo claro
+        // Detección simple de modo claro
         const isLight = colorScheme === 'light' || 
                         bodyBg === 'rgb(255, 255, 255)' || 
                         bodyBg === '#ffffff' ||
@@ -83,7 +83,7 @@ export function ProactiveLIAAssistant({
       };
       
       checkTheme();
-      // PequeÃ±o timeout para asegurar que los estilos inyectados se han aplicado
+      // Pequeño timeout para asegurar que los estilos inyectados se han aplicado
       setTimeout(checkTheme, 500);
     }
   }, [colors]);
@@ -107,7 +107,7 @@ export function ProactiveLIAAssistant({
 
   const handleAccept = () => {
     setIsVisible(false);
-    setTimeout(onAccept, 300); // Esperar animaciÃ³n de salida
+    setTimeout(onAccept, 300); // Esperar animación de salida
   };
 
   const handleDismiss = () => {
@@ -117,7 +117,7 @@ export function ProactiveLIAAssistant({
 
   if (!analysis) return null;
 
-  // Calcular posiciÃ³n
+  // Calcular posición
   const positionClasses = {
     'top-left': 'top-4 left-4',
     'top-right': 'top-4 right-4',
@@ -125,7 +125,7 @@ export function ProactiveLIAAssistant({
     'bottom-right': 'bottom-24 right-4' // Evitar overlap con chat LIA
   };
 
-  // Variantes de animaciÃ³n
+  // Variantes de animación
   const containerVariants = {
     hidden: {
       opacity: 0,
@@ -151,7 +151,7 @@ export function ProactiveLIAAssistant({
     }
   };
 
-  // Icono segÃºn severidad - usando colores del sistema SOFLIA
+  // Icono según severidad - usando colores del sistema SOFLIA
   const getSeverityIcon = () => {
     const highSeverityPattern = analysis.patterns.find((p: any) => p.severity === 'high');
     if (highSeverityPattern) {
@@ -160,7 +160,7 @@ export function ProactiveLIAAssistant({
     return <HelpCircle className="w-5 h-5" style={{ color: themeColors.primary }} />;
   };
 
-  // Color de la barra de progreso segÃºn el score
+  // Color de la barra de progreso según el score
   const getProgressColor = () => {
     if (analysis.overallScore >= 0.7) {
       return '#F59E0B'; // Ãmbar para alta dificultad
@@ -180,7 +180,7 @@ export function ProactiveLIAAssistant({
           exit="exit"
           className={`fixed ${positionClasses[position]} z-[100] ${compact ? 'max-w-xs' : 'max-w-md'}`}
         >
-          {/* Card principal - diseÃ±o minimalista */}
+          {/* Card principal - diseño minimalista */}
           <div
             className="rounded-xl shadow-lg border overflow-hidden"
             style={{
@@ -211,7 +211,7 @@ export function ProactiveLIAAssistant({
                   </motion.div>
                   <div>
                     <h3 id="lia-proactive-title" className="font-semibold text-base leading-tight">
-                      LIA estÃ¡ aquÃ­ para ayudar
+                      LIA está aquí para ayudar
                     </h3>
                     <p id="lia-proactive-subtitle" className="text-xs font-normal">
                       Asistencia inteligente
@@ -234,7 +234,7 @@ export function ProactiveLIAAssistant({
               #lia-proactive-subtitle { color: rgba(255, 255, 255, 0.9) !important; }
             `}</style>
 
-            {/* Body - diseÃ±o limpio */}
+            {/* Body - diseño limpio */}
             <div className="p-4 space-y-3">
               {/* Mensaje de LIA */}
               <div className="flex gap-3">
@@ -251,7 +251,7 @@ export function ProactiveLIAAssistant({
                 </div>
               </div>
 
-              {/* Botones de acciÃ³n - estilo SOFLIA */}
+              {/* Botones de acción - estilo SOFLIA */}
               <div className="flex gap-2 pt-1">
                 <button
                   onClick={handleAccept}
@@ -260,7 +260,7 @@ export function ProactiveLIAAssistant({
                   onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
                   onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
                 >
-                  SÃ­, ayÃºdame
+                  Sí, ayúdame
                 </button>
                 <button
                   onClick={handleDismiss}
@@ -281,7 +281,7 @@ export function ProactiveLIAAssistant({
               </div>
             </div>
 
-            {/* Footer con score - diseÃ±o minimalista */}
+            {/* Footer con score - diseño minimalista */}
             {!compact && (
               <div
                 className="px-4 py-2.5 border-t"

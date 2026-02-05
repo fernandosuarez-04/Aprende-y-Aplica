@@ -2,12 +2,12 @@ import { GoogleOAuthConfig } from '@/features/auth/types/oauth.types';
 import { getBaseUrl } from '@/lib/env';
 
 /**
- * ConfiguraciÃ³n de Google OAuth 2.0
+ * Configuración de Google OAuth 2.0
  * 
- * IMPORTANTE: El nombre de la aplicaciÃ³n mostrado en la pantalla de consentimiento de Google OAuth
+ * IMPORTANTE: El nombre de la aplicación mostrado en la pantalla de consentimiento de Google OAuth
  * debe configurarse en Google Cloud Console como "SOFLIAlia.ai" para que coincida con el dominio.
  * 
- * ConfiguraciÃ³n en Google Cloud Console:
+ * Configuración en Google Cloud Console:
  * - APIs & Services > OAuth consent screen
  * - App name: SOFLIAlia.ai
  * - Application home page: https://SOFLIAlia.ai
@@ -36,7 +36,7 @@ export const GOOGLE_OAUTH_URLS = {
 };
 
 /**
- * Genera la URL de autorizaciÃ³n de Google
+ * Genera la URL de autorización de Google
  */
 export function getGoogleAuthUrl(state?: string): string {
   const params = new URLSearchParams({
@@ -53,16 +53,16 @@ export function getGoogleAuthUrl(state?: string): string {
 }
 
 /**
- * Valida la configuraciÃ³n de Google OAuth
+ * Valida la configuración de Google OAuth
  */
 export function validateGoogleOAuthConfig(): void {
   if (!GOOGLE_OAUTH_CONFIG.clientId) {
-    throw new Error('GOOGLE_OAUTH_CLIENT_ID no estÃ¡ configurado');
+    throw new Error('GOOGLE_OAUTH_CLIENT_ID no está configurado');
   }
   if (!GOOGLE_OAUTH_CONFIG.clientSecret) {
-    throw new Error('GOOGLE_OAUTH_CLIENT_SECRET no estÃ¡ configurado');
+    throw new Error('GOOGLE_OAUTH_CLIENT_SECRET no está configurado');
   }
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error('NEXT_PUBLIC_APP_URL no estÃ¡ configurado');
+    throw new Error('NEXT_PUBLIC_APP_URL no está configurado');
   }
 }
