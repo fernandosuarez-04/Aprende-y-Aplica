@@ -12,7 +12,7 @@ import { useOrganizationStylesContext } from '../../../features/business-panel/c
 import { useLiaPanel } from '../../contexts/LiaPanelContext';
 import type { LiaChatMode } from '../../hooks/useLiaChat';
 
-// Función helper para renderizar texto con enlaces (soporta Markdown y URLs directas)
+// FunciÃ³n helper para renderizar texto con enlaces (soporta Markdown y URLs directas)
 function renderTextWithLinks(text: string, router: ReturnType<typeof useRouter>): React.ReactNode {
   if (!text) return text;
 
@@ -46,7 +46,7 @@ function renderTextWithLinks(text: string, router: ReturnType<typeof useRouter>)
         onClick={(e) => {
           if (isRelative) {
             e.preventDefault();
-            // Usar el router para navegación interna
+            // Usar el router para navegaciÃ³n interna
             router.push(linkUrl);
           }
           // Si es URL absoluta, dejar que el navegador maneje el enlace
@@ -61,7 +61,7 @@ function renderTextWithLinks(text: string, router: ReturnType<typeof useRouter>)
     lastIndex = match.index + match[0].length;
   }
 
-  // Agregar texto restante después del último enlace
+  // Agregar texto restante despuÃ©s del Ãºltimo enlace
   if (lastIndex < text.length) {
     parts.push(text.substring(lastIndex));
   }
@@ -93,7 +93,7 @@ export function EmbeddedLiaPanel({
   const { styles } = useOrganizationStylesContext();
   const themeStyles = styles?.panel;
 
-  // Colores con prioridad: Tema Global > Props > Defaults SOFIA
+  // Colores con prioridad: Tema Global > Props > Defaults SOFLIA
   const colors = {
     primary: themeStyles?.accent_color || organizationColors?.primary || '#00D4B3', // Lia = Aqua
     accent: themeStyles?.secondary_button_color || organizationColors?.accent || '#6C757D', // User = Neutral
@@ -105,7 +105,7 @@ export function EmbeddedLiaPanel({
   const { user } = useAuth();
   const { language } = useLanguage();
 
-  // Detectar qué navbar está activo para ajustar el padding-top del header
+  // Detectar quÃ© navbar estÃ¡ activo para ajustar el padding-top del header
   const getNavbarHeight = () => {
     if (!pathname) return '4rem'; // 64px por defecto
 
@@ -130,7 +130,7 @@ export function EmbeddedLiaPanel({
       return '5rem'; // 80px para DashboardNavbar y BusinessNavbar
     }
 
-    // Navbar regular: h-16 en móvil, h-20 en desktop
+    // Navbar regular: h-16 en mÃ³vil, h-20 en desktop
     // Usamos 5rem (80px) para cubrir ambos casos
     return '5rem'; // 80px
   };
@@ -178,13 +178,13 @@ export function EmbeddedLiaPanel({
       {
         id: 'context',
         name: 'PRL-1.0 Mini',
-        description: 'Tu asistente inteligente con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje.',
+        description: 'Tu asistente inteligente con contexto de pÃ¡gina. Resuelve dudas, explica conceptos y te guÃ­a en tu aprendizaje.',
         icon: null, // Usaremos el avatar de LIA en lugar de un icono
         color: colors.accent,
       },
     ];
 
-  // Calcular posición del dropdown cuando se abre
+  // Calcular posiciÃ³n del dropdown cuando se abre
   useEffect(() => {
     if (isModeDropdownOpen && modeButtonRef.current) {
       const rect = modeButtonRef.current.getBoundingClientRect();
@@ -219,14 +219,14 @@ export function EmbeddedLiaPanel({
   const expandedWidth = 'w-[85vw] sm:w-[360px] max-w-[360px]';
 
 
-  // Scroll automático al final de los mensajes
+  // Scroll automÃ¡tico al final de los mensajes
   useEffect(() => {
     if (messagesEndRef.current && isPanelOpen && !isCollapsed) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages, isPanelOpen, isCollapsed]);
 
-  // Ajustar altura del textarea automáticamente
+  // Ajustar altura del textarea automÃ¡ticamente
   useEffect(() => {
     if (messageInputRef.current) {
       messageInputRef.current.style.height = 'auto';
@@ -234,7 +234,7 @@ export function EmbeddedLiaPanel({
     }
   }, [message]);
 
-  // Manejar envío de mensaje
+  // Manejar envÃ­o de mensaje
   const handleSendMessage = async () => {
     if (!message.trim() || isLoading) return;
 
@@ -316,7 +316,7 @@ export function EmbeddedLiaPanel({
         )}
       </AnimatePresence>
 
-      {/* Panel Derecho - PRL-1.0 Mini (solo cuando está expandido) */}
+      {/* Panel Derecho - PRL-1.0 Mini (solo cuando estÃ¡ expandido) */}
       <AnimatePresence>
         {isPanelOpen && !isCollapsed && (
           <motion.div
@@ -332,7 +332,7 @@ export function EmbeddedLiaPanel({
               borderLeft: `1px solid ${colors.primary}20`
             }}
           >
-            {/* Fondo superior para cubrir el área del navbar */}
+            {/* Fondo superior para cubrir el Ã¡rea del navbar */}
             <div
               className="absolute left-0 right-0 top-0"
               style={{
@@ -341,7 +341,7 @@ export function EmbeddedLiaPanel({
               }}
             />
 
-            {/* Header del Panel de LIA - Rediseñado */}
+            {/* Header del Panel de LIA - RediseÃ±ado */}
             <div
               className="absolute left-0 right-0 z-[60] px-3 pb-2"
               style={{ top: navbarHeight, paddingTop: '0.75rem' }}
@@ -355,7 +355,7 @@ export function EmbeddedLiaPanel({
                   border: `1px solid ${colors.primary}30`
                 }}
               >
-                {/* Primera fila: Avatar, título (clickeable) y botones */}
+                {/* Primera fila: Avatar, tÃ­tulo (clickeable) y botones */}
                 <div className="flex items-center justify-between px-3 py-2.5">
                   <div className="relative flex-1 min-w-0">
                     <button
@@ -379,7 +379,7 @@ export function EmbeddedLiaPanel({
                           sizes="32px"
                         />
                       </div>
-                      {/* Título y modo */}
+                      {/* TÃ­tulo y modo */}
                       <div className="min-w-0 flex-1 text-left">
                         <h3
                           className="font-semibold text-xs leading-tight"
@@ -415,7 +415,7 @@ export function EmbeddedLiaPanel({
                     </button>
 
                   </div>
-                  {/* Botones de acción */}
+                  {/* Botones de acciÃ³n */}
                   <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                     <button
                       onClick={() => {
@@ -433,7 +433,7 @@ export function EmbeddedLiaPanel({
                         e.currentTarget.style.backgroundColor = 'transparent';
                         e.currentTarget.style.color = `${colors.text}80`;
                       }}
-                      title="Limpiar conversación"
+                      title="Limpiar conversaciÃ³n"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -563,7 +563,7 @@ export function EmbeddedLiaPanel({
                 backgroundColor: colors.cardBg
               }}
             >
-              {/* Área de mensajes de LIA */}
+              {/* Ãrea de mensajes de LIA */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4 relative">
                 {/* Fondo informativo del modo cuando no hay mensajes */}
                 {messages.length === 0 && (
@@ -591,19 +591,19 @@ export function EmbeddedLiaPanel({
                           />
                         </div>
                       </div>
-                      {/* Título del modo */}
+                      {/* TÃ­tulo del modo */}
                       <h3
                         className="font-bold mb-2 text-xl"
                         style={{ color: colors.text }}
                       >
                         {availableModes.find(m => m.id === currentMode)?.name || 'PRL-1.0 Mini'}
                       </h3>
-                      {/* Descripción del modo */}
+                      {/* DescripciÃ³n del modo */}
                       <p
                         className="text-sm leading-relaxed"
                         style={{ color: `${colors.text}80` }}
                       >
-                        {availableModes.find(m => m.id === currentMode)?.description || 'Tu asistente inteligente con contexto de página. Resuelve dudas, explica conceptos y te guía en tu aprendizaje.'}
+                        {availableModes.find(m => m.id === currentMode)?.description || 'Tu asistente inteligente con contexto de pÃ¡gina. Resuelve dudas, explica conceptos y te guÃ­a en tu aprendizaje.'}
                       </p>
                     </div>
                   </div>
@@ -758,7 +758,7 @@ export function EmbeddedLiaPanel({
                     />
                   </div>
 
-                  {/* Botón de micrófono/enviar */}
+                  {/* BotÃ³n de micrÃ³fono/enviar */}
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
@@ -779,7 +779,7 @@ export function EmbeddedLiaPanel({
                           : 'rgba(255, 255, 255, 0.05)', // Fondo sutil oscuro por defecto
                       color: message.trim() || isRecording ? '#FFFFFF' : colors.primary
                     }}
-                    title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabación' : 'Grabar audio'}
+                    title={message.trim() ? 'Enviar mensaje' : isRecording ? 'Detener grabaciÃ³n' : 'Grabar audio'}
                   >
                     {isLoading && message.trim() ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -798,7 +798,7 @@ export function EmbeddedLiaPanel({
         )}
       </AnimatePresence>
 
-      {/* Burbuja flotante de LIA (cuando está colapsado o cerrado) */}
+      {/* Burbuja flotante de LIA (cuando estÃ¡ colapsado o cerrado) */}
       <AnimatePresence>
         {(isCollapsed || !isPanelOpen) && (
           <motion.button
@@ -823,7 +823,7 @@ export function EmbeddedLiaPanel({
                 sizes="64px"
               />
             </div>
-            {/* Indicador de notificación (solo si hay mensajes) */}
+            {/* Indicador de notificaciÃ³n (solo si hay mensajes) */}
             {messages.length > 0 && (
               <motion.div
                 initial={{ scale: 0 }}

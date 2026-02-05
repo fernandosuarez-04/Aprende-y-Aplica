@@ -27,7 +27,8 @@ interface CourseManagementPageProps {
 
 export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>('modules')
+  const isNewCourse = courseId === 'new'
+  const [activeTab, setActiveTab] = useState<'modules' | 'config' | 'certificates' | 'preview' | 'stats'>(isNewCourse ? 'config' : 'modules')
   const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
   const [expandedLessons, setExpandedLessons] = useState<Set<string>>(new Set())
 
@@ -71,6 +72,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
     price: 0,
     thumbnail_url: '',
     slug: '',
+    instructor_id: ''
   })
 
   const { modules, loading: modulesLoading, fetchModules, createModule, updateModule, deleteModule } = useAdminModules()
@@ -79,7 +81,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   const { activities, getActivitiesByLesson, fetchActivities, createActivity, updateActivity, deleteActivity } = useAdminActivities()
 
   useEffect(() => {
-    fetchModules(courseId)
+    if (!isNewCourse) {
+      fetchModules(courseId)
+    }
     // Obtener instructores
     fetch('/api/admin/instructors')
       .then(res => res.json())
@@ -92,6 +96,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
     // Cargar datos para vista previa
     const loadPreview = async () => {
+      if (isNewCourse) return
       try {
         setPreviewLoading(true)
         const res = await fetch(`/api/admin/workshops/${courseId}`)
@@ -134,6 +139,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         price: workshopPreview.price || 0,
         thumbnail_url: workshopPreview.thumbnail_url || '',
         slug: workshopPreview.slug || '',
+        instructor_id: workshopPreview.instructor_id || '',
       })
     }
   }, [workshopPreview])
@@ -159,6 +165,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       ; (async () => {
         try {
           setStatsLoading(true)
+          if (isNewCourse) {
+            setStatsLoading(false)
+            return
+          }
           const res = await fetch(`/api/instructor/workshops/${courseId}/stats`)
           const data = await res.json()
           if (res.ok && data?.stats) {
@@ -168,7 +178,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
             console.log('[CourseManagementPage] Student status by month:', data.charts?.student_status_by_month)
           }
         } catch (e) {
-          // console.error('Error cargando estadísticas:', e)
+          // console.error('Error cargando estadÃ­sticas:', e)
         } finally {
           setStatsLoading(false)
         }
@@ -185,11 +195,21 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
     e.preventDefault()
     try {
       setSavingConfig(true)
-      const res = await fetch(`/api/admin/workshops/${courseId}`, {
-        method: 'PUT',
+
+      const url = isNewCourse ? '/api/admin/workshops/create' : `/api/admin/workshops/${courseId}`
+      const method = isNewCourse ? 'POST' : 'PUT'
+
+      // Validación básica para instructor_id
+      if (!configData.instructor_id && isNewCourse) {
+        throw new Error('Debes seleccionar un instructor')
+      }
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configData),
       })
+
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
         // Mostrar errores de validación si existen
@@ -199,6 +219,17 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         }
         throw new Error(data?.error || data?.message || 'Error al guardar la configuración')
       }
+
+      if (isNewCourse) {
+        const data = await res.json()
+        if (data.workshop && data.workshop.id) {
+          showFeedbackMessage('success', 'Curso creado correctamente. Redirigiendo...')
+          // Redirigir al curso creado
+          router.replace(`/admin/workshops/${data.workshop.id}`)
+          return
+        }
+      }
+
       await handleSaveSkills()
       const refreshed = await fetch(`/api/admin/workshops/${courseId}`).then(r => r.json())
       if (refreshed?.workshop) setWorkshopPreview(refreshed.workshop)
@@ -268,29 +299,29 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
   const handleCreateLesson = async (data: any) => {
     if (!editingModuleId) {
-      showFeedbackMessage('error', 'Selecciona un módulo antes de crear una lección')
+      showFeedbackMessage('error', 'Selecciona un mÃ³dulo antes de crear una lecciÃ³n')
       return
     }
 
     try {
       await createLesson(editingModuleId, data, courseId)
-      // Refetch lessons después de crear
+      // Refetch lessons despuÃ©s de crear
       await fetchLessons(editingModuleId, courseId)
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear la lección'
+      const errorMessage = error instanceof Error ? error.message : 'Error desconocido al crear la lecciÃ³n'
       showFeedbackMessage('error', errorMessage)
       throw error // Re-lanzar para que el modal pueda manejarlo si es necesario
     }
   }
 
   const handleDeleteModule = async (moduleId: string) => {
-    if (confirm('¿Estás seguro de eliminar este módulo?')) {
+    if (confirm('Â¿EstÃ¡s seguro de eliminar este mÃ³dulo?')) {
       await deleteModule(moduleId)
     }
   }
 
   const handleDeleteLesson = async (lessonId: string) => {
-    if (confirm('¿Estás seguro de eliminar esta lección?')) {
+    if (confirm('Â¿EstÃ¡s seguro de eliminar esta lecciÃ³n?')) {
       await deleteLesson(lessonId)
     }
   }
@@ -307,7 +338,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
 
       if (!courseId || !userId) {
         console.error('Missing courseId or userId:', { courseId, userId })
-        showFeedbackMessage('error', 'Error: Faltan parámetros necesarios')
+        showFeedbackMessage('error', 'Error: Faltan parÃ¡metros necesarios')
         setStudentDetailsData(null)
         return
       }
@@ -333,7 +364,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       }
     } catch (error) {
       console.error('Error loading student details:', error)
-      showFeedbackMessage('error', 'Error de conexión al cargar detalles del estudiante')
+      showFeedbackMessage('error', 'Error de conexiÃ³n al cargar detalles del estudiante')
       setStudentDetailsData(null)
     } finally {
       setLoadingStudentDetails(false)
@@ -341,19 +372,19 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
   }
 
   const getLessonMaterials = (lessonId: string) => {
-    // Usar la función helper del hook que accede directamente al Map
+    // Usar la funciÃ³n helper del hook que accede directamente al Map
     return getMaterialsByLesson(lessonId)
   }
 
   const getLessonActivities = (lessonId: string) => {
-    // Usar la función helper del hook que accede directamente al Map
+    // Usar la funciÃ³n helper del hook que accede directamente al Map
     return getActivitiesByLesson(lessonId)
   }
 
   /**
-   * Formatea la duración en minutos a un formato legible
+   * Formatea la duraciÃ³n en minutos a un formato legible
    * - Menos de 60 min: "X min"
-   * - 60 min o más: "Xh Ym" o "Xh" si son horas exactas
+   * - 60 min o mÃ¡s: "Xh Ym" o "Xh" si son horas exactas
    */
   const formatDuration = (minutes: number): string => {
     if (!minutes || minutes <= 0) return '0 min'
@@ -397,7 +428,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               )}
               <div>
                 <p className="font-semibold text-sm">
-                  {feedbackMessage.type === 'success' ? '¡Configuración guardada!' : 'Ocurrió un problema'}
+                  {feedbackMessage.type === 'success' ? 'Â¡ConfiguraciÃ³n guardada!' : 'OcurriÃ³ un problema'}
                 </p>
                 <p className="text-xs opacity-90 mt-0.5">{feedbackMessage.message}</p>
               </div>
@@ -407,7 +438,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
       </AnimatePresence>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        {/* Header Rediseñado con Paleta SOFIA */}
+        {/* Header RediseÃ±ado con Paleta SOFLIA */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -427,16 +458,16 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-3xl font-bold text-[#0A2540] dark:text-white mb-2">
-                Gestión de Curso
+                {isNewCourse ? 'Crear Nuevo Curso' : 'Gestión de Curso'}
               </h1>
               <p className="text-[#6C757D] dark:text-white/60 text-sm">
-                Administra módulos, lecciones, materiales y actividades
+                Administra mÃ³dulos, lecciones, materiales y actividades
               </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Tabs Rediseñados con Paleta SOFIA */}
+        {/* Tabs RediseÃ±ados con Paleta SOFLIA */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -445,19 +476,22 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
         >
           <div className="flex gap-1.5">
             {[
-              { key: 'modules', label: 'Módulos', icon: Book },
-              { key: 'config', label: 'Configuración', icon: Settings },
+              { key: 'modules', label: 'MÃ³dulos', icon: Book },
+              { key: 'config', label: 'ConfiguraciÃ³n', icon: Settings },
               { key: 'preview', label: 'Vista Previa', icon: Eye },
-              { key: 'stats', label: 'Estadísticas', icon: BarChart3 }
+              { key: 'stats', label: 'EstadÃ­sticas', icon: BarChart3 }
             ].map((tab) => (
               <motion.button
                 key={tab.key}
-                onClick={() => setActiveTab(tab.key as any)}
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
+                onClick={() => !isNewCourse && setActiveTab(tab.key as any)}
+                disabled={isNewCourse && tab.key !== 'config'}
+                whileHover={{ scale: (isNewCourse && tab.key !== 'config') ? 1 : 1.02 }}
+                whileTap={{ scale: (isNewCourse && tab.key !== 'config') ? 1 : 0.98 }}
                 className={`relative flex-1 py-2.5 px-4 rounded-lg font-medium text-xs transition-all flex items-center justify-center gap-2 ${activeTab === tab.key
                   ? 'text-white'
-                  : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white'
+                  : (isNewCourse && tab.key !== 'config')
+                    ? 'text-gray-300 dark:text-gray-700 cursor-not-allowed opacity-50'
+                    : 'text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white'
                   }`}
               >
                 {activeTab === tab.key && (
@@ -485,12 +519,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               transition={{ duration: 0.3 }}
               className="space-y-6"
             >
-              {/* Header de Sección Rediseñado */}
+              {/* Header de SecciÃ³n RediseÃ±ado */}
               <div className="flex justify-between items-center">
                 <div>
-                  <h2 className="text-xl font-bold text-[#0A2540] dark:text-white">Módulos del Curso</h2>
+                  <h2 className="text-xl font-bold text-[#0A2540] dark:text-white">MÃ³dulos del Curso</h2>
                   <p className="text-xs text-[#6C757D] dark:text-white/60 mt-1">
-                    Organiza el contenido en módulos y lecciones
+                    Organiza el contenido en mÃ³dulos y lecciones
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -502,13 +536,13 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         const data = await res.json()
                         if (data.success) {
                           showFeedbackMessage('success', data.message || 'Duraciones recalculadas correctamente')
-                          // Refrescar módulos para mostrar las nuevas duraciones
+                          // Refrescar mÃ³dulos para mostrar las nuevas duraciones
                           await fetchModules(courseId)
                         } else {
                           showFeedbackMessage('error', data.error || 'Error al recalcular duraciones')
                         }
                       } catch (error) {
-                        showFeedbackMessage('error', 'Error de conexión al recalcular duraciones')
+                        showFeedbackMessage('error', 'Error de conexiÃ³n al recalcular duraciones')
                       } finally {
                         setRecalculatingDurations(false)
                       }
@@ -544,12 +578,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     >
                       <Plus className="w-4 h-4" />
                     </motion.div>
-                    <span className="relative z-10">Agregar Módulo</span>
+                    <span className="relative z-10">Agregar MÃ³dulo</span>
                   </motion.button>
                 </div>
               </div>
 
-              {/* Lista de Módulos Rediseñada */}
+              {/* Lista de MÃ³dulos RediseÃ±ada */}
               {modulesLoading ? (
                 <div className="text-center py-16">
                   <motion.div
@@ -557,7 +591,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     className="w-12 h-12 border-3 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full mx-auto mb-3"
                   />
-                  <p className="text-sm text-[#6C757D] dark:text-white/60">Cargando módulos...</p>
+                  <p className="text-sm text-[#6C757D] dark:text-white/60">Cargando mÃ³dulos...</p>
                 </div>
               ) : modules.length === 0 ? (
                 <motion.div
@@ -572,8 +606,8 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   >
                     <Book className="w-8 h-8 text-[#00D4B3]" />
                   </motion.div>
-                  <p className="text-[#0A2540] dark:text-white text-base mb-1.5 font-semibold">No hay módulos aún</p>
-                  <p className="text-[#6C757D] dark:text-white/60 text-xs mb-5">Comienza creando tu primer módulo</p>
+                  <p className="text-[#0A2540] dark:text-white text-base mb-1.5 font-semibold">No hay mÃ³dulos aÃºn</p>
+                  <p className="text-[#6C757D] dark:text-white/60 text-xs mb-5">Comienza creando tu primer mÃ³dulo</p>
                   <motion.button
                     onClick={() => {
                       setSelectedModule(null)
@@ -584,7 +618,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     className="px-4 py-2 bg-gradient-to-r from-[#0A2540] to-[#0A2540]/90 hover:from-[#0d2f4d] hover:to-[#0A2540] text-white rounded-lg inline-flex items-center gap-2 shadow-md hover:shadow-lg transition-all duration-200 text-sm font-medium"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>Crear tu primer módulo</span>
+                    <span>Crear tu primer mÃ³dulo</span>
                   </motion.button>
                 </motion.div>
               ) : (
@@ -592,7 +626,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   {[...modules]
                     .sort((a, b) => {
                       const extractModuleNumber = (title: string): number => {
-                        const match = title.match(/Módulo\s*(\d+)/i);
+                        const match = title.match(/MÃ³dulo\s*(\d+)/i);
                         return match ? parseInt(match[1], 10) : 999;
                       };
 
@@ -624,15 +658,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           whileHover={{ y: -4 }}
                           className="group relative bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
                         >
-                          {/* Borde superior con color según estado */}
+                          {/* Borde superior con color segÃºn estado */}
                           <div className={`h-1 ${module.is_published
                             ? 'bg-gradient-to-r from-[#10B981] to-[#00D4B3]'
                             : 'bg-gradient-to-r from-[#6C757D] to-[#6C757D]/50'
                             }`} />
 
-                          {/* Contenido del módulo */}
+                          {/* Contenido del mÃ³dulo */}
                           <div className="p-5">
-                            {/* Header del módulo */}
+                            {/* Header del mÃ³dulo */}
                             <div className="flex items-start justify-between mb-4">
                               <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-3 mb-2">
@@ -681,11 +715,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                   </span>
                                   <span className="inline-flex items-center gap-1 text-xs text-[#6C757D] dark:text-white/60 px-2.5 py-1 bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-lg">
                                     <Book className="w-3 h-3" />
-                                    {moduleLessons.length} {moduleLessons.length === 1 ? 'lección' : 'lecciones'}
+                                    {moduleLessons.length} {moduleLessons.length === 1 ? 'lecciÃ³n' : 'lecciones'}
                                   </span>
                                 </div>
 
-                                {/* Descripción si existe */}
+                                {/* DescripciÃ³n si existe */}
                                 {module.module_description && (
                                   <p className="text-sm text-[#6C757D] dark:text-white/60 mt-3 ml-11 line-clamp-2">
                                     {module.module_description}
@@ -694,7 +728,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               </div>
                             </div>
 
-                            {/* Botones de acción Rediseñados */}
+                            {/* Botones de acciÃ³n RediseÃ±ados */}
                             <div className="flex items-center gap-1.5 ml-11 mt-4 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                               <motion.button
                                 onClick={() => {
@@ -705,10 +739,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                 whileHover={{ scale: 1.05, y: -1 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="flex-1 px-2.5 py-1.5 text-xs font-medium text-[#00D4B3] bg-[#00D4B3]/10 dark:bg-[#00D4B3]/20 hover:bg-[#00D4B3]/20 dark:hover:bg-[#00D4B3]/30 rounded-md transition-all duration-200 flex items-center justify-center gap-1.5 border border-[#00D4B3]/20 dark:border-[#00D4B3]/30"
-                                title="Agregar lección"
+                                title="Agregar lecciÃ³n"
                               >
                                 <Plus className="w-3 h-3" />
-                                <span>Lección</span>
+                                <span>LecciÃ³n</span>
                               </motion.button>
                               <motion.button
                                 onClick={() => {
@@ -718,7 +752,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                 whileHover={{ scale: 1.05, y: -1 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="px-2.5 py-1.5 text-xs font-medium text-[#0A2540] dark:text-white/80 bg-[#E9ECEF] dark:bg-[#0A0D12] hover:bg-[#0A2540]/5 dark:hover:bg-[#0A2540]/20 rounded-md transition-all duration-200 flex items-center justify-center gap-1.5 border border-[#E9ECEF] dark:border-[#6C757D]/30"
-                                title="Editar módulo"
+                                title="Editar mÃ³dulo"
                               >
                                 <Pencil className="w-3 h-3" />
                               </motion.button>
@@ -727,14 +761,14 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                 whileHover={{ scale: 1.05, y: -1 }}
                                 whileTap={{ scale: 0.95 }}
                                 className="px-2.5 py-1.5 text-xs font-medium text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-all duration-200 flex items-center justify-center border border-red-200 dark:border-red-900/40"
-                                title="Eliminar módulo"
+                                title="Eliminar mÃ³dulo"
                               >
                                 <Trash2 className="w-3 h-3" />
                               </motion.button>
                             </div>
                           </div>
 
-                          {/* Lecciones del Módulo Expandidas */}
+                          {/* Lecciones del MÃ³dulo Expandidas */}
                           <AnimatePresence>
                             {isExpanded && (
                               <motion.div
@@ -754,7 +788,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                       <div className="w-12 h-12 bg-gradient-to-br from-[#00D4B3]/20 to-[#0A2540]/20 dark:from-[#00D4B3]/30 dark:to-[#0A2540]/30 rounded-xl flex items-center justify-center mx-auto mb-3">
                                         <Plus className="w-6 h-6 text-[#00D4B3]" />
                                       </div>
-                                      <p className="text-sm text-[#6C757D] dark:text-white/60 mb-3">No hay lecciones en este módulo</p>
+                                      <p className="text-sm text-[#6C757D] dark:text-white/60 mb-3">No hay lecciones en este mÃ³dulo</p>
                                       <motion.button
                                         onClick={() => {
                                           setEditingModuleId(module.module_id)
@@ -766,7 +800,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                         className="inline-flex items-center gap-2 text-sm font-medium text-[#00D4B3] hover:text-[#00D4B3]/80 transition-colors"
                                       >
                                         <Plus className="w-4 h-4" />
-                                        <span>Agrega tu primera lección</span>
+                                        <span>Agrega tu primera lecciÃ³n</span>
                                       </motion.button>
                                     </motion.div>
                                   ) : (
@@ -784,7 +818,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                             transition={{ delay: lessonIndex * 0.05 }}
                                             className="bg-[#E9ECEF]/30 dark:bg-[#0A0D12] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden hover:border-[#00D4B3]/30 dark:hover:border-[#00D4B3]/30 transition-all duration-300"
                                           >
-                                            {/* Header de la Lección */}
+                                            {/* Header de la LecciÃ³n */}
                                             <div className="p-4 flex items-center justify-between">
                                               <div className="flex items-center gap-3 flex-1 min-w-0">
                                                 <motion.button
@@ -827,7 +861,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                                   whileHover={{ scale: 1.1, y: -1 }}
                                                   whileTap={{ scale: 0.9 }}
                                                   className="p-1.5 bg-[#10B981]/10 dark:bg-[#10B981]/20 hover:bg-[#10B981]/20 dark:hover:bg-[#10B981]/30 rounded-md transition-all duration-200 border border-[#10B981]/20 dark:border-[#10B981]/30"
-                                                  title="Editar lección"
+                                                  title="Editar lecciÃ³n"
                                                 >
                                                   <Pencil className="w-3.5 h-3.5 text-[#10B981]" />
                                                 </motion.button>
@@ -860,7 +894,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                                   whileHover={{ scale: 1.1, y: -1 }}
                                                   whileTap={{ scale: 0.9 }}
                                                   className="p-1.5 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-md transition-all duration-200 border border-red-200 dark:border-red-900/40"
-                                                  title="Eliminar lección"
+                                                  title="Eliminar lecciÃ³n"
                                                 >
                                                   <Trash2 className="w-3.5 h-3.5 text-red-600 dark:text-red-400" />
                                                 </motion.button>
@@ -933,7 +967,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                                                   </motion.button>
                                                                   <motion.button
                                                                     onClick={async () => {
-                                                                      if (confirm('¿Estás seguro de eliminar este material?')) {
+                                                                      if (confirm('Â¿EstÃ¡s seguro de eliminar este material?')) {
                                                                         await deleteMaterial(material.material_id)
                                                                         await fetchMaterials(lesson.lesson_id)
                                                                       }
@@ -1006,7 +1040,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                                                   </motion.button>
                                                                   <motion.button
                                                                     onClick={async () => {
-                                                                      if (confirm('¿Estás seguro de eliminar esta actividad?')) {
+                                                                      if (confirm('Â¿EstÃ¡s seguro de eliminar esta actividad?')) {
                                                                         await deleteActivity(activity.activity_id)
                                                                         await fetchActivities(lesson.lesson_id)
                                                                       }
@@ -1047,7 +1081,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           )}
         </AnimatePresence>
 
-        {/* Configuración */}
+        {/* ConfiguraciÃ³n */}
         <AnimatePresence mode="wait">
           {activeTab === 'config' && (
             <motion.div
@@ -1061,7 +1095,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
               <form onSubmit={handleSaveConfig} className="grid grid-cols-1 lg:grid-cols-3 gap-5">
                 {/* Columna Principal */}
                 <div className="lg:col-span-2 space-y-5">
-                  {/* Título */}
+                  {/* TÃ­tulo */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -1069,7 +1103,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
                   >
                     <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
-                      Título *
+                      TÃ­tulo *
                     </label>
                     <div className="relative">
                       <Book className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
@@ -1083,7 +1117,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
-                  {/* Descripción */}
+                  {/* DescripciÃ³n */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
@@ -1091,7 +1125,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
                   >
                     <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
-                      Descripción *
+                      DescripciÃ³n *
                     </label>
                     <textarea
                       name="description"
@@ -1103,7 +1137,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     />
                   </motion.div>
 
-                  {/* Categoría y Nivel */}
+                  {/* CategorÃ­a y Nivel */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -1112,7 +1146,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
                     >
                       <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
-                        Categoría *
+                        CategorÃ­a *
                       </label>
                       <div className="relative">
                         <Flag className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
@@ -1121,12 +1155,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           value={configData.category}
                           onChange={handleConfigChange}
                           className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
-                          title="Selecciona la categoría del curso"
+                          title="Selecciona la categorÃ­a del curso"
                         >
                           <option value="ia">Inteligencia Artificial</option>
-                          <option value="tecnologia">Tecnología</option>
+                          <option value="tecnologia">TecnologÃ­a</option>
                           <option value="negocios">Negocios</option>
-                          <option value="diseño">Diseño</option>
+                          <option value="diseÃ±o">DiseÃ±o</option>
                           <option value="marketing">Marketing</option>
                         </select>
                       </div>
@@ -1157,7 +1191,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </motion.div>
                   </div>
 
-                  {/* Duración y Precio */}
+                  {/* DuraciÃ³n y Precio */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
@@ -1166,7 +1200,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
                     >
                       <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
-                        Duración (minutos) *
+                        DuraciÃ³n (minutos) *
                       </label>
                       <div className="relative">
                         <Clock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
@@ -1243,6 +1277,34 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
+                  {/* Instructor Selector */}
+                  <motion.div
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.48 }}
+                    className="group bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-5 hover:border-[#00D4B3]/30 transition-all duration-200"
+                  >
+                    <label className="block text-xs font-semibold text-[#6C757D] dark:text-white/70 mb-1.5 uppercase tracking-wide">
+                      Instructor *
+                    </label>
+                    <div className="relative">
+                      <Users2 className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#6C757D] dark:text-white/60 group-focus-within:text-[#00D4B3] transition-colors" />
+                      <select
+                        name="instructor_id"
+                        value={configData.instructor_id}
+                        onChange={handleConfigChange}
+                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#0A0D12] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent transition-all duration-200 appearance-none cursor-pointer"
+                      >
+                        <option value="">Selecciona un instructor</option>
+                        {instructors.map((instructor) => (
+                          <option key={instructor.id} value={instructor.id}>
+                            {instructor.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </motion.div>
+
                   {/* Skills */}
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
@@ -1257,7 +1319,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       </label>
                     </div>
                     <p className="text-xs text-[#6C757D] dark:text-white/60 mb-4 ml-6">
-                      Selecciona las skills que los estudiantes obtendrán al completar este curso. Estas aparecerán en su perfil.
+                      Selecciona las skills que los estudiantes obtendrÃ¡n al completar este curso. Estas aparecerÃ¡n en su perfil.
                     </p>
                     <CourseSkillsSelector
                       courseId={courseId}
@@ -1295,7 +1357,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       ) : (
                         <>
                           <CheckCircle2 className="w-4 h-4" />
-                          <span>Guardar configuración</span>
+                          <span>Guardar configuraciÃ³n</span>
                         </>
                       )}
                     </motion.button>
@@ -1361,12 +1423,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               transition={{ duration: 4, repeat: Infinity }}
                               className="text-[#00D4B3]/30 text-9xl"
                             >
-                              📚
+                              ðŸ“š
                             </motion.div>
                           </div>
                         )}
 
-                        {/* Badge de categoría */}
+                        {/* Badge de categorÃ­a */}
                         <motion.div
                           initial={{ x: -20, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
@@ -1409,7 +1471,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           </span>
                         </motion.div>
 
-                        {/* Título sobre la imagen */}
+                        {/* TÃ­tulo sobre la imagen */}
                         <motion.div
                           initial={{ y: 20, opacity: 0 }}
                           animate={{ y: 0, opacity: 1 }}
@@ -1427,7 +1489,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
-                  {/* Grid de información y detalles */}
+                  {/* Grid de informaciÃ³n y detalles */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Columna principal - Detalles del curso */}
                     <motion.div
@@ -1436,11 +1498,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       transition={{ delay: 0.6 }}
                       className="lg:col-span-2 space-y-6"
                     >
-                      {/* Descripción completa */}
+                      {/* DescripciÃ³n completa */}
                       <div className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 shadow-sm hover:shadow-lg transition-all duration-300">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
-                            <span className="text-2xl">📖</span>
+                            <span className="text-2xl">ðŸ“–</span>
                           </div>
                           <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Sobre este curso</h2>
                         </div>
@@ -1449,12 +1511,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </p>
                       </div>
 
-                      {/* Estadísticas del curso */}
+                      {/* EstadÃ­sticas del curso */}
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                         {[
                           {
                             Icon: Clock,
-                            label: 'Duración',
+                            label: 'DuraciÃ³n',
                             value: `${workshopPreview.duration_total_minutes} min`,
                             color: 'from-[#00D4B3] to-[#10B981]'
                           },
@@ -1467,7 +1529,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           },
                           {
                             Icon: Target,
-                            label: 'Categoría',
+                            label: 'CategorÃ­a',
                             value: workshopPreview.category || 'General',
                             color: 'from-[#10B981] to-[#00D4B3]'
                           },
@@ -1525,7 +1587,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Vista Previa</h3>
                           </div>
 
-                          {/* Botón principal */}
+                          {/* BotÃ³n principal */}
                           <motion.button
                             onClick={() => {
                               if (workshopPreview.slug) window.open(`/courses/${workshopPreview.slug}`, '_blank')
@@ -1536,10 +1598,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           >
                             <div className="absolute inset-0 bg-gradient-to-r from-[#00D4B3]/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                             <Eye className="w-5 h-5 relative z-10" />
-                            <span className="relative z-10">Ver Página Pública</span>
+                            <span className="relative z-10">Ver PÃ¡gina PÃºblica</span>
                           </motion.button>
 
-                          {/* Información adicional */}
+                          {/* InformaciÃ³n adicional */}
                           <div className="pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 space-y-3">
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-[#6C757D] dark:text-white/60">Estado</span>
@@ -1575,7 +1637,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                   Vista Previa en Tiempo Real
                                 </p>
                                 <p className="text-xs text-[#6C757D] dark:text-white/60 leading-relaxed">
-                                  Esta es una vista previa de cómo se verá tu curso para los estudiantes.
+                                  Esta es una vista previa de cÃ³mo se verÃ¡ tu curso para los estudiantes.
                                 </p>
                               </div>
                             </div>
@@ -1594,15 +1656,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                   <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-[#0A2540]/10 to-[#00D4B3]/10 dark:from-[#0A2540]/20 dark:to-[#00D4B3]/20 flex items-center justify-center mb-6">
                     <Eye className="w-10 h-10 text-[#6C757D] dark:text-white/40" />
                   </div>
-                  <p className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2">No se encontró el curso</p>
-                  <p className="text-[#6C757D] dark:text-white/60 text-sm">Guarda la configuración primero para ver la vista previa</p>
+                  <p className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2">No se encontrÃ³ el curso</p>
+                  <p className="text-[#6C757D] dark:text-white/60 text-sm">Guarda la configuraciÃ³n primero para ver la vista previa</p>
                 </motion.div>
               )}
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Estadísticas */}
+        {/* EstadÃ­sticas */}
         <AnimatePresence mode="wait">
           {activeTab === 'stats' && (
             <motion.div
@@ -1620,7 +1682,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                     className="w-16 h-16 border-4 border-[#00D4B3]/20 border-t-[#00D4B3] rounded-full mb-4"
                   />
-                  <p className="text-[#6C757D] dark:text-white/60 text-sm font-medium">Cargando estadísticas...</p>
+                  <p className="text-[#6C757D] dark:text-white/60 text-sm font-medium">Cargando estadÃ­sticas...</p>
                 </div>
               ) : (
                 <>
@@ -1635,7 +1697,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         <BarChart3 className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Métricas Clave</h2>
+                        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">MÃ©tricas Clave</h2>
                         <p className="text-sm text-[#6C757D] dark:text-white/60">Indicadores principales de rendimiento</p>
                       </div>
                     </div>
@@ -1652,7 +1714,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         },
                         {
                           icon: TrendingUp,
-                          label: 'Tasa de Finalización',
+                          label: 'Tasa de FinalizaciÃ³n',
                           value: userStats?.completion_rate ? `${userStats.completion_rate.toFixed(1)}%` : '0%',
                           change: '+5.2%',
                           changeType: 'positive',
@@ -1668,9 +1730,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         },
                         {
                           icon: Star,
-                          label: 'Calificación',
+                          label: 'CalificaciÃ³n',
                           value: userStats?.average_rating ? userStats.average_rating.toFixed(1) : '0.0',
-                          change: userStats?.total_reviews ? `${userStats.total_reviews} reseñas` : 'Sin reseñas',
+                          change: userStats?.total_reviews ? `${userStats.total_reviews} reseÃ±as` : 'Sin reseÃ±as',
                           changeType: 'neutral',
                           color: 'from-[#F59E0B] to-[#10B981]'
                         }
@@ -1720,9 +1782,9 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
-                  {/* Gráficas Principales */}
+                  {/* GrÃ¡ficas Principales */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Gráfica de Progreso de Estudiantes */}
+                    {/* GrÃ¡fica de Progreso de Estudiantes */}
                     <motion.div
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1734,7 +1796,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           <TrendingUp className="w-5 h-5 text-white" />
                         </div>
                         <div>
-                          <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Distribución de Progreso</h3>
+                          <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">DistribuciÃ³n de Progreso</h3>
                           <p className="text-xs text-[#6C757D] dark:text-white/60">Estado actual de los estudiantes</p>
                         </div>
                       </div>
@@ -1783,7 +1845,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       </div>
                     </motion.div>
 
-                    {/* Gráfica de Actividad en el Tiempo */}
+                    {/* GrÃ¡fica de Actividad en el Tiempo */}
                     <motion.div
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
@@ -1796,7 +1858,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </div>
                         <div>
                           <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Tendencia de Inscripciones</h3>
-                          <p className="text-xs text-[#6C757D] dark:text-white/60">Últimos 7 días</p>
+                          <p className="text-xs text-[#6C757D] dark:text-white/60">Ãšltimos 7 dÃ­as</p>
                         </div>
                       </div>
                       <div className="h-64">
@@ -1804,10 +1866,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           <AreaChart data={[
                             { dia: 'Lun', inscripciones: 12, activos: 45 },
                             { dia: 'Mar', inscripciones: 19, activos: 52 },
-                            { dia: 'Mié', inscripciones: 15, activos: 48 },
+                            { dia: 'MiÃ©', inscripciones: 15, activos: 48 },
                             { dia: 'Jue', inscripciones: 22, activos: 61 },
                             { dia: 'Vie', inscripciones: 28, activos: 58 },
-                            { dia: 'Sáb', inscripciones: 18, activos: 42 },
+                            { dia: 'SÃ¡b', inscripciones: 18, activos: 42 },
                             { dia: 'Dom', inscripciones: 14, activos: 38 }
                           ]}>
                             <defs>
@@ -1860,7 +1922,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </motion.div>
                   </div>
 
-                  {/* Estadísticas Detalladas */}
+                  {/* EstadÃ­sticas Detalladas */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1871,21 +1933,21 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         <Sigma className="w-6 h-6 text-white" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Análisis Detallado</h2>
-                        <p className="text-sm text-[#6C757D] dark:text-white/60">Métricas avanzadas del curso</p>
+                        <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">AnÃ¡lisis Detallado</h2>
+                        <p className="text-sm text-[#6C757D] dark:text-white/60">MÃ©tricas avanzadas del curso</p>
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                       {[
-                        { label: 'Módulos Publicados', value: modules.filter((m: any) => m.is_published).length, total: modules.length, icon: Book, color: '#0A2540' },
+                        { label: 'MÃ³dulos Publicados', value: modules.filter((m: any) => m.is_published).length, total: modules.length, icon: Book, color: '#0A2540' },
                         { label: 'Lecciones Totales', value: userStats?.total_lessons ?? 0, icon: FileText, color: '#00D4B3' },
-                        { label: 'Duración Total', value: formatDuration(modules.reduce((acc: number, m: any) => acc + (m.module_duration_minutes || 0), 0)), icon: Clock, color: '#10B981' },
+                        { label: 'DuraciÃ³n Total', value: formatDuration(modules.reduce((acc: number, m: any) => acc + (m.module_duration_minutes || 0), 0)), icon: Clock, color: '#10B981' },
                         { label: 'Materiales', value: userStats?.total_materials ?? 0, icon: ClipboardList, color: '#F59E0B' },
                         { label: 'Actividades', value: userStats?.total_activities ?? 0, icon: Flag, color: '#0A2540' },
-                        { label: 'Tasa de Retención', value: userStats?.retention_rate ? `${userStats.retention_rate.toFixed(1)}%` : '0%', icon: Users2, color: '#10B981' },
-                        { label: 'Activos 7 días', value: userStats?.active_7d ?? 0, icon: TrendingUp, color: '#00D4B3' },
-                        { label: 'Activos 30 días', value: userStats?.active_30d ?? 0, icon: BarChart3, color: '#0A2540' },
+                        { label: 'Tasa de RetenciÃ³n', value: userStats?.retention_rate ? `${userStats.retention_rate.toFixed(1)}%` : '0%', icon: Users2, color: '#10B981' },
+                        { label: 'Activos 7 dÃ­as', value: userStats?.active_7d ?? 0, icon: TrendingUp, color: '#00D4B3' },
+                        { label: 'Activos 30 dÃ­as', value: userStats?.active_30d ?? 0, icon: BarChart3, color: '#0A2540' },
                         { label: 'Certificados Emitidos', value: userStats?.total_certificates ?? 0, icon: Award, color: '#F59E0B' }
                       ].map((stat, index) => {
                         const IconComponent = stat.icon
@@ -1923,7 +1985,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   </motion.div>
 
-                  {/* Gráfica de Estado de Estudiantes */}
+                  {/* GrÃ¡fica de Estado de Estudiantes */}
                   <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1936,7 +1998,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                       </div>
                       <div>
                         <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Estado de Estudiantes</h3>
-                        <p className="text-xs text-[#6C757D] dark:text-white/60">Evolución del progreso en el tiempo</p>
+                        <p className="text-xs text-[#6C757D] dark:text-white/60">EvoluciÃ³n del progreso en el tiempo</p>
                       </div>
                     </div>
                     <div className="h-80">
@@ -2035,7 +2097,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           <Users2 className="w-10 h-10 text-[#6C757D] dark:text-white/40" />
                         </div>
                         <p className="text-[#0A2540] dark:text-white text-lg font-semibold mb-2">No hay estudiantes inscritos</p>
-                        <p className="text-[#6C757D] dark:text-white/60 text-sm">Los estudiantes aparecerán aquí cuando se inscriban al curso</p>
+                        <p className="text-[#6C757D] dark:text-white/60 text-sm">Los estudiantes aparecerÃ¡n aquÃ­ cuando se inscriban al curso</p>
                       </div>
                     ) : (
                       <div className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm">
@@ -2047,7 +2109,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Estado</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Progreso</th>
                                 <th className="px-6 py-4 text-left text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Inscrito</th>
-                                <th className="px-6 py-4 text-left text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Última Actividad</th>
+                                <th className="px-6 py-4 text-left text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Ãšltima Actividad</th>
                                 <th className="px-6 py-4 text-center text-xs font-bold text-[#0A2540] dark:text-white uppercase tracking-wider">Acciones</th>
                               </tr>
                             </thead>
@@ -2110,7 +2172,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                                       year: 'numeric',
                                       month: 'short',
                                       day: 'numeric'
-                                    }) : '—'}
+                                    }) : 'â€”'}
                                   </td>
                                   <td className="px-6 py-4 text-sm text-[#6C757D] dark:text-white/70">
                                     {user.last_accessed_at ? new Date(user.last_accessed_at).toLocaleDateString('es-ES', {
@@ -2183,11 +2245,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
             onSave={async (data) => {
               try {
                 if (selectedLesson) {
-                  // Editar lección existente
+                  // Editar lecciÃ³n existente
                   await updateLesson(selectedLesson.lesson_id, data, courseId)
                   await fetchLessons(editingModuleId, courseId)
                 } else {
-                  // Crear nueva lección
+                  // Crear nueva lecciÃ³n
                   await handleCreateLesson(data)
                 }
                 // Solo cerrar el modal si no hay errores
@@ -2361,8 +2423,8 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         },
                         {
                           icon: TrendingUp,
-                          label: 'Racha de Días',
-                          value: `${studentDetailsData.studySessions?.studyStreak || 0} días`,
+                          label: 'Racha de DÃ­as',
+                          value: `${studentDetailsData.studySessions?.studyStreak || 0} dÃ­as`,
                           color: 'from-[#F59E0B] to-[#10B981]'
                         }
                       ].map((kpi, index) => {
@@ -2390,11 +2452,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                     </div>
                   ) : null}
 
-                  {/* Gráficas y Estadísticas Detalladas */}
+                  {/* GrÃ¡ficas y EstadÃ­sticas Detalladas */}
                   {studentDetailsData && (
                     <>
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                        {/* Gráfica de Progreso Semanal */}
+                        {/* GrÃ¡fica de Progreso Semanal */}
                         <div className="bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-xl p-6 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
@@ -2402,7 +2464,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             </div>
                             <div>
                               <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Progreso Semanal</h3>
-                              <p className="text-xs text-[#6C757D] dark:text-white/60">Últimos 7 días</p>
+                              <p className="text-xs text-[#6C757D] dark:text-white/60">Ãšltimos 7 dÃ­as</p>
                             </div>
                           </div>
                           <div className="h-48">
@@ -2410,10 +2472,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               <BarChart data={studentDetailsData.studySessions?.weeklyProgress || [
                                 { dia: 'Lun', progreso: 0 },
                                 { dia: 'Mar', progreso: 0 },
-                                { dia: 'Mié', progreso: 0 },
+                                { dia: 'MiÃ©', progreso: 0 },
                                 { dia: 'Jue', progreso: 0 },
                                 { dia: 'Vie', progreso: 0 },
-                                { dia: 'Sáb', progreso: 0 },
+                                { dia: 'SÃ¡b', progreso: 0 },
                                 { dia: 'Dom', progreso: 0 }
                               ]}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E9ECEF" opacity={0.3} />
@@ -2433,7 +2495,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           </div>
                         </div>
 
-                        {/* Gráfica de Tiempo de Estudio */}
+                        {/* GrÃ¡fica de Tiempo de Estudio */}
                         <div className="bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-xl p-6 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                           <div className="flex items-center gap-3 mb-4">
                             <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#10B981] to-[#00D4B3] flex items-center justify-center">
@@ -2441,7 +2503,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             </div>
                             <div>
                               <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Tiempo de Estudio</h3>
-                              <p className="text-xs text-[#6C757D] dark:text-white/60">Distribución por día</p>
+                              <p className="text-xs text-[#6C757D] dark:text-white/60">DistribuciÃ³n por dÃ­a</p>
                             </div>
                           </div>
                           <div className="h-48">
@@ -2449,10 +2511,10 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               <LineChart data={studentDetailsData.studySessions?.dailyStudyTime || [
                                 { dia: 'Lun', horas: 0 },
                                 { dia: 'Mar', horas: 0 },
-                                { dia: 'Mié', horas: 0 },
+                                { dia: 'MiÃ©', horas: 0 },
                                 { dia: 'Jue', horas: 0 },
                                 { dia: 'Vie', horas: 0 },
-                                { dia: 'Sáb', horas: 0 },
+                                { dia: 'SÃ¡b', horas: 0 },
                                 { dia: 'Dom', horas: 0 }
                               ]}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#E9ECEF" opacity={0.3} />
@@ -2479,15 +2541,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </div>
                       </div>
 
-                      {/* Métricas de Engagement */}
+                      {/* MÃ©tricas de Engagement */}
                       <div className="bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-xl p-6 border border-[#E9ECEF] dark:border-[#6C757D]/30 mb-6">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-[#F59E0B] to-[#10B981] flex items-center justify-center">
                             <Users2 className="w-5 h-5 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">Métricas de Engagement</h3>
-                            <p className="text-xs text-[#6C757D] dark:text-white/60">Nivel de participación del estudiante</p>
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white">MÃ©tricas de Engagement</h3>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60">Nivel de participaciÃ³n del estudiante</p>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -2515,15 +2577,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </div>
                       </div>
 
-                      {/* Estadísticas de Interacción con LIA */}
+                      {/* EstadÃ­sticas de InteracciÃ³n con LIA */}
                       <div className="bg-gradient-to-br from-[#0A2540]/5 to-[#00D4B3]/5 dark:from-[#0A2540]/10 dark:to-[#00D4B3]/10 rounded-xl p-6 border-2 border-[#00D4B3]/30 mb-6">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center shadow-lg">
                             <Lightbulb className="w-6 h-6 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-[#0A2540] dark:text-white">Interacción con LIA</h3>
-                            <p className="text-xs text-[#6C757D] dark:text-white/60">Análisis de conversaciones y asistencia personalizada</p>
+                            <h3 className="text-xl font-bold text-[#0A2540] dark:text-white">InteracciÃ³n con LIA</h3>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60">AnÃ¡lisis de conversaciones y asistencia personalizada</p>
                           </div>
                         </div>
 
@@ -2540,7 +2602,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               icon: Sprout,
                               label: 'Mensajes Intercambiados',
                               value: `${studentDetailsData.lia?.totalMessages || 0}`,
-                              sublabel: `Promedio: ${studentDetailsData.lia?.avgMessagesPerConversation || 0} por conversación`,
+                              sublabel: `Promedio: ${studentDetailsData.lia?.avgMessagesPerConversation || 0} por conversaciÃ³n`,
                               color: 'from-[#00D4B3] to-[#10B981]'
                             },
                             {
@@ -2581,7 +2643,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           })}
                         </div>
 
-                        {/* Gráfica de Conversaciones con LIA */}
+                        {/* GrÃ¡fica de Conversaciones con LIA */}
                         <div className="bg-white dark:bg-[#1E2329] rounded-xl p-5 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                           <div className="flex items-center gap-2 mb-4">
                             <Rocket className="w-5 h-5 text-[#00D4B3]" />
@@ -2629,13 +2691,13 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                           </div>
                         </div>
 
-                        {/* Análisis de Temas de Conversación */}
+                        {/* AnÃ¡lisis de Temas de ConversaciÃ³n */}
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
                           {(studentDetailsData.lia?.conversationTopics || [
                             { tema: 'Dudas de Lecciones', count: 0, color: '#0A2540' },
                             { tema: 'Ayuda con Actividades', count: 0, color: '#00D4B3' },
                             { tema: 'Explicaciones Extra', count: 0, color: '#10B981' },
-                            { tema: 'Motivación', count: 0, color: '#F59E0B' }
+                            { tema: 'MotivaciÃ³n', count: 0, color: '#F59E0B' }
                           ]).map((tema: any, index: number) => (
                             <div key={tema.tema} className="bg-white dark:bg-[#1E2329] rounded-lg p-3 border border-[#E9ECEF] dark:border-[#6C757D]/30 text-center">
                               <div
@@ -2652,15 +2714,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </div>
                       </div>
 
-                      {/* Estadísticas de Sesiones de Estudio */}
+                      {/* EstadÃ­sticas de Sesiones de Estudio */}
                       <div className="bg-gradient-to-br from-[#10B981]/5 to-[#F59E0B]/5 dark:from-[#10B981]/10 dark:to-[#F59E0B]/10 rounded-xl p-6 border-2 border-[#10B981]/30 mb-6">
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#10B981] to-[#F59E0B] flex items-center justify-center shadow-lg">
                             <Clock className="w-6 h-6 text-white" />
                           </div>
                           <div>
-                            <h3 className="text-xl font-bold text-[#0A2540] dark:text-white">Hábitos de Estudio</h3>
-                            <p className="text-xs text-[#6C757D] dark:text-white/60">Análisis de patrones y comportamiento de aprendizaje</p>
+                            <h3 className="text-xl font-bold text-[#0A2540] dark:text-white">HÃ¡bitos de Estudio</h3>
+                            <p className="text-xs text-[#6C757D] dark:text-white/60">AnÃ¡lisis de patrones y comportamiento de aprendizaje</p>
                           </div>
                         </div>
 
@@ -2671,15 +2733,15 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               label: 'Sesiones Totales',
                               value: `${studentDetailsData.studySessions?.totalSessions || 0}`,
                               sublabel: studentDetailsData.studySessions?.lastSession?.hoursAgo
-                                ? `Última: Hace ${studentDetailsData.studySessions.lastSession.hoursAgo} horas`
+                                ? `Ãšltima: Hace ${studentDetailsData.studySessions.lastSession.hoursAgo} horas`
                                 : 'Sin sesiones',
                               color: 'from-[#10B981] to-[#00D4B3]'
                             },
                             {
                               icon: TrendingUp,
-                              label: 'Duración Promedio',
+                              label: 'DuraciÃ³n Promedio',
                               value: `${studentDetailsData.studySessions?.avgSessionDuration || 0} min`,
-                              sublabel: 'Por sesión',
+                              sublabel: 'Por sesiÃ³n',
                               color: 'from-[#00D4B3] to-[#10B981]'
                             },
                             {
@@ -2692,7 +2754,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             {
                               icon: BarChart3,
                               label: 'Frecuencia Semanal',
-                              value: `${studentDetailsData.studySessions?.weeklyFrequency || 0} días`,
+                              value: `${studentDetailsData.studySessions?.weeklyFrequency || 0} dÃ­as`,
                               sublabel: 'Promedio por semana',
                               color: 'from-[#0A2540] to-[#00D4B3]'
                             }
@@ -2733,7 +2795,7 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             </div>
                             <div className="space-y-3">
                               {(studentDetailsData.studySessions?.preferredTimeSlots || [
-                                { periodo: 'Mañana (6am-12pm)', porcentaje: 0, color: '#F59E0B' },
+                                { periodo: 'MaÃ±ana (6am-12pm)', porcentaje: 0, color: '#F59E0B' },
                                 { periodo: 'Tarde (12pm-6pm)', porcentaje: 0, color: '#00D4B3' },
                                 { periodo: 'Noche (6pm-12am)', porcentaje: 0, color: '#10B981' },
                                 { periodo: 'Madrugada (12am-6am)', porcentaje: 0, color: '#6C757D' }
@@ -2754,11 +2816,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             </div>
                           </div>
 
-                          {/* Días Más Activos */}
+                          {/* DÃ­as MÃ¡s Activos */}
                           <div className="bg-white dark:bg-[#1E2329] rounded-xl p-5 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                             <div className="flex items-center gap-2 mb-4">
                               <BarChart3 className="w-5 h-5 text-[#00D4B3]" />
-                              <h4 className="text-sm font-bold text-[#0A2540] dark:text-white">Días Más Activos</h4>
+                              <h4 className="text-sm font-bold text-[#0A2540] dark:text-white">DÃ­as MÃ¡s Activos</h4>
                             </div>
                             <div className="h-32">
                               <ResponsiveContainer width="100%" height="100%">
@@ -2803,14 +2865,14 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                               <p className="text-xs text-[#6C757D] dark:text-white/70 leading-relaxed">
                                 {studentDetailsData.studySessions.preferredTimeSlots && studentDetailsData.studySessions.preferredTimeSlots.length > 0 ? (
                                   <>
-                                    Este estudiante muestra un patrón de estudio{' '}
+                                    Este estudiante muestra un patrÃ³n de estudio{' '}
                                     {studentDetailsData.studySessions.preferredTimeSlots.find((s: any) => s.porcentaje === Math.max(...studentDetailsData.studySessions.preferredTimeSlots.map((s: any) => s.porcentaje)))?.periodo.toLowerCase() || 'consistente'}.
-                                    {' '}Frecuencia semanal: {studentDetailsData.studySessions.weeklyFrequency} días.
-                                    {' '}Duración promedio: {studentDetailsData.studySessions.avgSessionDuration} minutos por sesión.
-                                    {studentDetailsData.studySessions.studyStreak > 0 && ` Racha actual: ${studentDetailsData.studySessions.studyStreak} días consecutivos.`}
+                                    {' '}Frecuencia semanal: {studentDetailsData.studySessions.weeklyFrequency} dÃ­as.
+                                    {' '}DuraciÃ³n promedio: {studentDetailsData.studySessions.avgSessionDuration} minutos por sesiÃ³n.
+                                    {studentDetailsData.studySessions.studyStreak > 0 && ` Racha actual: ${studentDetailsData.studySessions.studyStreak} dÃ­as consecutivos.`}
                                   </>
                                 ) : (
-                                  'Aún no hay suficientes datos para generar insights personalizados.'
+                                  'AÃºn no hay suficientes datos para generar insights personalizados.'
                                 )}
                               </p>
                             </div>
@@ -2818,12 +2880,12 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                         </div>
                       )}
 
-                      {/* Información Adicional */}
+                      {/* InformaciÃ³n Adicional */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                         <div className="bg-[#E9ECEF]/50 dark:bg-[#0A0D12] rounded-xl p-4 border border-[#E9ECEF] dark:border-[#6C757D]/30">
                           <div className="flex items-center gap-2 mb-3">
                             <Flag className="w-4 h-4 text-[#00D4B3]" />
-                            <h4 className="text-sm font-bold text-[#0A2540] dark:text-white">Estado de Inscripción</h4>
+                            <h4 className="text-sm font-bold text-[#0A2540] dark:text-white">Estado de InscripciÃ³n</h4>
                           </div>
                           <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
@@ -2840,11 +2902,11 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
                             <div className="flex justify-between">
                               <span className="text-[#6C757D] dark:text-white/60">Inscrito:</span>
                               <span className="font-semibold text-[#0A2540] dark:text-white">
-                                {selectedStudent.enrolled_at ? new Date(selectedStudent.enrolled_at).toLocaleDateString('es-ES') : '—'}
+                                {selectedStudent.enrolled_at ? new Date(selectedStudent.enrolled_at).toLocaleDateString('es-ES') : 'â€”'}
                               </span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-[#6C757D] dark:text-white/60">Última Actividad:</span>
+                              <span className="text-[#6C757D] dark:text-white/60">Ãšltima Actividad:</span>
                               <span className="font-semibold text-[#0A2540] dark:text-white">
                                 {selectedStudent.last_accessed_at ? new Date(selectedStudent.last_accessed_at).toLocaleDateString('es-ES') : 'Nunca'}
                               </span>

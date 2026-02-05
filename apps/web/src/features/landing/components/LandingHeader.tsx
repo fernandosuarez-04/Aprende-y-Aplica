@@ -33,9 +33,9 @@ export function LandingHeader() {
   const { language, setLanguage } = useLanguage();
   
   const languageOptions: { value: SupportedLanguage; label: string; flag: string }[] = [
-    { value: 'es', label: 'Español', flag: '🇪🇸' },
-    { value: 'en', label: 'English', flag: '🇺🇸' },
-    { value: 'pt', label: 'Português', flag: '🇧🇷' },
+    { value: 'es', label: 'EspaÃ±ol', flag: 'ðŸ‡ªðŸ‡¸' },
+    { value: 'en', label: 'English', flag: 'ðŸ‡ºðŸ‡¸' },
+    { value: 'pt', label: 'PortuguÃªs', flag: 'ðŸ‡§ðŸ‡·' },
   ];
 
   useEffect(() => {
@@ -85,14 +85,14 @@ export function LandingHeader() {
             >
               <Image
                 src="/Logo.png"
-                alt="SOFIA"
+                alt="SOFLIA"
                 fill
                 className="object-contain"
                 priority
               />
             </motion.div>
             <span className="text-xl lg:text-2xl font-bold text-[#0A2540] dark:text-white">
-              SOFIA
+              SOFLIA
             </span>
           </Link>
 

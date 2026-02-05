@@ -37,10 +37,10 @@ const navigation = [
   { name: 'Usuarios', href: '/admin/users', icon: UsersIcon },
   { name: 'Talleres', href: '/admin/workshops', icon: BookOpenIcon },
   { name: 'LIA Analytics', href: '/admin/lia-analytics', icon: ChartBarIcon },
-  { name: 'Estadísticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon },
+  { name: 'EstadÃ­sticas de Usuarios', href: '/admin/user-stats', icon: MapPinIcon },
   { name: 'Empresas', href: '/admin/companies', icon: BuildingOffice2Icon },
   { name: 'Reportes', href: '/admin/reportes', icon: DocumentTextIcon },
-  { name: 'Revisiones', href: '/admin/courses/pending', icon: DocumentTextIcon }, // TODO: Cambiar icono por ClipboardDocumentCheckIcon si está disponible
+  { name: 'Revisiones', href: '/admin/courses/pending', icon: DocumentTextIcon }, // TODO: Cambiar icono por ClipboardDocumentCheckIcon si estÃ¡ disponible
 ]
 
 export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, isCollapsed, onToggleCollapse, isPinned, onTogglePin, onHoverChange }: AdminSidebarProps) {
@@ -54,7 +54,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
   const { resolvedTheme } = useThemeStore()
   const isLightTheme = resolvedTheme === 'light'
 
-  // Obtener estilos de la organización para el tema
+  // Obtener estilos de la organizaciÃ³n para el tema
   const { styles: orgStyles } = useOrganizationStylesContext()
   const panelStyles = orgStyles?.panel
 
@@ -70,7 +70,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
     accent: panelStyles?.accent_color || '#00D4B3',
   }
 
-  // Lógica para determinar si el sidebar debe estar expandido
+  // LÃ³gica para determinar si el sidebar debe estar expandido
   const shouldExpand = isPinned || (isCollapsed && isHovered)
   const actualWidth = shouldExpand ? 'w-64' : (isCollapsed ? 'w-16' : 'w-64')
 
@@ -154,7 +154,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
         }}
         className={`fixed inset-y-0 left-0 z-50 shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:flex lg:flex-col border-r overflow-hidden ${isOpen ? 'translate-x-0' : '-translate-x-full'}`}
         onAnimationStart={() => {
-          // Asegurar que el color de fondo esté presente desde el inicio
+          // Asegurar que el color de fondo estÃ© presente desde el inicio
           if (sidebarRef.current) {
             sidebarRef.current.style.backgroundColor = themeColors.background
           }
@@ -194,7 +194,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
           }
         }}
       >
-        {/* Wrapper interno para garantizar color de fondo durante animación */}
+        {/* Wrapper interno para garantizar color de fondo durante animaciÃ³n */}
         <div
           className="w-full h-full flex flex-col"
           style={{
@@ -226,14 +226,14 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   <div className="h-8 w-8 rounded-lg flex items-center justify-center flex-shrink-0 relative overflow-hidden">
                     <Image
                       src="/Logo.png"
-                      alt="Sofia Logo"
+                      alt="SOFLIA Logo"
                       width={32}
                       height={32}
                       className="object-contain"
                     />
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>Sofia</p>
+                    <p className="text-sm font-semibold truncate" style={{ color: themeColors.textPrimary }}>SOFLIA</p>
                   </div>
                 </motion.div>
               ) : (
@@ -248,7 +248,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                   <div className="h-8 w-8 rounded-lg flex items-center justify-center relative overflow-hidden">
                     <Image
                       src="/Logo.png"
-                      alt="Sofia Logo"
+                      alt="SOFLIA Logo"
                       width={32}
                       height={32}
                       className="object-contain"
@@ -264,7 +264,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
               animate={{ opacity: (!isCollapsed || shouldExpand) ? 1 : 1 }}
               transition={{ duration: 0.3 }}
             >
-              {/* Botón de fijar */}
+              {/* BotÃ³n de fijar */}
               <motion.button
                 onClick={(event) => {
                   event.stopPropagation()
@@ -291,7 +291,7 @@ export function AdminSidebar({ isOpen, onClose, activeSection, onSectionChange, 
                 )}
               </motion.button>
 
-              {/* Botón de cerrar en mobile */}
+              {/* BotÃ³n de cerrar en mobile */}
               <motion.button
                 onClick={(event) => {
                   event.stopPropagation()

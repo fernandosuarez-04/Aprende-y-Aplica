@@ -1,5 +1,5 @@
 // Landing Page Components - Barrel Exports
-// B2B Enterprise Landing for SOFIA
+// B2B Enterprise Landing for SOFLIA
 
 // Core Components
 export { LandingHeader } from './components/LandingHeader';

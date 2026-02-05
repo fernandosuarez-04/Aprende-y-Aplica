@@ -20,7 +20,7 @@ function createAdminClient() {
     });
 }
 
-// Tipo para la distribución de lecciones
+// Tipo para la distribuciÃ³n de lecciones
 interface LessonItem {
     courseTitle: string;
     lessonTitle: string;
@@ -52,7 +52,7 @@ interface InsertEventsRequest {
  */
 export async function POST(request: NextRequest) {
     try {
-        // Verificar autenticación
+        // Verificar autenticaciÃ³n
         const user = await SessionService.getCurrentUser();
 
         if (!user) {
@@ -69,9 +69,9 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`📅 [Insert Events] Iniciando inserción de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
+        console.log(`ðŸ“… [Insert Events] Iniciando inserciÃ³n de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
 
-        // Obtener integración de calendario del usuario
+        // Obtener integraciÃ³n de calendario del usuario
         const supabase = createAdminClient();
         const { data: integrations, error: integrationError } = await supabase
             .from('calendar_integrations')
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
         const needsRefresh = !tokenExpiry || tokenExpiry <= new Date();
 
         if (needsRefresh) {
-            console.log('🔄 [Insert Events] Token expirado, refrescando...');
+            console.log('ðŸ”„ [Insert Events] Token expirado, refrescando...');
             const refreshedToken = await CalendarIntegrationService.refreshTokenIfNeeded(user.id);
             if (!refreshedToken) {
                 return NextResponse.json({
@@ -112,15 +112,15 @@ export async function POST(request: NextRequest) {
         if (integration.provider === 'google') {
             calendarId = await CalendarIntegrationService.getOrCreatePlatformCalendar(accessToken);
             if (calendarId) {
-                // Guardar el ID del calendario secundario si aún no está guardado
+                // Guardar el ID del calendario secundario si aÃºn no estÃ¡ guardado
                 await CalendarIntegrationService.saveSecondaryCalendarId(user.id, calendarId);
-                console.log(`✅ [Insert Events] Usando calendario secundario: ${calendarId}`);
+                console.log(`âœ… [Insert Events] Usando calendario secundario: ${calendarId}`);
             } else {
-                console.warn('⚠️ [Insert Events] No se pudo crear calendario secundario, usando primario');
+                console.warn('âš ï¸ [Insert Events] No se pudo crear calendario secundario, usando primario');
             }
         }
 
-        // Preparar eventos para inserción
+        // Preparar eventos para inserciÃ³n
         const eventsToInsert: Array<{
             title: string;
             description: string;
@@ -132,12 +132,12 @@ export async function POST(request: NextRequest) {
         for (const session of lessonDistribution) {
             const { slot, lessons } = session;
 
-            // Crear título del evento
+            // Crear tÃ­tulo del evento
             const lessonTitles = lessons.map(l => l.lessonTitle).join(' | ');
             const courseTitle = lessons[0]?.courseTitle || 'Curso';
-            const title = `📚 ${courseTitle}: ${lessonTitles}`;
+            const title = `ðŸ“š ${courseTitle}: ${lessonTitles}`;
 
-            // Crear descripción
+            // Crear descripciÃ³n
             const description = createEventDescription(lessons, planName);
 
             // Crear fechas de inicio y fin
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        console.log(`📝 [Insert Events] Preparados ${eventsToInsert.length} eventos para insertar`);
+        console.log(`ðŸ“ [Insert Events] Preparados ${eventsToInsert.length} eventos para insertar`);
 
         // Insertar eventos con throttling para evitar rate limiting
         const results: Array<{ success: boolean; eventId?: string; error?: string; index: number }> = [];
@@ -172,10 +172,10 @@ export async function POST(request: NextRequest) {
 
                     if (result) {
                         results.push({ success: true, eventId: result.id, index: i });
-                        console.log(`✅ [Insert Events] Evento ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
+                        console.log(`âœ… [Insert Events] Evento ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
                     } else {
                         results.push({ success: false, error: 'No se pudo crear el evento', index: i });
-                        console.error(`❌ [Insert Events] Error en evento ${i + 1}/${eventsToInsert.length}`);
+                        console.error(`âŒ [Insert Events] Error en evento ${i + 1}/${eventsToInsert.length}`);
                     }
                 } else if (integration.provider === 'microsoft') {
                     const result = await CalendarIntegrationService.createMicrosoftEvent(
@@ -185,10 +185,10 @@ export async function POST(request: NextRequest) {
 
                     if (result) {
                         results.push({ success: true, eventId: result.id, index: i });
-                        console.log(`✅ [Insert Events] Evento Microsoft ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
+                        console.log(`âœ… [Insert Events] Evento Microsoft ${i + 1}/${eventsToInsert.length} insertado: ${result.id}`);
                     } else {
                         results.push({ success: false, error: 'No se pudo crear el evento en Microsoft Calendar', index: i });
-                        console.error(`❌ [Insert Events] Error en evento Microsoft ${i + 1}/${eventsToInsert.length}`);
+                        console.error(`âŒ [Insert Events] Error en evento Microsoft ${i + 1}/${eventsToInsert.length}`);
                     }
                 }
 
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
                     await new Promise(resolve => setTimeout(resolve, THROTTLE_MS));
                 }
             } catch (error: any) {
-                console.error(`❌ [Insert Events] Error insertando evento ${i + 1}:`, error);
+                console.error(`âŒ [Insert Events] Error insertando evento ${i + 1}:`, error);
                 results.push({ success: false, error: error.message || 'Error desconocido', index: i });
             }
         }
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         const failedCount = results.filter(r => !r.success).length;
         const errors = results.filter(r => !r.success).map(r => `Evento ${r.index + 1}: ${r.error}`);
 
-        console.log(`📊 [Insert Events] Resultado: ${insertedCount} insertados, ${failedCount} fallidos`);
+        console.log(`ðŸ“Š [Insert Events] Resultado: ${insertedCount} insertados, ${failedCount} fallidos`);
 
         return NextResponse.json({
             success: failedCount === 0,
@@ -218,12 +218,12 @@ export async function POST(request: NextRequest) {
             calendarId,
             provider: integration.provider,
             message: failedCount === 0
-                ? `¡Listo! ${insertedCount} eventos insertados en tu calendario.`
+                ? `Â¡Listo! ${insertedCount} eventos insertados en tu calendario.`
                 : `Se insertaron ${insertedCount} de ${eventsToInsert.length} eventos. ${failedCount} fallaron.`
         });
 
     } catch (error: any) {
-        console.error('❌ [Insert Events] Error general:', error);
+        console.error('âŒ [Insert Events] Error general:', error);
         return NextResponse.json({
             error: error.message || 'Error interno del servidor',
             success: false
@@ -232,29 +232,29 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Crea la descripción del evento con detalles de las lecciones
+ * Crea la descripciÃ³n del evento con detalles de las lecciones
  */
 function createEventDescription(lessons: LessonItem[], planName?: string): string {
     const lines: string[] = [];
 
     if (planName) {
-        lines.push(`📖 Plan: ${planName}`);
+        lines.push(`ðŸ“– Plan: ${planName}`);
         lines.push('');
     }
 
-    lines.push('📚 Lecciones en esta sesión:');
+    lines.push('ðŸ“š Lecciones en esta sesiÃ³n:');
 
     for (const lesson of lessons) {
         const moduleInfo = lesson.moduleTitle ? ` (${lesson.moduleTitle})` : '';
-        lines.push(`• ${lesson.lessonTitle}${moduleInfo} - ${lesson.durationMinutes} min`);
+        lines.push(`â€¢ ${lesson.lessonTitle}${moduleInfo} - ${lesson.durationMinutes} min`);
     }
 
     const totalDuration = lessons.reduce((sum, l) => sum + l.durationMinutes, 0);
     lines.push('');
-    lines.push(`⏱️ Duración total: ${totalDuration} minutos`);
+    lines.push(`â±ï¸ DuraciÃ³n total: ${totalDuration} minutos`);
     lines.push('');
     lines.push('---');
-    lines.push('Creado automáticamente por SOFIA - Planificador de Estudios');
+    lines.push('Creado automÃ¡ticamente por SOFLIA - Planificador de Estudios');
 
     return lines.join('\n');
 }

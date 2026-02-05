@@ -2,8 +2,8 @@ const AUTH_BASE = 'https://login.microsoftonline.com';
 const TENANT = process.env.MICROSOFT_TENANT_ID || 'common';
 
 /**
- * Obtiene y normaliza la URI de redirección para Microsoft OAuth.
- * Asegura consistencia entre la generación de la URL de auth y el intercambio de tokens.
+ * Obtiene y normaliza la URI de redirecciÃ³n para Microsoft OAuth.
+ * Asegura consistencia entre la generaciÃ³n de la URL de auth y el intercambio de tokens.
  */
 export function getMicrosoftRedirectUri(): string {
   const redirectRaw = process.env.MICROSOFT_OAUTH_REDIRECT_URI || '';
@@ -17,17 +17,17 @@ export function getMicrosoftRedirectUri(): string {
     redirectUri = redirectUri.slice(0, -1);
   }
 
-  // Validación básica
+  // ValidaciÃ³n bÃ¡sica
   if (!redirectUri || !/^https?:\/\/.+/i.test(redirectUri)) {
-    // Si estamos en producción y la variable falla, fallback a la URL conocida del deploy
-    // Esto salva el error si la variable de entorno se configuró mal (ej. falta https)
+    // Si estamos en producciÃ³n y la variable falla, fallback a la URL conocida del deploy
+    // Esto salva el error si la variable de entorno se configurÃ³ mal (ej. falta https)
     if (process.env.NODE_ENV === 'production') {
-      console.warn(`[Microsoft OAuth] MICROSOFT_OAUTH_REDIRECT_URI inválida o faltante: "${redirectRaw}". Usando fallback de producción.`);
-      return 'https://sofialia.ai/auth/oauth/microsoft/callback';
+      console.warn(`[Microsoft OAuth] MICROSOFT_OAUTH_REDIRECT_URI invÃ¡lida o faltante: "${redirectRaw}". Usando fallback de producciÃ³n.`);
+      return 'https://SOFLIAlia.ai/auth/oauth/microsoft/callback';
     }
 
     throw new Error(
-      `MICROSOFT_OAUTH_REDIRECT_URI no es una URL absoluta válida. Valor recibido: "${redirectRaw}". ` +
+      `MICROSOFT_OAUTH_REDIRECT_URI no es una URL absoluta vÃ¡lida. Valor recibido: "${redirectRaw}". ` +
       `Ejemplo correcto: http://localhost:3000/auth/oauth/microsoft/callback`
     );
   }
@@ -40,7 +40,7 @@ export function getMicrosoftAuthUrl(state: string) {
   const redirectUri = getMicrosoftRedirectUri();
 
   // Scopes v2: lista en texto plano; URLSearchParams se encarga de codificar.
-  // No usar encodeURIComponent aquí para evitar doble codificación (%2520).
+  // No usar encodeURIComponent aquÃ­ para evitar doble codificaciÃ³n (%2520).
   const scope = 'openid profile offline_access https://graph.microsoft.com/User.Read https://graph.microsoft.com/Calendars.ReadWrite';
 
   const params = new URLSearchParams({

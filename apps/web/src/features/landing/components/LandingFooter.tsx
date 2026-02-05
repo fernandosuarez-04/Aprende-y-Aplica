@@ -64,8 +64,8 @@ export function LandingFooter() {
             <Link href="/" className="inline-block mb-3">
               <div className="relative w-40 h-40">
                 <Image
-                  src="/SofiaLogo.png"
-                  alt="SOFIA"
+                  src="/SOFLIALogo.png"
+                  alt="SOFLIA"
                   fill
                   className="object-contain brightness-0 invert"
                 />
@@ -73,7 +73,7 @@ export function LandingFooter() {
             </Link>
             
             <p className="text-white/60 text-sm leading-relaxed max-w-sm">
-              {t('landing.footer.description', 'Plataforma de capacitación corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificación inteligente y certificaciones verificables.')}
+              {t('landing.footer.description', 'Plataforma de capacitaciÃ³n corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificaciÃ³n inteligente y certificaciones verificables.')}
             </p>
           </div>
 
@@ -106,11 +106,11 @@ export function LandingFooter() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             {/* Copyright */}
             <div className="flex items-center gap-2 text-sm text-white/40">
-              <span>© {currentYear} SOFIA</span>
-              <span className="hidden md:inline">·</span>
+              <span>Â© {currentYear} SOFLIA</span>
+              <span className="hidden md:inline">Â·</span>
               <span className="hidden md:flex items-center gap-1">
                 <MapPin size={14} />
-                México
+                MÃ©xico
               </span>
             </div>
 
@@ -120,7 +120,7 @@ export function LandingFooter() {
                 {t('landing.footer.legal.privacy', 'Privacidad')}
               </a>
               <a href="/terms" className="text-white/40 hover:text-white/80 transition-colors">
-                {t('landing.footer.legal.terms', 'Términos')}
+                {t('landing.footer.legal.terms', 'TÃ©rminos')}
               </a>
               <a href="#contact" className="text-white/40 hover:text-white/80 transition-colors">
                 {t('landing.footer.legal.contact', 'Contacto')}

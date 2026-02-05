@@ -27,10 +27,10 @@ export interface StyleConfig {
 }
 
 /**
- * Hook para obtener y actualizar los estilos de la organización.
+ * Hook para obtener y actualizar los estilos de la organizaciÃ³n.
  *
  * IMPORTANTE: Este hook usa el orgSlug de la URL para asegurar
- * que se obtengan los datos de la organización correcta.
+ * que se obtengan los datos de la organizaciÃ³n correcta.
  */
 export function useOrganizationStyles() {
   const params = useParams();
@@ -40,9 +40,9 @@ export function useOrganizationStyles() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Calcular estilos efectivos según el modo del tema
+  // Calcular estilos efectivos segÃºn el modo del tema
   const effectiveStyles = useMemo<OrganizationStyles | null>(() => {
-    // Si el tema soporta modo dual, SIEMPRE obtener los estilos del preset según el modo actual
+    // Si el tema soporta modo dual, SIEMPRE obtener los estilos del preset segÃºn el modo actual
     if (styles?.supportsDualMode && styles?.selectedTheme) {
       const modeStyles = getThemeStylesForMode(styles.selectedTheme, resolvedTheme);
       if (modeStyles) {
@@ -55,15 +55,15 @@ export function useOrganizationStyles() {
       }
     }
 
-    // Si styles es null pero tenemos tema por defecto, usar SOFIA con el modo actual
+    // Si styles es null pero tenemos tema por defecto, usar SOFLIA con el modo actual
     if (!styles) {
-      const defaultModeStyles = getThemeStylesForMode('sofia', resolvedTheme);
+      const defaultModeStyles = getThemeStylesForMode('SOFLIA', resolvedTheme);
       if (defaultModeStyles) {
         return {
           panel: defaultModeStyles.panel,
           userDashboard: defaultModeStyles.userDashboard,
           login: defaultModeStyles.login,
-          selectedTheme: 'sofia',
+          selectedTheme: 'SOFLIA',
           supportsDualMode: true,
         };
       }
@@ -114,7 +114,7 @@ export function useOrganizationStyles() {
     login?: StyleConfig
   ): Promise<boolean> => {
     if (!orgSlug) {
-      setError('No se pudo determinar la organización');
+      setError('No se pudo determinar la organizaciÃ³n');
       return false;
     }
 
@@ -150,7 +150,7 @@ export function useOrganizationStyles() {
 
   const applyTheme = useCallback(async (themeId: string): Promise<boolean> => {
     if (!orgSlug) {
-      setError('No se pudo determinar la organización');
+      setError('No se pudo determinar la organizaciÃ³n');
       return false;
     }
 

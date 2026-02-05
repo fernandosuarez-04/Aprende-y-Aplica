@@ -28,7 +28,7 @@ import { AdminEditCompanyModal } from './AdminEditCompanyModal'
 import { AdminCreateCompanyModal, CreateCompanyData } from './AdminCreateCompanyModal'
 
 // ============================================
-// DESIGN SYSTEM - SOFIA COLORS
+// DESIGN SYSTEM - SOFLIA COLORS
 // ============================================
 const colors = {
   primary: '#0A2540',
@@ -293,7 +293,7 @@ function CompanyCard({ company, onView, onEdit, onToggle, isUpdating }: CompanyC
         <div className="mb-5">
           <div className="flex justify-between text-xs mb-1.5" style={{ color: colors.grayMedium }}>
             <span>Uso de licencias</span>
-            <span>{company.active_users} / {company.max_users || '∞'}</span>
+            <span>{company.active_users} / {company.max_users || 'âˆž'}</span>
           </div>
           <div
             className="h-2 rounded-full overflow-hidden"
@@ -612,7 +612,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
             style={{ backgroundColor: colors.bgTertiary }}
           >
             <h3 className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: colors.accent }}>
-              Información de Contacto
+              InformaciÃ³n de Contacto
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="flex items-start gap-2">
@@ -625,7 +625,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
               <div className="flex items-start gap-2">
                 <PhoneIcon className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: colors.grayMedium }} />
                 <div>
-                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>Teléfono</p>
+                  <p className="text-[10px] uppercase" style={{ color: colors.grayMedium }}>TelÃ©fono</p>
                   <p className="text-sm text-white">{company.contact_phone || 'No definido'}</p>
                 </div>
               </div>
@@ -673,8 +673,8 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
                 className="text-center p-3 rounded-lg"
                 style={{ backgroundColor: `${colors.accent}15` }}
               >
-                <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || '∞'}</p>
-                <p className="text-[10px]" style={{ color: colors.grayMedium }}>Máximo</p>
+                <p className="text-xl font-bold" style={{ color: colors.accent }}>{company.max_users || 'âˆž'}</p>
+                <p className="text-[10px]" style={{ color: colors.grayMedium }}>MÃ¡ximo</p>
               </div>
             </div>
           </div>
@@ -688,7 +688,7 @@ function ViewModal({ company, onClose, onEdit }: ViewModalProps) {
             style={{ backgroundColor: colors.accent, color: colors.primary }}
           >
             <PencilSquareIcon className="h-4 w-4" />
-            Editar información de la empresa
+            Editar informaciÃ³n de la empresa
           </motion.button>
         </div>
       </motion.div>
@@ -825,11 +825,11 @@ export function AdminCompaniesPage() {
             <div className="flex items-center gap-2 mb-2">
               <SparklesIcon className="h-5 w-5" style={{ color: colors.accent }} />
               <span className="text-sm font-semibold uppercase tracking-wider" style={{ color: colors.accent }}>
-                Gestión B2B
+                GestiÃ³n B2B
               </span>
             </div>
             <h1 className="text-3xl lg:text-4xl font-bold text-white">
-              Administración de Empresas
+              AdministraciÃ³n de Empresas
             </h1>
             <p style={{ color: colors.grayMedium }} className="mt-2">
               Gestiona organizaciones, planes y usuarios empresariales
@@ -854,7 +854,7 @@ export function AdminCompaniesPage() {
               style={{ backgroundColor: colors.success, color: 'white' }}
             >
               <BuildingOffice2Icon className="h-5 w-5" />
-              Nueva Organización
+              Nueva OrganizaciÃ³n
             </motion.button>
 
           </div>
@@ -897,7 +897,7 @@ export function AdminCompaniesPage() {
         <StatCard
           title="Pausadas"
           value={stats?.pausedCompanies ?? 0}
-          subtitle="Revisar facturación"
+          subtitle="Revisar facturaciÃ³n"
           icon={PauseCircleIcon}
           color={colors.warning}
           delay={2}
@@ -997,7 +997,7 @@ export function AdminCompaniesPage() {
             >
               <BuildingOffice2Icon className="h-16 w-16 mx-auto mb-4" style={{ color: colors.grayMedium }} />
               <p className="text-lg font-medium text-white mb-2">No se encontraron empresas</p>
-              <p style={{ color: colors.grayMedium }}>Intenta ajustar los filtros de búsqueda</p>
+              <p style={{ color: colors.grayMedium }}>Intenta ajustar los filtros de bÃºsqueda</p>
             </motion.div>
           ) : (
             filteredCompanies.map((company, index) => (

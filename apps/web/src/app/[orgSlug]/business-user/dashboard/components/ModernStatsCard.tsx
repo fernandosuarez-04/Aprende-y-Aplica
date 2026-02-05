@@ -35,8 +35,8 @@ export function ModernStatsCard({
   const isSystemLight = resolvedTheme === 'light'
 
   const primaryColor = styles?.primary_button_color || '#0A2540'
-  const accentColor = styles?.accent_color || '#00D4B3' // Aqua from SOFIA Design System
-  
+  const accentColor = styles?.accent_color || '#00D4B3' // Aqua from SOFLIA Design System
+
   // Defaults adaptativos basados en el tema del sistema
   const defaultCardBg = isSystemLight ? '#FFFFFF' : '#1E2329'
   const defaultText = isSystemLight ? '#0F172A' : '#FFFFFF'
@@ -48,12 +48,12 @@ export function ModernStatsCard({
   const cardOpacity = styles?.card_opacity ?? 0.95
 
   // Determinar si estamos en modo claro basándonos en el color de fondo
-  const isLightMode = cardBackground.toLowerCase() === '#ffffff' || 
-                      cardBackground.toLowerCase() === '#f8fafc' ||
-                      cardBackground.startsWith('rgb(255') ||
-                      cardBackground.startsWith('rgba(255')
-  
-  // En modo oscuro, usar aqua para iconos (mejor visibilidad según SOFIA Design System)
+  const isLightMode = cardBackground.toLowerCase() === '#ffffff' ||
+    cardBackground.toLowerCase() === '#f8fafc' ||
+    cardBackground.startsWith('rgb(255') ||
+    cardBackground.startsWith('rgba(255')
+
+  // En modo oscuro, usar aqua para iconos (mejor visibilidad según SOFLIA Design System)
   const iconColor = isLightMode ? primaryColor : accentColor
 
   // Calcular RGB para opacidad
@@ -76,13 +76,13 @@ export function ModernStatsCard({
       }}
     >
       {/* Gradient overlay */}
-      <div 
+      <div
         className="absolute inset-0 opacity-10"
         style={{
           background: `linear-gradient(135deg, ${primaryColor}30, ${primaryColor}20)`
         }}
       />
-      
+
       {/* Content */}
       <div className="relative z-10">
         <div className="flex items-center justify-between mb-3">
@@ -96,14 +96,14 @@ export function ModernStatsCard({
             <Icon className="w-5 h-5" style={{ color: iconColor }} />
           </div>
         </div>
-        
-        <p 
+
+        <p
           className="text-3xl font-bold mb-1"
           style={{ color: textColor }}
         >
           {value}
         </p>
-        <p 
+        <p
           className="text-sm"
           style={{ color: isLightMode ? '#64748B' : '#9CA3AF' }}
         >

@@ -70,13 +70,13 @@ interface AIChatAgentProps {
   assistantAvatar?: string;
   initialMessage?: string;
   promptPlaceholder?: string;
-  context?: string; // Contexto específico para el agente (workshops, communities, news)
+  context?: string; // Contexto especÃ­fico para el agente (workshops, communities, news)
 }
 
-// 🎯 Máximo de mensajes para mantener contexto persistente
+// ðŸŽ¯ MÃ¡ximo de mensajes para mantener contexto persistente
 const MAX_CONTEXT_MESSAGES = 7;
 
-// Función para detectar automáticamente el contexto basado en la URL
+// FunciÃ³n para detectar automÃ¡ticamente el contexto basado en la URL
 function detectContextFromURL(pathname: string): string {
   if (pathname.includes('/communities')) return 'communities';
   if (pathname.includes('/courses')) return 'courses';
@@ -89,17 +89,17 @@ function detectContextFromURL(pathname: string): string {
   return 'general';
 }
 
-// Función para obtener información contextual detallada de la página actual
+// FunciÃ³n para obtener informaciÃ³n contextual detallada de la pÃ¡gina actual
 function getPageContextInfo(pathname: string): string {
   const contextMap: Record<string, string> = {
-    '/communities': 'página de comunidades - donde los usuarios pueden unirse y participar en grupos',
-    '/courses': 'página de cursos - catálogo de cursos disponibles para aprendizaje',
-    '/workshops': 'página de talleres - eventos y sesiones de formación',
-    '/news': 'página de noticias - últimas actualizaciones y anuncios',
+    '/communities': 'pÃ¡gina de comunidades - donde los usuarios pueden unirse y participar en grupos',
+    '/courses': 'pÃ¡gina de cursos - catÃ¡logo de cursos disponibles para aprendizaje',
+    '/workshops': 'pÃ¡gina de talleres - eventos y sesiones de formaciÃ³n',
+    '/news': 'pÃ¡gina de noticias - Ãºltimas actualizaciones y anuncios',
     '/dashboard': 'panel principal del usuario - vista general de su actividad',
-    '/prompt-directory': 'directorio de prompts - colección de plantillas de prompts de IA',
+    '/prompt-directory': 'directorio de prompts - colecciÃ³n de plantillas de prompts de IA',
     '/business-panel': 'panel de negocios - herramientas para empresas',
-    '/profile': 'página de perfil de usuario',
+    '/profile': 'pÃ¡gina de perfil de usuario',
   };
 
   // Buscar coincidencia exacta primero
@@ -114,10 +114,10 @@ function getPageContextInfo(pathname: string): string {
     }
   }
 
-  return 'página principal de la plataforma';
+  return 'pÃ¡gina principal de la plataforma';
 }
 
-// Función para extraer contenido dinámico real del DOM
+// FunciÃ³n para extraer contenido dinÃ¡mico real del DOM
 function extractPageContent(): {
   title: string;
   metaDescription: string;
@@ -134,7 +134,7 @@ function extractPageContent(): {
     };
   }
 
-  // Extraer el título de la página
+  // Extraer el tÃ­tulo de la pÃ¡gina
   const title = document.title || '';
 
   // Extraer meta description
@@ -181,7 +181,7 @@ function extractPageContent(): {
     // Clonar el elemento para no afectar el DOM real
     const clone = mainElement.cloneNode(true) as Element;
 
-    // Remover elementos que no queremos (scripts, estilos, navegación)
+    // Remover elementos que no queremos (scripts, estilos, navegaciÃ³n)
     const unwantedSelectors = ['script', 'style', 'nav', 'header', 'footer', '.nav', '.navbar'];
     unwantedSelectors.forEach(sel => {
       clone.querySelectorAll(sel).forEach(el => el.remove());
@@ -189,7 +189,7 @@ function extractPageContent(): {
 
     mainText = clone.textContent?.trim() || '';
   } else {
-    // Fallback: usar el body pero excluir navegación y footer
+    // Fallback: usar el body pero excluir navegaciÃ³n y footer
     const bodyClone = document.body.cloneNode(true) as Element;
     const unwantedSelectors = ['script', 'style', 'nav', 'header', 'footer', '.nav', '.navbar'];
     unwantedSelectors.forEach(sel => {
@@ -203,18 +203,18 @@ function extractPageContent(): {
     mainText = mainText.substring(0, 800) + '...';
   }
 
-  // Limpiar espacios múltiples y saltos de línea
+  // Limpiar espacios mÃºltiples y saltos de lÃ­nea
   mainText = mainText.replace(/\s+/g, ' ').trim();
 
   return {
     title,
     metaDescription: metaDesc,
-    headings: headings.slice(0, 5), // Máximo 5 encabezados
+    headings: headings.slice(0, 5), // MÃ¡ximo 5 encabezados
     mainText
   };
 }
 
-// Función para renderizar texto con enlaces Markdown clickeables
+// FunciÃ³n para renderizar texto con enlaces Markdown clickeables
 function renderTextWithLinks(text: string): React.ReactNode {
   if (!text) return text;
 
@@ -248,7 +248,7 @@ function renderTextWithLinks(text: string): React.ReactNode {
         onClick={(e) => {
           if (isRelative) {
             e.preventDefault();
-            // Usar el router del componente para navegación interna
+            // Usar el router del componente para navegaciÃ³n interna
             window.dispatchEvent(new CustomEvent('lia-navigate', { detail: { url: linkUrl } }));
           }
           // Si es URL absoluta, dejar que el navegador maneje el enlace
@@ -263,7 +263,7 @@ function renderTextWithLinks(text: string): React.ReactNode {
     lastIndex = match.index + match[0].length;
   }
 
-  // Agregar texto restante después del último enlace
+  // Agregar texto restante despuÃ©s del Ãºltimo enlace
   if (lastIndex < text.length) {
     parts.push(text.substring(lastIndex));
   }
@@ -302,14 +302,14 @@ export function AIChatAgent({
   const [nanoBananaMessages, setNanoBananaMessages] = useState<Message[]>([]);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
-  // Estado para modal de personalización
+  // Estado para modal de personalizaciÃ³n
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState(false);
   
-  // Estado para menú de opciones (3 puntos)
+  // Estado para menÃº de opciones (3 puntos)
   const [isOptionsMenuOpen, setIsOptionsMenuOpen] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar menú de opciones al hacer clic fuera
+  // Cerrar menÃº de opciones al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
@@ -370,15 +370,15 @@ export function AIChatAgent({
   const voiceListening = tCommon('aiChat.voice.listening');
   const voiceProcessing = tCommon('aiChat.voice.processing');
 
-  // Detectar automáticamente el contexto basado en la URL
+  // Detectar automÃ¡ticamente el contexto basado en la URL
   const detectedContext = detectContextFromURL(pathname);
   const activeContext = context === 'general' ? detectedContext : context;
   const pageContextInfo = getPageContextInfo(pathname);
 
-  // Detectar si estamos en página de comunidades
+  // Detectar si estamos en pÃ¡gina de comunidades
   const isCommunitiesPage = pathname?.includes('/communities');
 
-  // Detectar si la página usa el DashboardNavbar (sticky)
+  // Detectar si la pÃ¡gina usa el DashboardNavbar (sticky)
   const hasDashboardNavbar = useMemo(() => {
     if (!pathname) return false;
     const dashboardPrefixes = [
@@ -401,17 +401,17 @@ export function AIChatAgent({
     return dashboardPrefixes.some((prefix) => pathname.startsWith(prefix));
   }, [pathname]);
 
-  // Estado para detectar si es desktop (≥ 1024px, breakpoint lg de Tailwind)
+  // Estado para detectar si es desktop (â‰¥ 1024px, breakpoint lg de Tailwind)
   const [isDesktop, setIsDesktop] = useState(false);
 
-  // Detectar tamaño de pantalla con media query
+  // Detectar tamaÃ±o de pantalla con media query
   useEffect(() => {
     const mediaQuery = window.matchMedia('(min-width: 1024px)');
 
     // Establecer valor inicial
     setIsDesktop(mediaQuery.matches);
 
-    // Listener para cambios en el tamaño de pantalla
+    // Listener para cambios en el tamaÃ±o de pantalla
     const handleChange = (e: MediaQueryListEvent) => {
       setIsDesktop(e.matches);
     };
@@ -423,9 +423,9 @@ export function AIChatAgent({
     };
   }, []);
 
-  // Determinar posición bottom según la página y el tamaño de pantalla
-  // En /communities: arriba (5.5rem) solo en móvil, abajo (1.5rem) en desktop
-  // En otras páginas: siempre abajo (1.5rem)
+  // Determinar posiciÃ³n bottom segÃºn la pÃ¡gina y el tamaÃ±o de pantalla
+  // En /communities: arriba (5.5rem) solo en mÃ³vil, abajo (1.5rem) en desktop
+  // En otras pÃ¡ginas: siempre abajo (1.5rem)
   const bottomPosition = isCommunitiesPage && !isDesktop
     ? 'calc(5.5rem + env(safe-area-inset-bottom, 0px))'
     : 'calc(1.5rem + env(safe-area-inset-bottom, 0px))';
@@ -458,16 +458,16 @@ export function AIChatAgent({
     };
   }, [isCommunitiesPage, hasDashboardNavbar, isDesktop]);
 
-  // Calcular altura del modal de prompt para ajustar posición del chat
+  // Calcular altura del modal de prompt para ajustar posiciÃ³n del chat
   const promptModalHeight = useMemo(() => {
     if (!isPromptMode || !generatedPrompt || !isPromptPanelOpen) return 0;
-    // Altura aproximada del modal de prompt (ajustable según necesidad)
-    // En móvil: más compacto, en desktop: más espacio
+    // Altura aproximada del modal de prompt (ajustable segÃºn necesidad)
+    // En mÃ³vil: mÃ¡s compacto, en desktop: mÃ¡s espacio
     return isDesktop ? 450 : 380;
   }, [isPromptMode, generatedPrompt, isPromptPanelOpen, isDesktop]);
 
-  // Calcular altura máxima disponible dinámicamente
-  // No se reduce cuando hay prompt abierto, ya que el prompt está arriba
+  // Calcular altura mÃ¡xima disponible dinÃ¡micamente
+  // No se reduce cuando hay prompt abierto, ya que el prompt estÃ¡ arriba
   const calculateMaxHeight = useMemo(() => {
     if (widgetHeight) {
       return widgetHeight;
@@ -513,20 +513,20 @@ export function AIChatAgent({
     return windowHeight - 24;
   }, [widgetHeight, windowHeight, isCommunitiesPage, isDesktop, hasDashboardNavbar]);
 
-  // Calcular posición bottom del chat cuando hay prompt abierto
+  // Calcular posiciÃ³n bottom del chat cuando hay prompt abierto
   const chatBottomPosition = useMemo(() => {
-    // El chat siempre mantiene su posición base
+    // El chat siempre mantiene su posiciÃ³n base
     return bottomPosition;
   }, [bottomPosition]);
 
-  // Calcular posición bottom del prompt (sobrepuesto encima del chat)
+  // Calcular posiciÃ³n bottom del prompt (sobrepuesto encima del chat)
   const promptBottomPosition = useMemo(() => {
     if (isPromptMode && generatedPrompt && isPromptPanelOpen && isOpen) {
-      // El prompt debe sobreponerse encima del chat, en la misma posición
-      // Usa la misma posición bottom que el chat para cubrirlo
+      // El prompt debe sobreponerse encima del chat, en la misma posiciÃ³n
+      // Usa la misma posiciÃ³n bottom que el chat para cubrirlo
       return chatBottomPosition;
     }
-    // Si el chat no está abierto o no hay prompt, usar la posición base
+    // Si el chat no estÃ¡ abierto o no hay prompt, usar la posiciÃ³n base
     return bottomPosition;
   }, [chatBottomPosition, isPromptMode, generatedPrompt, isPromptPanelOpen, isOpen, bottomPosition]);
 
@@ -534,18 +534,18 @@ export function AIChatAgent({
   const [normalMessages, setNormalMessages] = useState<Message[]>([]);
   const [promptMessages, setPromptMessages] = useState<Message[]>([]);
 
-  // Obtener los mensajes según el modo actual
+  // Obtener los mensajes segÃºn el modo actual
   const messages = isNanoBananaMode ? nanoBananaMessages : isPromptMode ? promptMessages : normalMessages;
 
-  // ✅ PERSISTENCIA: Claves para localStorage
+  // âœ… PERSISTENCIA: Claves para localStorage
   const STORAGE_KEY_CONTEXT_MODE = 'lia-context-mode-enabled';
   const STORAGE_KEY_CONTEXT_MESSAGES = 'lia-context-mode-messages';
 
-  // ✅ PERSISTENCIA: Función para guardar mensajes en localStorage
-  // Solo guarda los últimos MAX_CONTEXT_MESSAGES mensajes
+  // âœ… PERSISTENCIA: FunciÃ³n para guardar mensajes en localStorage
+  // Solo guarda los Ãºltimos MAX_CONTEXT_MESSAGES mensajes
   const saveContextMessages = useCallback((messagesToSave: Message[]) => {
     try {
-      // Tomar solo los últimos N mensajes (últimos 7)
+      // Tomar solo los Ãºltimos N mensajes (Ãºltimos 7)
       const recentMessages = messagesToSave.slice(-MAX_CONTEXT_MESSAGES);
 
       const serialized = JSON.stringify(recentMessages.map(msg => ({
@@ -558,7 +558,7 @@ export function AIChatAgent({
     }
   }, []);
 
-  // ✅ PERSISTENCIA: Función para cargar mensajes desde localStorage
+  // âœ… PERSISTENCIA: FunciÃ³n para cargar mensajes desde localStorage
   const loadContextMessages = useCallback((): Message[] => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY_CONTEXT_MESSAGES);
@@ -575,7 +575,7 @@ export function AIChatAgent({
     }
   }, []);
 
-  // ✅ PERSISTENCIA: Función para limpiar contexto guardado
+  // âœ… PERSISTENCIA: FunciÃ³n para limpiar contexto guardado
   const clearContextMessages = useCallback(() => {
     try {
       localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
@@ -585,7 +585,7 @@ export function AIChatAgent({
     }
   }, []);
 
-  // Estado para almacenar el contenido extraído del DOM
+  // Estado para almacenar el contenido extraÃ­do del DOM
   const [pageContent, setPageContent] = useState<{
     title: string;
     metaDescription: string;
@@ -593,7 +593,7 @@ export function AIChatAgent({
     mainText: string;
   } | null>(null);
 
-  // Estado para almacenar los links disponibles según el rol
+  // Estado para almacenar los links disponibles segÃºn el rol
   const [availableLinks, setAvailableLinks] = useState<string>('');
 
   // Obtener links disponibles cuando se monta el componente
@@ -608,7 +608,7 @@ export function AIChatAgent({
           }
         }
       } catch (error) {
-        // Silenciar errores, no es crítico si no se pueden obtener los links
+        // Silenciar errores, no es crÃ­tico si no se pueden obtener los links
         console.error('Error obteniendo links disponibles:', error);
       }
     };
@@ -617,25 +617,25 @@ export function AIChatAgent({
   }, []);
 
   // Extraer contenido del DOM cuando cambie la ruta o cuando se abra el chat
-  // NOTA: Cuando el chat está abierto y cambia la página, el contenido se maneja
-  // en el useEffect de cambio de página para evitar condiciones de carrera
+  // NOTA: Cuando el chat estÃ¡ abierto y cambia la pÃ¡gina, el contenido se maneja
+  // en el useEffect de cambio de pÃ¡gina para evitar condiciones de carrera
   useEffect(() => {
-    // Si el chat está abierto, no actualizar aquí para evitar conflictos
-    // El useEffect de cambio de página se encargará de actualizar el contenido
+    // Si el chat estÃ¡ abierto, no actualizar aquÃ­ para evitar conflictos
+    // El useEffect de cambio de pÃ¡gina se encargarÃ¡ de actualizar el contenido
     if (isOpen) {
       return;
     }
 
-    // Extraer contenido después de un pequeño delay para asegurar que el DOM esté completamente cargado
+    // Extraer contenido despuÃ©s de un pequeÃ±o delay para asegurar que el DOM estÃ© completamente cargado
     const timer = setTimeout(() => {
       const content = extractPageContent();
       setPageContent(content);
-    }, 500); // Delay de 500ms para asegurar que el contenido dinámico se haya renderizado
+    }, 500); // Delay de 500ms para asegurar que el contenido dinÃ¡mico se haya renderizado
 
     return () => clearTimeout(timer);
   }, [pathname, isOpen]); // Re-extraer cuando cambie la ruta o se abra el chat
 
-  // Estado para posición arrastrable
+  // Estado para posiciÃ³n arrastrable
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
@@ -648,19 +648,19 @@ export function AIChatAgent({
   const [hasUnreadMessages, setHasUnreadMessages] = useState(false);
   const [isReportOpen, setIsReportOpen] = useState(false);
   const [areButtonsExpanded, setAreButtonsExpanded] = useState(false);
-  const [useContextMode, setUseContextMode] = useState(true); // 🎯 ACTIVADO POR DEFECTO para persistencia automática
+  const [useContextMode, setUseContextMode] = useState(true); // ðŸŽ¯ ACTIVADO POR DEFECTO para persistencia automÃ¡tica
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<any>(null);
   const { user } = useAuth();
   
-  // 🎙️ Configuración de personalización de LIA para voz
+  // ðŸŽ™ï¸ ConfiguraciÃ³n de personalizaciÃ³n de LIA para voz
   const { settings: liaSettings, loading: liaSettingsLoading } = useLiaPersonalization();
   const isVoiceEnabled = liaSettings?.voice_enabled ?? true; // Por defecto activado
   
-  // Debug: Log de configuración de voz
+  // Debug: Log de configuraciÃ³n de voz
   useEffect(() => {
-    console.log('🔊 [TTS Config] Configuración de voz:', {
+    console.log('ðŸ”Š [TTS Config] ConfiguraciÃ³n de voz:', {
       hasSettings: !!liaSettings,
       voiceEnabled: isVoiceEnabled,
       loading: liaSettingsLoading,
@@ -668,13 +668,13 @@ export function AIChatAgent({
     });
   }, [liaSettings, isVoiceEnabled, liaSettingsLoading]);
   
-  // 🎙️ Estados y refs para síntesis de voz
+  // ðŸŽ™ï¸ Estados y refs para sÃ­ntesis de voz
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
 
-  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  // ðŸŽ™ï¸ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
     'en': 'en-US',
@@ -684,7 +684,7 @@ export function AIChatAgent({
   const hasOpenedRef = useRef<boolean>(false);
   const router = useRouter();
 
-  // 🎙️ Función para detener todo audio/voz en reproducción
+  // ðŸŽ™ï¸ FunciÃ³n para detener todo audio/voz en reproducciÃ³n
   const stopAllAudio = useCallback(() => {
     try {
       // Abort any in-flight TTS fetch
@@ -709,16 +709,16 @@ export function AIChatAgent({
     }
   }, []);
 
-  // 🎙️ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
+  // ðŸŽ™ï¸ FunciÃ³n para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
   const cleanTextForTTS = useCallback((text: string): string => {
     if (!text) return text;
 
     let cleaned = text;
 
-    // Eliminar bloques de código (```código```)
+    // Eliminar bloques de cÃ³digo (```cÃ³digo```)
     cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, '');
     
-    // Eliminar títulos Markdown (# ## ###)
+    // Eliminar tÃ­tulos Markdown (# ## ###)
     cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
     
     // Eliminar negritas (**texto** o __texto__)
@@ -729,22 +729,22 @@ export function AIChatAgent({
     cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
     cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
     
-    // Eliminar código en línea (`código`)
+    // Eliminar cÃ³digo en lÃ­nea (`cÃ³digo`)
     cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
     
     // Eliminar enlaces [texto](url) - reemplazar solo con el texto
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
     
-    // Eliminar imágenes ![alt](url)
+    // Eliminar imÃ¡genes ![alt](url)
     cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
     
     // Eliminar bloques de citas (>)
     cleaned = cleaned.replace(/^>\s+/gm, '');
     
-    // Eliminar líneas horizontales (--- o ***)
+    // Eliminar lÃ­neas horizontales (--- o ***)
     cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
     
-    // Limpiar espacios múltiples y saltos de línea excesivos
+    // Limpiar espacios mÃºltiples y saltos de lÃ­nea excesivos
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
     cleaned = cleaned.replace(/[ \t]+/g, ' ');
     
@@ -754,10 +754,10 @@ export function AIChatAgent({
     return cleaned;
   }, []);
 
-  // 🎙️ Función para síntesis de voz con ElevenLabs
+  // ðŸŽ™ï¸ FunciÃ³n para sÃ­ntesis de voz con ElevenLabs
   const speakText = useCallback(async (text: string) => {
     if (!isVoiceEnabled || typeof window === 'undefined') {
-      console.log('🔇 [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+      console.log('ðŸ”‡ [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
       return;
     }
 
@@ -765,11 +765,11 @@ export function AIChatAgent({
     const cleanedText = cleanTextForTTS(text);
     
     if (!cleanedText || cleanedText.trim().length === 0) {
-      console.log('🔇 [TTS] Texto vacío después de limpiar');
+      console.log('ðŸ”‡ [TTS] Texto vacÃ­o despuÃ©s de limpiar');
       return;
     }
 
-    console.log('🔊 [TTS] Iniciando lectura de texto:', { 
+    console.log('ðŸ”Š [TTS] Iniciando lectura de texto:', { 
       originalLength: text.length, 
       cleanedLength: cleanedText.length,
       preview: cleanedText.substring(0, 100) + '...'
@@ -785,14 +785,14 @@ export function AIChatAgent({
       const voiceId = process.env.NEXT_PUBLIC_ELEVENLABS_VOICE_ID || 'ay4iqk10DLwc8KGSrf2t';
       const modelId = 'eleven_turbo_v2_5';
 
-      // 🎙️ Obtener parámetros de voz según la personalización de tono
+      // ðŸŽ™ï¸ Obtener parÃ¡metros de voz segÃºn la personalizaciÃ³n de tono
       const webSpeechSettings = getWebSpeechVoiceSettings(liaSettings);
       const elevenLabsSettings = getElevenLabsVoiceSettings(liaSettings);
 
       if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
         
-        // Fallback a Web Speech API con parámetros de tono
+        // Fallback a Web Speech API con parÃ¡metros de tono
         const utterance = new SpeechSynthesisUtterance(cleanedText);
         utterance.lang = speechLanguageMap[language] || 'es-ES';
         utterance.rate = webSpeechSettings.rate;
@@ -868,20 +868,20 @@ export function AIChatAgent({
       // Intentar reproducir el audio
       try {
         await audio.play();
-        console.log('✅ [TTS] Audio reproducido exitosamente');
+        console.log('âœ… [TTS] Audio reproducido exitosamente');
         // Playback started successfully; clear abort controller
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
         // Autoplay bloqueado por el navegador - esto es normal y esperado
-        console.warn('⚠️ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+        console.warn('âš ï¸ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {
-      // Si la petición fue abortada, lo manejamos como info
+      // Si la peticiÃ³n fue abortada, lo manejamos como info
       if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
         // Silenciar errores de abort
       } else {
-        console.error('Error en síntesis de voz con ElevenLabs:', error);
+        console.error('Error en sÃ­ntesis de voz con ElevenLabs:', error);
       }
       setIsSpeaking(false);
     }
@@ -894,7 +894,7 @@ export function AIChatAgent({
     };
   }, [stopAllAudio]);
 
-  // 💾 FUNCIÓN DE GUARDADO DE PROMPTS
+  // ðŸ’¾ FUNCIÃ“N DE GUARDADO DE PROMPTS
   const handleSavePrompt = useCallback(async (draft: PromptDraft) => {
     if (!user) {
       alert(tCommon('aiChat.promptMode.loginRequired'));
@@ -911,7 +911,7 @@ export function AIChatAgent({
         },
         body: JSON.stringify({
           ...draft,
-          conversation_id: conversationId, // Vincular con la conversación
+          conversation_id: conversationId, // Vincular con la conversaciÃ³n
         }),
       });
 
@@ -922,28 +922,28 @@ export function AIChatAgent({
 
       const data = await response.json();
 
-      // Notificar éxito
-      alert(`✅ Prompt guardado exitosamente: "${draft.title}"`);
+      // Notificar Ã©xito
+      alert(`âœ… Prompt guardado exitosamente: "${draft.title}"`);
 
       // Cerrar el panel de preview
       setIsPromptPanelOpen(false);
 
       // Opcional: Navegar al prompt guardado
       if (data.redirectUrl) {
-        const shouldNavigate = confirm('¿Quieres ver el prompt en el directorio?');
+        const shouldNavigate = confirm('Â¿Quieres ver el prompt en el directorio?');
         if (shouldNavigate) {
           router.push(data.redirectUrl);
         }
       }
     } catch (error) {
       console.error('Error guardando prompt:', error);
-      alert(`❌ Error al guardar el prompt: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+      alert(`âŒ Error al guardar el prompt: ${error instanceof Error ? error.message : 'Error desconocido'}`);
     } finally {
       setIsSavingPrompt(false);
     }
   }, [user, conversationId, router]);
 
-  // 🔗 NAVEGACIÓN GUIADA: Event listener para navegación desde links en mensajes
+  // ðŸ”— NAVEGACIÃ“N GUIADA: Event listener para navegaciÃ³n desde links en mensajes
   useEffect(() => {
     const handleLiaNavigate = (event: CustomEvent) => {
       const { url } = event.detail;
@@ -961,10 +961,10 @@ export function AIChatAgent({
     };
   }, [router]);
 
-  // ✅ PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
+  // âœ… PERSISTENCIA: Cargar estado de useContextMode desde localStorage al montar
   useEffect(() => {
     try {
-      // Primero verificar si el modo de contexto está activado
+      // Primero verificar si el modo de contexto estÃ¡ activado
       const savedContextMode = localStorage.getItem(STORAGE_KEY_CONTEXT_MODE);
       const contextModeEnabled = savedContextMode === 'true';
 
@@ -984,14 +984,14 @@ export function AIChatAgent({
     }
   }, [loadContextMessages]); // loadContextMessages es estable (useCallback con [])
 
-  // ✅ PERSISTENCIA: Guardar estado de useContextMode cuando cambia
+  // âœ… PERSISTENCIA: Guardar estado de useContextMode cuando cambia
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY_CONTEXT_MODE, useContextMode.toString());
       // Si se desactiva el modo, limpiar mensajes guardados
       if (!useContextMode) {
         localStorage.removeItem(STORAGE_KEY_CONTEXT_MESSAGES);
-        // También limpiar mensajes en memoria si no están en una conversación activa
+        // TambiÃ©n limpiar mensajes en memoria si no estÃ¡n en una conversaciÃ³n activa
         if (!isOpen) {
           setNormalMessages([]);
         }
@@ -1001,7 +1001,7 @@ export function AIChatAgent({
     }
   }, [useContextMode, isOpen]);
 
-  // ✅ PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode está activo
+  // âœ… PERSISTENCIA: Guardar mensajes cuando cambian y useContextMode estÃ¡ activo
   useEffect(() => {
     if (useContextMode && !isPromptMode && normalMessages.length > 0) {
       // Guardar inmediatamente sin debounce
@@ -1010,7 +1010,7 @@ export function AIChatAgent({
     }
   }, [normalMessages, useContextMode, isPromptMode, saveContextMessages]);
 
-  // ✅ PERSISTENCIA: Guardar mensajes antes de cerrar la pestaña/navegador
+  // âœ… PERSISTENCIA: Guardar mensajes antes de cerrar la pestaÃ±a/navegador
   useEffect(() => {
     const handleBeforeUnload = () => {
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
@@ -1019,7 +1019,7 @@ export function AIChatAgent({
       }
     };
 
-    // Guardar también cuando se desmonta el componente (navegación interna)
+    // Guardar tambiÃ©n cuando se desmonta el componente (navegaciÃ³n interna)
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'hidden' && useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
@@ -1034,7 +1034,7 @@ export function AIChatAgent({
       window.removeEventListener('beforeunload', handleBeforeUnload);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
 
-      // Guardar una última vez al desmontar el componente
+      // Guardar una Ãºltima vez al desmontar el componente
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         // Usar una copia de los valores actuales para evitar problemas con el closure
         const messagesToSave = normalMessages;
@@ -1053,7 +1053,7 @@ export function AIChatAgent({
     };
   }, [useContextMode, isPromptMode, normalMessages, saveContextMessages]);
 
-  // Función para renderizar texto con enlaces Markdown clickeables
+  // FunciÃ³n para renderizar texto con enlaces Markdown clickeables
   const renderTextWithLinks = useCallback((text: string): React.ReactNode => {
     if (!text) return text;
 
@@ -1100,7 +1100,7 @@ export function AIChatAgent({
       lastIndex = match.index + match[0].length;
     }
 
-    // Agregar texto restante después del último enlace
+    // Agregar texto restante despuÃ©s del Ãºltimo enlace
     if (lastIndex < text.length) {
       parts.push(text.substring(lastIndex));
     }
@@ -1109,7 +1109,7 @@ export function AIChatAgent({
     return parts.length > 0 ? parts : text;
   }, [router]);
 
-  // Cargar posición guardada al montar
+  // Cargar posiciÃ³n guardada al montar
   useEffect(() => {
     const savedPosition = localStorage.getItem('lia-chat-position');
     if (savedPosition) {
@@ -1122,38 +1122,38 @@ export function AIChatAgent({
     }
   }, []);
 
-  // Guardar posición cuando cambia
+  // Guardar posiciÃ³n cuando cambia
   useEffect(() => {
     if (position.x !== 0 || position.y !== 0) {
       localStorage.setItem('lia-chat-position', JSON.stringify(position));
     }
   }, [position]);
 
-  // Ref para detectar si se arrastró o solo se hizo clic
+  // Ref para detectar si se arrastrÃ³ o solo se hizo clic
   const dragStartPos = useRef<{ x: number; y: number } | null>(null);
   const hasMoved = useRef(false);
 
   // Handlers para arrastrar
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!containerRef.current) return;
-    // Solo prevenir default si no es el botón flotante
+    // Solo prevenir default si no es el botÃ³n flotante
     if (isOpen) {
       e.preventDefault();
     }
     e.stopPropagation();
     const rect = containerRef.current.getBoundingClientRect();
 
-    // Guardar posición inicial del mouse para detectar si se arrastró
+    // Guardar posiciÃ³n inicial del mouse para detectar si se arrastrÃ³
     dragStartPos.current = { x: e.clientX, y: e.clientY };
     hasMoved.current = false;
 
-    // Calcular offset basado en la posición del click dentro del elemento
+    // Calcular offset basado en la posiciÃ³n del click dentro del elemento
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
-    // Si está en posición inicial (usando right/bottom), guardar la posición real
+    // Si estÃ¡ en posiciÃ³n inicial (usando right/bottom), guardar la posiciÃ³n real
     if (position.x === 0 && position.y === 0) {
-      // Calcular posición real desde el viewport y guardarla en ref
+      // Calcular posiciÃ³n real desde el viewport y guardarla en ref
       initialPositionRef.current = {
         x: rect.left,
         y: rect.top
@@ -1178,7 +1178,7 @@ export function AIChatAgent({
     const offsetX = touch.clientX - rect.left;
     const offsetY = touch.clientY - rect.top;
 
-    // Si está en posición inicial (usando right/bottom), guardar la posición real
+    // Si estÃ¡ en posiciÃ³n inicial (usando right/bottom), guardar la posiciÃ³n real
     if (position.x === 0 && position.y === 0) {
       initialPositionRef.current = {
         x: rect.left,
@@ -1202,12 +1202,12 @@ export function AIChatAgent({
       if (!containerRef.current) return;
       e.preventDefault();
 
-      // Detectar si realmente se está arrastrando (movimiento > 5px)
+      // Detectar si realmente se estÃ¡ arrastrando (movimiento > 5px)
       if (dragStartPos.current) {
         const dx = Math.abs(e.clientX - dragStartPos.current.x);
         const dy = Math.abs(e.clientY - dragStartPos.current.y);
         if (dx < 5 && dy < 5) {
-          // Todavía es un clic, no un arrastre
+          // TodavÃ­a es un clic, no un arrastre
           return;
         }
         // Es un arrastre, marcar como movido
@@ -1215,14 +1215,14 @@ export function AIChatAgent({
         dragStartPos.current = null;
       }
 
-      // Calcular nueva posición basada en coordenadas del mouse menos el offset
+      // Calcular nueva posiciÃ³n basada en coordenadas del mouse menos el offset
       let newX = e.clientX - dragOffset.x;
       let newY = e.clientY - dragOffset.y;
 
-      // Si acabamos de empezar a arrastrar desde posición inicial (right/bottom),
-      // convertir a coordenadas left/top y actualizar la posición una vez
+      // Si acabamos de empezar a arrastrar desde posiciÃ³n inicial (right/bottom),
+      // convertir a coordenadas left/top y actualizar la posiciÃ³n una vez
       if (initialPositionRef.current) {
-        // Calcular la posición real desde el viewport
+        // Calcular la posiciÃ³n real desde el viewport
         newX = e.clientX - dragOffset.x;
         newY = e.clientY - dragOffset.y;
         // Limpiar la ref para que no se vuelva a ejecutar
@@ -1235,7 +1235,7 @@ export function AIChatAgent({
       const maxX = window.innerWidth - containerWidth;
       const maxY = window.innerHeight - containerHeight;
 
-      // Asegurar que no se salga de los límites
+      // Asegurar que no se salga de los lÃ­mites
       newX = Math.max(0, Math.min(newX, maxX));
       newY = Math.max(0, Math.min(newY, maxY));
 
@@ -1253,7 +1253,7 @@ export function AIChatAgent({
       let newX = touch.clientX - dragOffset.x;
       let newY = touch.clientY - dragOffset.y;
 
-      // Si acabamos de empezar a arrastrar desde posición inicial, convertir a left/top
+      // Si acabamos de empezar a arrastrar desde posiciÃ³n inicial, convertir a left/top
       if (initialPositionRef.current) {
         newX = touch.clientX - dragOffset.x;
         newY = touch.clientY - dragOffset.y;
@@ -1278,7 +1278,7 @@ export function AIChatAgent({
       setIsDragging(false);
       // Limpiar las refs al terminar
       initialPositionRef.current = null;
-      // Usar un timeout para permitir que el onClick se ejecute si no se movió
+      // Usar un timeout para permitir que el onClick se ejecute si no se moviÃ³
       setTimeout(() => {
         dragStartPos.current = null;
         hasMoved.current = false;
@@ -1305,12 +1305,12 @@ export function AIChatAgent({
     }
   }, [messages]);
 
-  // Función para ajustar altura del textarea
+  // FunciÃ³n para ajustar altura del textarea
   const adjustTextareaHeight = useCallback(() => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
       const scrollHeight = inputRef.current.scrollHeight;
-      // Calcular altura de una línea basándose en el padding y line-height
+      // Calcular altura de una lÃ­nea basÃ¡ndose en el padding y line-height
       const computedStyle = window.getComputedStyle(inputRef.current);
       const lineHeight = parseFloat(computedStyle.lineHeight) || 24;
       const paddingTop = parseFloat(computedStyle.paddingTop) || 12;
@@ -1327,7 +1327,7 @@ export function AIChatAgent({
   useEffect(() => {
     if (isOpen && inputRef.current) {
       inputRef.current.focus();
-      // Pequeño delay para asegurar que el DOM esté completamente renderizado
+      // PequeÃ±o delay para asegurar que el DOM estÃ© completamente renderizado
       setTimeout(() => {
         adjustTextareaHeight();
       }, 100);
@@ -1337,10 +1337,10 @@ export function AIChatAgent({
   const handleSendMessage = useCallback(async () => {
     if (!inputMessage.trim() || isTyping) return;
 
-    // 🎙️ Detener audio cuando se envía un nuevo mensaje
+    // ðŸŽ™ï¸ Detener audio cuando se envÃ­a un nuevo mensaje
     stopAllAudio();
 
-    // 🔍 DETECCIÓN BIDIRECCIONAL DE INTENCIONES
+    // ðŸ” DETECCIÃ“N BIDIRECCIONAL DE INTENCIONES
     let shouldActivatePromptMode = false;
     let shouldDeactivatePromptMode = false;
     let shouldActivateNanoBananaMode = false;
@@ -1350,19 +1350,19 @@ export function AIChatAgent({
 
     try {
       const intentResult = await IntentDetectionService.detectIntent(inputMessage);
-      console.log('[LIA Agent] 🔍 Detección de intención:', {
+      console.log('[LIA Agent] ðŸ” DetecciÃ³n de intenciÃ³n:', {
         intent: intentResult.intent,
         confidence: `${(intentResult.confidence * 100).toFixed(1)}%`,
         currentMode: isNanoBananaMode ? 'nanobana' : isPromptMode ? 'prompts' : 'normal',
         entities: intentResult.entities
       });
 
-      // CASO 0: Detectar intención de NanoBanana (prioridad alta)
+      // CASO 0: Detectar intenciÃ³n de NanoBanana (prioridad alta)
       if (!isNanoBananaMode && !isPromptMode && intentResult.intent === 'nanobana' && intentResult.confidence >= 0.65) {
 
         shouldActivateNanoBananaMode = true;
 
-        // Usar dominio y formato detectados si están disponibles
+        // Usar dominio y formato detectados si estÃ¡n disponibles
         if (intentResult.entities?.nanobananaDomain) {
           detectedNanoBananaDomain = intentResult.entities.nanobananaDomain;
         }
@@ -1372,11 +1372,11 @@ export function AIChatAgent({
 
         const domainNames: Record<NanoBananaDomain, string> = {
           ui: 'UI/Interfaz',
-          photo: 'Fotografía',
+          photo: 'FotografÃ­a',
           diagram: 'Diagrama'
         };
 
-        // No agregar mensaje automático - mostrar info en fondo vacío
+        // No agregar mensaje automÃ¡tico - mostrar info en fondo vacÃ­o
         setIsNanoBananaMode(true);
         setNanoBananaDomain(detectedNanoBananaDomain);
         setNanoBananaFormat(detectedNanoBananaFormat);
@@ -1385,7 +1385,7 @@ export function AIChatAgent({
       else if (isNanoBananaMode) {
         const messageLower = inputMessage.toLowerCase().trim();
 
-        // 🎯 Detectar si quiere cambiar a MODO PROMPTS
+        // ðŸŽ¯ Detectar si quiere cambiar a MODO PROMPTS
         if (intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
           shouldDeactivateNanoBananaMode = true;
           shouldActivatePromptMode = true;
@@ -1395,12 +1395,12 @@ export function AIChatAgent({
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "✨ He cambiado al Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?",
+            content: "âœ¨ He cambiado al Modo Prompts ðŸŽ¯\n\nÂ¿QuÃ© tipo de prompt necesitas crear?",
             timestamp: new Date()
           };
           setPromptMessages(prev => [...prev, systemMessage]);
         }
-        // 🎯 Detectar navegación → Modo normal con contexto
+        // ðŸŽ¯ Detectar navegaciÃ³n â†’ Modo normal con contexto
         else if (intentResult.intent === 'navigate') {
           shouldDeactivateNanoBananaMode = true;
           setIsNanoBananaMode(false);
@@ -1408,35 +1408,35 @@ export function AIChatAgent({
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "🧠 He cambiado al modo normal para ayudarte con la navegación.",
+            content: "ðŸ§  He cambiado al modo normal para ayudarte con la navegaciÃ³n.",
             timestamp: new Date()
           };
           setNormalMessages(prev => [...prev, systemMessage]);
         }
-        // 🎯 Detectar preguntas generales o sobre cursos/plataforma → Modo normal
+        // ðŸŽ¯ Detectar preguntas generales o sobre cursos/plataforma â†’ Modo normal
         else if (intentResult.intent === 'general' || intentResult.intent === 'question') {
           // Palabras clave que indican NO es una solicitud de NanoBanana
           const nonNanoBananaKeywords = [
             // Plataforma
             'comunidad', 'comunidades', 'noticias', 'noticia', 'dashboard', 'perfil',
-            'configuración', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
+            'configuraciÃ³n', 'ajustes', 'cuenta', 'talleres', 'taller', 'workshops',
             'directorio', 'prompts', 'apps', 'aplicaciones', 'plataforma', 'sitio',
-            'web', 'página', 'sección', 'menú', 'navegación', 'link', 'enlace',
-            'ayuda', 'soporte', 'funciona', 'qué es', 'cómo',
+            'web', 'pÃ¡gina', 'secciÃ³n', 'menÃº', 'navegaciÃ³n', 'link', 'enlace',
+            'ayuda', 'soporte', 'funciona', 'quÃ© es', 'cÃ³mo',
             // Cursos y contenido educativo
-            'curso', 'cursos', 'lección', 'leccion', 'módulo', 'modulo', 'módulos', 'modulos',
-            'tema', 'contenido', 'video', 'transcripción', 'transcripcion', 'resumen',
+            'curso', 'cursos', 'lecciÃ³n', 'leccion', 'mÃ³dulo', 'modulo', 'mÃ³dulos', 'modulos',
+            'tema', 'contenido', 'video', 'transcripciÃ³n', 'transcripcion', 'resumen',
             'actividad', 'actividades', 'ejercicio', 'ejercicios', 'tarea', 'tareas',
-            'cuántos', 'cuantos', 'cuántas', 'cuantas', 'aprendo', 'aprender', 'enseña',
-            'material', 'materiales', 'duración', 'duracion'
+            'cuÃ¡ntos', 'cuantos', 'cuÃ¡ntas', 'cuantas', 'aprendo', 'aprender', 'enseÃ±a',
+            'material', 'materiales', 'duraciÃ³n', 'duracion'
           ];
 
           // Patrones de preguntas generales
           const generalQuestionPatterns = [
-            /\bcuántos?\b/i, /\bcuantos?\b/i,
-            /\bqué\s+(es|son|tiene|hay)\b/i, /\bque\s+(es|son|tiene|hay)\b/i,
-            /\bcómo\s+(funciona|puedo|hago)\b/i, /\bcomo\s+(funciona|puedo|hago)\b/i,
-            /\bdónde\s+(está|encuentro)\b/i, /\bdonde\s+(esta|encuentro)\b/i
+            /\bcuÃ¡ntos?\b/i, /\bcuantos?\b/i,
+            /\bquÃ©\s+(es|son|tiene|hay)\b/i, /\bque\s+(es|son|tiene|hay)\b/i,
+            /\bcÃ³mo\s+(funciona|puedo|hago)\b/i, /\bcomo\s+(funciona|puedo|hago)\b/i,
+            /\bdÃ³nde\s+(estÃ¡|encuentro)\b/i, /\bdonde\s+(esta|encuentro)\b/i
           ];
 
           const isNonNanoBananaQuestion = nonNanoBananaKeywords.some(keyword => messageLower.includes(keyword)) ||
@@ -1449,7 +1449,7 @@ export function AIChatAgent({
             const systemMessage: Message = {
               id: `system-${Date.now()}`,
               role: 'assistant',
-              content: "🧠 He cambiado al modo normal para responder tu pregunta.",
+              content: "ðŸ§  He cambiado al modo normal para responder tu pregunta.",
               timestamp: new Date()
             };
             setNormalMessages(prev => [...prev, systemMessage]);
@@ -1457,10 +1457,10 @@ export function AIChatAgent({
 
           }
         }
-        // 🎯 Patrones explícitos de salida
+        // ðŸŽ¯ Patrones explÃ­citos de salida
         else {
           const explicitExitPatterns = [
-            /\b(ll[eé]vame|llevame|llévame)\b/i,
+            /\b(ll[eÃ©]vame|llevame|llÃ©vame)\b/i,
             /\b(ir\s+a|navegar\s+a|abrir)\b/i,
             /\b(salir|salte|terminar|cancelar)\b.*\b(nanobana|modo|json)\b/i,
             /\b(no\s+quiero|ya\s+no)\b.*\b(nanobana|json|imagen)\b/i,
@@ -1477,7 +1477,7 @@ export function AIChatAgent({
             const systemMessage: Message = {
               id: `system-${Date.now()}`,
               role: 'assistant',
-              content: "🧠 He cambiado al modo normal para ayudarte.",
+              content: "ðŸ§  He cambiado al modo normal para ayudarte.",
               timestamp: new Date()
             };
             setNormalMessages(prev => [...prev, systemMessage]);
@@ -1486,7 +1486,7 @@ export function AIChatAgent({
           }
         }
       }
-      // CASO 1: Si NO estamos en modo prompts y detectamos intención de crear prompts
+      // CASO 1: Si NO estamos en modo prompts y detectamos intenciÃ³n de crear prompts
       else if (!isPromptMode && !isNanoBananaMode && intentResult.intent === 'create_prompt' && intentResult.confidence >= 0.7) {
 
         shouldActivatePromptMode = true;
@@ -1495,35 +1495,35 @@ export function AIChatAgent({
         const systemMessage: Message = {
           id: `system-${Date.now()}`,
           role: 'assistant',
-          content: "✨ He detectado que quieres crear un prompt. He activado el Modo Prompts 🎯\n\n¿Qué tipo de prompt necesitas crear?",
+          content: "âœ¨ He detectado que quieres crear un prompt. He activado el Modo Prompts ðŸŽ¯\n\nÂ¿QuÃ© tipo de prompt necesitas crear?",
           timestamp: new Date()
         };
 
         setPromptMessages(prev => [...prev, systemMessage]);
         setIsPromptMode(true);
       }
-      // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÍCITAMENTE una petición de navegación
+      // CASO 2: Si ESTAMOS en modo prompts, MANTENER el modo a menos que sea EXPLÃCITAMENTE una peticiÃ³n de navegaciÃ³n
       else if (isPromptMode && intentResult.intent !== 'create_prompt') {
         const messageLower = inputMessage.toLowerCase().trim();
 
-        // Solo salir del modo prompts si es una petición EXPLÍCITA de navegación o quiere NanoBanana
+        // Solo salir del modo prompts si es una peticiÃ³n EXPLÃCITA de navegaciÃ³n o quiere NanoBanana
         const explicitExitPatterns = [
-          /\b(ll[eé]vame|llevame|llévame)\b/i,
+          /\b(ll[eÃ©]vame|llevame|llÃ©vame)\b/i,
           /\b(ir\s+a|navegar\s+a|abrir)\b/i,
-          /\b(mu[eé]strame|muestrame|muéstrame)\b.*\b(página|pagina|sección|seccion)\b/i,
+          /\b(mu[eÃ©]strame|muestrame|muÃ©strame)\b.*\b(pÃ¡gina|pagina|secciÃ³n|seccion)\b/i,
           /\bdame\s+(el\s+)?(link|enlace)\b/i,
           /\bquiero\s+(ir|ver|acceder)\s+a\b/i,
           /\b(salir|salte|terminar|cancelar)\b.*\b(prompt|modo)\b/i,
           /\b(no\s+quiero|ya\s+no)\b.*\bprompt\b/i
         ];
 
-        // 🎨 Patrones mejorados para detectar intención de NanoBanana (generación visual/imágenes)
+        // ðŸŽ¨ Patrones mejorados para detectar intenciÃ³n de NanoBanana (generaciÃ³n visual/imÃ¡genes)
         const nanoBananaKeywords = [
           /\bnanobana(na)?\b/i,
-          /\b(wireframe|mockup|ui|interfaz|diagrama)\b.*\b(json|generar|crear|diseñar)\b/i,
-          /\b(crear?|genera[r]?|diseña[r]?|haz(me)?)\b.*\b(imagen|visual|wireframe|mockup|ui|interfaz|diagrama|app|pantalla)\b/i,
-          /\b(necesito|quiero|dame)\b.*\b(diseño|imagen|visual|interfaz|wireframe|mockup)\b/i,
-          /\b(diseña(r|me)?|dibuja(r|me)?)\b.*\b(una?\s*)?(app|aplicación|pantalla|interfaz)\b/i,
+          /\b(wireframe|mockup|ui|interfaz|diagrama)\b.*\b(json|generar|crear|diseÃ±ar)\b/i,
+          /\b(crear?|genera[r]?|diseÃ±a[r]?|haz(me)?)\b.*\b(imagen|visual|wireframe|mockup|ui|interfaz|diagrama|app|pantalla)\b/i,
+          /\b(necesito|quiero|dame)\b.*\b(diseÃ±o|imagen|visual|interfaz|wireframe|mockup)\b/i,
+          /\b(diseÃ±a(r|me)?|dibuja(r|me)?)\b.*\b(una?\s*)?(app|aplicaciÃ³n|pantalla|interfaz)\b/i,
           /\b(foto|imagen)\b.*\b(producto|marketing)\b/i
         ];
         const wantsNanoBanana = nanoBananaKeywords.some(p => p.test(messageLower));
@@ -1536,7 +1536,7 @@ export function AIChatAgent({
           setIsPromptMode(false);
           setIsNanoBananaMode(true);
 
-          // No agregar mensaje automático - mostrar info en fondo vacío
+          // No agregar mensaje automÃ¡tico - mostrar info en fondo vacÃ­o
         } else if (isExplicitExit) {
 
           shouldDeactivatePromptMode = true;
@@ -1544,19 +1544,19 @@ export function AIChatAgent({
           const systemMessage: Message = {
             id: `system-${Date.now()}`,
             role: 'assistant',
-            content: "🧠 He cambiado al modo normal para ayudarte.",
+            content: "ðŸ§  He cambiado al modo normal para ayudarte.",
             timestamp: new Date()
           };
 
           setNormalMessages(prev => [...prev, systemMessage]);
           setIsPromptMode(false);
         } else {
-          // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversación de prompts
+          // MANTENER el modo prompts - cualquier otra cosa se considera parte de la conversaciÃ³n de prompts
         }
       }
     } catch (error) {
-      console.error('[LIA Agent] ❌ Error detectando intención:', error);
-      // Continuar normalmente si falla la detección
+      console.error('[LIA Agent] âŒ Error detectando intenciÃ³n:', error);
+      // Continuar normalmente si falla la detecciÃ³n
     }
 
     const userMessage: Message = {
@@ -1570,8 +1570,8 @@ export function AIChatAgent({
     const effectivePromptMode = (isPromptMode || shouldActivatePromptMode) && !shouldDeactivatePromptMode && !shouldActivateNanoBananaMode;
     const effectiveNanoBananaMode = (isNanoBananaMode || shouldActivateNanoBananaMode) && !shouldDeactivateNanoBananaMode;
 
-    // 🎯 IMPORTANTE: Solo esperar sin responder si se ACTIVÓ un modo especial (NanoBanana/Prompts)
-    // Si se DESACTIVÓ (salió) de un modo especial CON una pregunta, debe continuar y responder
+    // ðŸŽ¯ IMPORTANTE: Solo esperar sin responder si se ACTIVÃ“ un modo especial (NanoBanana/Prompts)
+    // Si se DESACTIVÃ“ (saliÃ³) de un modo especial CON una pregunta, debe continuar y responder
     const shouldWaitForDescription = shouldActivateNanoBananaMode || shouldActivatePromptMode;
 
     if (shouldWaitForDescription) {
@@ -1595,12 +1595,12 @@ export function AIChatAgent({
       return; // NO llamar al API, esperar que el usuario describa lo que quiere
     }
 
-    // Si se DESACTIVÓ un modo especial, continuar para responder la pregunta
+    // Si se DESACTIVÃ“ un modo especial, continuar para responder la pregunta
     if (shouldDeactivateNanoBananaMode || shouldDeactivatePromptMode) {
 
     }
 
-    // Usar el setter correcto según el modo efectivo
+    // Usar el setter correcto segÃºn el modo efectivo
     if (effectiveNanoBananaMode) {
       setNanoBananaMessages(prev => [...prev, userMessage]);
     } else if (effectivePromptMode) {
@@ -1618,10 +1618,10 @@ export function AIChatAgent({
       }
     }, 0);
     setIsTyping(true);
-    // No limpiar el prompt anterior automáticamente, se mantendrá hasta que se genere uno nuevo
+    // No limpiar el prompt anterior automÃ¡ticamente, se mantendrÃ¡ hasta que se genere uno nuevo
 
     try {
-      // Si está en modo NanoBanana efectivo
+      // Si estÃ¡ en modo NanoBanana efectivo
       if (effectiveNanoBananaMode) {
         const response = await fetch('/api/ai-directory/generate-nanobana', {
           method: 'POST',
@@ -1678,25 +1678,25 @@ export function AIChatAgent({
 
         setNanoBananaMessages(prev => [...prev, assistantMessage]);
 
-        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('🔊 [TTS Check] Verificando si debe leer mensaje NanoBanana:', {
+        // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz estÃ¡ activado
+        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje NanoBanana:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje NanoBanana');
+          console.log('âœ… [TTS] Llamando speakText para mensaje NanoBanana');
           speakText(assistantMessage.content);
         } else {
-          console.log('❌ [TTS] No se leerá el mensaje NanoBanana', { 
+          console.log('âŒ [TTS] No se leerÃ¡ el mensaje NanoBanana', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
           });
         }
       }
-      // Si está en modo prompt efectivo (activado o recién activado, y no desactivándose)
+      // Si estÃ¡ en modo prompt efectivo (activado o reciÃ©n activado, y no desactivÃ¡ndose)
       else if (effectivePromptMode) {
         const response = await fetch('/api/ai-directory/generate-prompt', {
           method: 'POST',
@@ -1726,7 +1726,7 @@ export function AIChatAgent({
         // Si hay un prompt generado, mostrar un mensaje amigable en lugar del JSON
         if (data.generatedPrompt) {
           const promptTitle = data.generatedPrompt.title || 'Tu prompt';
-          messageContent = `¡Listo! He generado el prompt "${promptTitle}". Puedes verlo, copiarlo o guardarlo en tu biblioteca usando el panel que aparece arriba. ¿Necesitas algún ajuste o tienes otra idea de prompt?`;
+          messageContent = `Â¡Listo! He generado el prompt "${promptTitle}". Puedes verlo, copiarlo o guardarlo en tu biblioteca usando el panel que aparece arriba. Â¿Necesitas algÃºn ajuste o tienes otra idea de prompt?`;
         }
 
         const assistantMessage: Message = {
@@ -1746,18 +1746,18 @@ export function AIChatAgent({
 
         setPromptMessages(prev => [...prev, assistantMessage]);
 
-        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('🔊 [TTS Check] Verificando si debe leer mensaje prompt:', {
+        // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz estÃ¡ activado
+        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje prompt:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje prompt');
+          console.log('âœ… [TTS] Llamando speakText para mensaje prompt');
           speakText(assistantMessage.content);
         } else {
-          console.log('❌ [TTS] No se leerá el mensaje prompt', { 
+          console.log('âŒ [TTS] No se leerÃ¡ el mensaje prompt', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
@@ -1774,20 +1774,20 @@ export function AIChatAgent({
             message: userMessage.content,
             context: activeContext,
             language,
-            isPromptMode: false, // ✅ Agregar parámetro isPromptMode
-            conversationId: conversationId, // ✅ Pasar conversationId para continuidad
+            isPromptMode: false, // âœ… Agregar parÃ¡metro isPromptMode
+            conversationId: conversationId, // âœ… Pasar conversationId para continuidad
             pageContext: {
               pathname: pathname,
               description: pageContextInfo,
               detectedArea: detectedContext,
-              // Agregar contenido extraído del DOM
+              // Agregar contenido extraÃ­do del DOM
               pageTitle: pageContent?.title || '',
               metaDescription: pageContent?.metaDescription || '',
               headings: pageContent?.headings || [],
               mainText: pageContent?.mainText || '',
               // Agregar contexto de la plataforma completa
               platformContext: getPlatformContext(),
-              // Agregar links disponibles según el rol del usuario
+              // Agregar links disponibles segÃºn el rol del usuario
               availableLinks: availableLinks
             },
             conversationHistory: normalMessages.map(m => ({
@@ -1819,7 +1819,7 @@ export function AIChatAgent({
 
         const data = await response.json();
 
-        // ✅ ANALYTICS: Guardar conversationId que viene del backend
+        // âœ… ANALYTICS: Guardar conversationId que viene del backend
         if (data.conversationId && !conversationId) {
           setConversationId(data.conversationId);
         }
@@ -1833,8 +1833,8 @@ export function AIChatAgent({
 
         setNormalMessages(prev => [...prev, assistantMessage]);
 
-        // 🎙️ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('🔊 [TTS Check] Verificando si debe leer mensaje normal:', {
+        // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz estÃ¡ activado
+        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje normal:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0,
@@ -1842,10 +1842,10 @@ export function AIChatAgent({
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje normal');
+          console.log('âœ… [TTS] Llamando speakText para mensaje normal');
           speakText(assistantMessage.content);
         } else {
-          console.log('❌ [TTS] No se leerá el mensaje normal', { 
+          console.log('âŒ [TTS] No se leerÃ¡ el mensaje normal', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
@@ -1867,14 +1867,14 @@ export function AIChatAgent({
         timestamp: new Date()
       };
 
-      // Usar el setter correcto según el modo
+      // Usar el setter correcto segÃºn el modo
       if (isPromptMode) {
         setPromptMessages(prev => [...prev, errorMessage]);
       } else {
         setNormalMessages(prev => [...prev, errorMessage]);
       }
 
-      // 🎙️ Leer el mensaje de error en voz alta si el modo voz está activado
+      // ðŸŽ™ï¸ Leer el mensaje de error en voz alta si el modo voz estÃ¡ activado
       if (isVoiceEnabled && errorMessage.content) {
         speakText(errorMessage.content);
       }
@@ -1890,7 +1890,7 @@ export function AIChatAgent({
     }
   }, [handleSendMessage]);
 
-  // 🎙️ Inicializar reconocimiento de voz cuando cambia el idioma
+  // ðŸŽ™ï¸ Inicializar reconocimiento de voz cuando cambia el idioma
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -1952,10 +1952,10 @@ export function AIChatAgent({
       setIsRecording(false);
     } else {
       try {
-        // 🎙️ Detener cualquier audio de LIA que esté reproduciéndose antes de iniciar el reconocimiento
+        // ðŸŽ™ï¸ Detener cualquier audio de LIA que estÃ© reproduciÃ©ndose antes de iniciar el reconocimiento
         stopAllAudio();
         
-        // Solicitar permisos del micrófono primero
+        // Solicitar permisos del micrÃ³fono primero
         await navigator.mediaDevices.getUserMedia({ audio: true });
 
         // Actualizar el idioma del reconocimiento
@@ -1974,22 +1974,22 @@ export function AIChatAgent({
     }
   }, [isRecording, language, tCommon, stopAllAudio]);
 
-  // Función para solicitar ayuda contextual
-  // Permite pasar contenido de página directamente para evitar problemas de sincronización
+  // FunciÃ³n para solicitar ayuda contextual
+  // Permite pasar contenido de pÃ¡gina directamente para evitar problemas de sincronizaciÃ³n
   const handleRequestHelp = useCallback(async (overridePageContent?: {
     title: string;
     metaDescription: string;
     headings: string[];
     mainText: string;
   } | null) => {
-    // Usar el contenido pasado como parámetro, o el del estado, o extraerlo si no está disponible
+    // Usar el contenido pasado como parÃ¡metro, o el del estado, o extraerlo si no estÃ¡ disponible
     let currentPageContent = overridePageContent ?? pageContent;
     if (!currentPageContent || !currentPageContent.title) {
       currentPageContent = extractPageContent();
       setPageContent(currentPageContent);
     }
 
-    // Mensaje de ayuda automático - NO se muestra en el chat (isSystemMessage: true)
+    // Mensaje de ayuda automÃ¡tico - NO se muestra en el chat (isSystemMessage: true)
     const helpMessageContent = helpPrompt;
 
     // NO agregar el mensaje al estado - solo enviarlo como mensaje del sistema
@@ -2018,7 +2018,7 @@ export function AIChatAgent({
             mainText: currentPageContent?.mainText || '',
             // Agregar contexto de la plataforma completa
             platformContext: getPlatformContext(),
-            // Agregar links disponibles según el rol del usuario
+            // Agregar links disponibles segÃºn el rol del usuario
             availableLinks: availableLinks
           },
           conversationHistory: currentMessages.map(m => ({
@@ -2026,13 +2026,13 @@ export function AIChatAgent({
             content: m.content
           })),
           userName: user?.display_name || user?.username || user?.first_name,
-          isSystemMessage: true // El mensaje del sistema no se mostrará en el chat
+          isSystemMessage: true // El mensaje del sistema no se mostrarÃ¡ en el chat
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // console.error('❌ Error response:', errorData);
+        // console.error('âŒ Error response:', errorData);
         throw new Error('Error al obtener ayuda');
       }
 
@@ -2047,7 +2047,7 @@ export function AIChatAgent({
 
       setNormalMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      // console.error('❌ Error al solicitar ayuda:', error);
+      // console.error('âŒ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
@@ -2060,7 +2060,7 @@ export function AIChatAgent({
     }
   }, [activeContext, pathname, pageContextInfo, detectedContext, pageContent, user, language, helpPrompt, helpFallback, helpError, normalMessages, availableLinks]);
 
-  // Limpiar el chat cuando cambia la página
+  // Limpiar el chat cuando cambia la pÃ¡gina
   useEffect(() => {
     // Inicializar prevPathnameRef en el primer render
     if (prevPathnameRef.current === '') {
@@ -2071,27 +2071,27 @@ export function AIChatAgent({
     if (prevPathnameRef.current !== pathname) {
       const wasOpen = isOpen;
 
-      // ✅ PERSISTENCIA: Guardar mensajes antes de cambiar de página si el modo de contexto está activo
+      // âœ… PERSISTENCIA: Guardar mensajes antes de cambiar de pÃ¡gina si el modo de contexto estÃ¡ activo
       if (useContextMode && !isPromptMode && normalMessages.length > 0) {
         saveContextMessages(normalMessages);
       }
 
-      // ✅ PERSISTENCIA: NO limpiar mensajes si el modo de contexto está activo
-      // Esto permite mantener el contexto del chat entre páginas
-      // Limpiar mensajes y contenido de página cuando cambia la página (solo en modo normal y sin contexto)
-      // Esto evita usar contenido de la página anterior
+      // âœ… PERSISTENCIA: NO limpiar mensajes si el modo de contexto estÃ¡ activo
+      // Esto permite mantener el contexto del chat entre pÃ¡ginas
+      // Limpiar mensajes y contenido de pÃ¡gina cuando cambia la pÃ¡gina (solo en modo normal y sin contexto)
+      // Esto evita usar contenido de la pÃ¡gina anterior
       if (!isPromptMode && !useContextMode) {
         setNormalMessages([]);
       }
       setPageContent(null); // Limpiar inmediatamente para evitar usar contenido antiguo
       prevPathnameRef.current = pathname;
 
-      // Actualizar el contenido de la página cuando cambia (sin enviar mensaje automático)
+      // Actualizar el contenido de la pÃ¡gina cuando cambia (sin enviar mensaje automÃ¡tico)
       if (wasOpen) {
-        // Marcar que ya se abrió para evitar que el otro useEffect interfiera
+        // Marcar que ya se abriÃ³ para evitar que el otro useEffect interfiera
         hasOpenedRef.current = true;
 
-        // Actualizar el contenido de la página sin enviar mensaje automático
+        // Actualizar el contenido de la pÃ¡gina sin enviar mensaje automÃ¡tico
         const timer = setTimeout(() => {
           const currentPageContent = extractPageContent();
           setPageContent(currentPageContent);
@@ -2099,20 +2099,20 @@ export function AIChatAgent({
 
         return () => clearTimeout(timer);
       } else {
-        // Si el chat está cerrado, resetear el flag
+        // Si el chat estÃ¡ cerrado, resetear el flag
         hasOpenedRef.current = false;
       }
     }
   }, [pathname, useContextMode, isPromptMode, isOpen, normalMessages, saveContextMessages]);
 
-  // Actualizar contenido de página cuando se abre la LIA (sin enviar mensaje automático)
+  // Actualizar contenido de pÃ¡gina cuando se abre la LIA (sin enviar mensaje automÃ¡tico)
   useEffect(() => {
-    // Solo ejecutar si el chat se acaba de abrir y no se ejecutó por cambio de página
-    // No ejecutar si está en modo prompt
+    // Solo ejecutar si el chat se acaba de abrir y no se ejecutÃ³ por cambio de pÃ¡gina
+    // No ejecutar si estÃ¡ en modo prompt
     if (isOpen && !hasOpenedRef.current && !isPromptMode) {
-      // Marcar que ya se abrió
+      // Marcar que ya se abriÃ³
       hasOpenedRef.current = true;
-      // Actualizar contenido de página sin enviar mensaje automático
+      // Actualizar contenido de pÃ¡gina sin enviar mensaje automÃ¡tico
       const timer = setTimeout(() => {
         const currentPageContent = extractPageContent();
         setPageContent(currentPageContent);
@@ -2127,7 +2127,7 @@ export function AIChatAgent({
       e.preventDefault();
     }
 
-    // Si se está arrastrando o se movió el mouse, no ejecutar el toggle
+    // Si se estÃ¡ arrastrando o se moviÃ³ el mouse, no ejecutar el toggle
     if (isDragging || hasMoved.current) {
       return;
     }
@@ -2151,7 +2151,7 @@ export function AIChatAgent({
     setAreButtonsExpanded(false);
     // Resetear el flag cuando se cierra para que se ejecute la ayuda al abrir de nuevo
     hasOpenedRef.current = false;
-    // 🎙️ Detener audio cuando se cierra el chat
+    // ðŸŽ™ï¸ Detener audio cuando se cierra el chat
     stopAllAudio();
   };
 
@@ -2163,11 +2163,11 @@ export function AIChatAgent({
     setIsOpen(true);
     setIsMinimized(false);
     setHasUnreadMessages(false);
-    // No agregar mensaje inicial automático en modo prompt
+    // No agregar mensaje inicial automÃ¡tico en modo prompt
   };
 
   const handleClearConversation = () => {
-    // Si el modo de contexto está activado, preguntar antes de limpiar
+    // Si el modo de contexto estÃ¡ activado, preguntar antes de limpiar
     if (useContextMode && normalMessages.length > 0 && !isPromptMode) {
       setShowClearConfirm(true);
       return;
@@ -2199,7 +2199,7 @@ export function AIChatAgent({
 
     const promptContent = `# ${generatedPrompt.title}
 
-## Descripción
+## DescripciÃ³n
 ${generatedPrompt.description}
 
 ${'='.repeat(80)}
@@ -2212,7 +2212,7 @@ ${generatedPrompt.content}
 
 ${'='.repeat(80)}
 
-## Información Adicional
+## InformaciÃ³n Adicional
 
 ### Tags
 ${generatedPrompt.tags.join(', ')}
@@ -2228,7 +2228,7 @@ ${generatedPrompt.tips.map(tip => `- ${tip}`).join('\n')}
 
 ---
 
-Generado por Lia - Asistente de IA para Creación de Prompts
+Generado por Lia - Asistente de IA para CreaciÃ³n de Prompts
 Fecha: ${new Date().toLocaleString()}
 `;
 
@@ -2281,9 +2281,9 @@ Fecha: ${new Date().toLocaleString()}
         };
       default:
         return {
-          header: 'bg-[#0A2540]', /* Azul Profundo SOFIA */
+          header: 'bg-[#0A2540]', /* Azul Profundo SOFLIA */
           accent: '[#00D4B3]', // Aqua
-          bubbleUser: 'from-[#0A2540] to-[#00D4B3]', /* Gradiente SOFIA */
+          bubbleUser: 'from-[#0A2540] to-[#00D4B3]', /* Gradiente SOFLIA */
           ring: 'focus:ring-[#00D4B3]', /* Aqua para focus */
           borderUser: 'border-[#00D4B3]', /* Aqua */
           chipBg: 'bg-[#00D4B3]/15 text-[#00D4B3] border border-[#00D4B3]/30', /* Aqua para chips de LIA */
@@ -2292,7 +2292,7 @@ Fecha: ${new Date().toLocaleString()}
     }
   }, [currentMode]);
 
-  // Menu de selección de modo (tipo hamburguesa)
+  // Menu de selecciÃ³n de modo (tipo hamburguesa)
   const [modeMenuOpen, setModeMenuOpen] = useState(false);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const modeMenuRef = useRef<HTMLDivElement>(null);
@@ -2328,7 +2328,7 @@ Fecha: ${new Date().toLocaleString()}
                 transition={{ duration: 0.2 }}
                 className="flex flex-col gap-2 overflow-hidden"
               >
-                {/* Botón de reportar problema */}
+                {/* BotÃ³n de reportar problema */}
                 <motion.button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -2356,7 +2356,7 @@ Fecha: ${new Date().toLocaleString()}
             )}
           </AnimatePresence>
 
-          {/* Botón de expandir/colapsar - Solo flecha sin fondo */}
+          {/* BotÃ³n de expandir/colapsar - Solo flecha sin fondo */}
           <motion.button
             onClick={(e) => {
               e.stopPropagation();
@@ -2381,7 +2381,7 @@ Fecha: ${new Date().toLocaleString()}
             </div>
           </motion.button>
 
-          {/* Botón principal de LIA */}
+          {/* BotÃ³n principal de LIA */}
           <motion.div
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -2584,7 +2584,7 @@ Fecha: ${new Date().toLocaleString()}
                         className="rounded-full object-cover border border-white/60"
                         sizes="32px"
                       />
-                      {/* Indicador de estado en línea */}
+                      {/* Indicador de estado en lÃ­nea */}
                       <motion.div
                         className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-[#00D4B3] rounded-full border border-white/70"
                         animate={{
@@ -2598,7 +2598,7 @@ Fecha: ${new Date().toLocaleString()}
                       />
                     </div>
 
-                    {/* Botón clickeable para seleccionar modo (similar a ChatGPT) */}
+                    {/* BotÃ³n clickeable para seleccionar modo (similar a ChatGPT) */}
                     <button
                       onClick={() => setModeMenuOpen(!modeMenuOpen)}
                       className="flex items-center gap-2 leading-none min-w-0 hover:opacity-80 transition-opacity group"
@@ -2613,13 +2613,13 @@ Fecha: ${new Date().toLocaleString()}
                               ? 'text-white bg-white/25 border-white/40'
                               : 'text-white bg-white/25 border-white/40'
                           }`}>
-                          {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                          {currentMode === 'nanobana' ? 'Generador de ImÃ¡genes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                         </span>
                         <ChevronDown className={`w-3.5 h-3.5 text-white/70 transition-transform ${modeMenuOpen ? 'rotate-180' : ''}`} />
                       </div>
                     </button>
 
-                    {/* Menú desplegable - Ahora aparece debajo del nombre/tag */}
+                    {/* MenÃº desplegable - Ahora aparece debajo del nombre/tag */}
                     <AnimatePresence>
                       {modeMenuOpen && (
                         <motion.div
@@ -2658,7 +2658,7 @@ Fecha: ${new Date().toLocaleString()}
                                   <div className="flex-1">
                                     <div className="flex items-center gap-2 mb-1">
                                       <div className={`text-sm font-medium ${currentMode === 'nanobana' ? 'text-[#0A2540] dark:text-white' : 'text-[#0A2540] dark:text-white'}`}>
-                                        Generador de Imágenes
+                                        Generador de ImÃ¡genes
                                       </div>
                                       <span className="text-[9px] px-1.5 py-0.5 bg-amber-500/20 text-amber-700 dark:text-amber-300 rounded-full font-medium">
                                         NEW
@@ -2726,7 +2726,7 @@ Fecha: ${new Date().toLocaleString()}
                   </div>
 
                   <div className="flex items-center gap-1">
-                    {/* Menú de opciones (3 puntos) */}
+                    {/* MenÃº de opciones (3 puntos) */}
                     <div className="relative" ref={optionsMenuRef}>
                     <button
                         onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
@@ -2737,7 +2737,7 @@ Fecha: ${new Date().toLocaleString()}
                         <MoreVertical className="w-4 h-4" />
                       </button>
 
-                      {/* Menú desplegable */}
+                      {/* MenÃº desplegable */}
                       <AnimatePresence>
                         {isOptionsMenuOpen && (
                           <motion.div
@@ -2753,7 +2753,7 @@ Fecha: ${new Date().toLocaleString()}
                             }}
                           >
                             <div className="py-2">
-                              {/* Opción: Personalización */}
+                              {/* OpciÃ³n: PersonalizaciÃ³n */}
                               <button
                                 onClick={() => {
                                   setIsPersonalizationOpen(true);
@@ -2772,10 +2772,10 @@ Fecha: ${new Date().toLocaleString()}
                                 }}
                               >
                                 <Settings className="w-4 h-4" style={{ color: isDark ? '#9CA3AF' : '#6C757D' }} />
-                                <span>Personalización</span>
+                                <span>PersonalizaciÃ³n</span>
                               </button>
 
-                              {/* Opción: Borrar chat */}
+                              {/* OpciÃ³n: Borrar chat */}
                               <button
                                 onClick={() => {
                                   handleClearConversation();
@@ -2802,7 +2802,7 @@ Fecha: ${new Date().toLocaleString()}
                       </AnimatePresence>
                     </div>
 
-                    {/* Botón cerrar */}
+                    {/* BotÃ³n cerrar */}
                     <button
                       onClick={handleClose}
                       className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/20 transition-colors text-white"
@@ -2827,7 +2827,7 @@ Fecha: ${new Date().toLocaleString()}
                       scrollBehavior: 'smooth'
                     }}
                   >
-                    {/* 🎯 INDICADOR DE CONTEXTO PREVIO */}
+                    {/* ðŸŽ¯ INDICADOR DE CONTEXTO PREVIO */}
                     {useContextMode && messages.length > 0 && (
                       <motion.div
                         initial={{ opacity: 0, y: -10 }}
@@ -2838,7 +2838,7 @@ Fecha: ${new Date().toLocaleString()}
                           <div className="flex items-center gap-2 text-xs text-[#00D4B3] dark:text-[#00D4B3]">
                             <Brain className="w-3.5 h-3.5 flex-shrink-0" />
                             <span className="font-medium">
-                              Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando últimos ${MAX_CONTEXT_MESSAGES})` : ''}
+                              Contexto activo: {messages.length} mensaje{messages.length !== 1 ? 's' : ''} {messages.length > MAX_CONTEXT_MESSAGES ? `(mostrando Ãºltimos ${MAX_CONTEXT_MESSAGES})` : ''}
                             </span>
                           </div>
                           <button
@@ -2865,7 +2865,7 @@ Fecha: ${new Date().toLocaleString()}
                             <img src="/Logo.png" onError={(e) => ((e.target as HTMLImageElement).src = assistantAvatar)} alt="Aprende y Aplica" className="w-full h-full object-contain" />
                           </div>
                           <h3 className="font-semibold text-gray-800 dark:text-gray-200 mb-1 text-base">
-                            {currentMode === 'nanobana' ? 'Generador de Imágenes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
+                            {currentMode === 'nanobana' ? 'Generador de ImÃ¡genes' : currentMode === 'prompt' ? promptModeTitle : currentMode === 'analysis' ? contextModeTitle : assistantModeTitle}
                           </h3>
                           <p className="text-xs text-gray-600 dark:text-gray-400 leading-relaxed">
                             {currentMode === 'nanobana'
@@ -2918,14 +2918,14 @@ Fecha: ${new Date().toLocaleString()}
 
                         {/* Contenido del mensaje */}
                         <div className={`flex-1 rounded-2xl px-3.5 py-3 shadow-lg ${message.role === 'user'
-                          ? 'bg-[#10B981] text-white' // Verde Suave SOFIA para mensajes del usuario
-                          : 'bg-[#0A2540] text-white dark:bg-[#0A2540]' // Azul Profundo SOFIA para mensajes de LIA
+                          ? 'bg-[#10B981] text-white' // Verde Suave SOFLIA para mensajes del usuario
+                          : 'bg-[#0A2540] text-white dark:bg-[#0A2540]' // Azul Profundo SOFLIA para mensajes de LIA
                           }`}>
                           <p className="text-[13px] leading-relaxed whitespace-pre-wrap font-medium">
                             {renderTextWithLinks(message.content)}
                           </p>
 
-                          {/* Botón para reabrir prompt si el mensaje tiene un prompt generado */}
+                          {/* BotÃ³n para reabrir prompt si el mensaje tiene un prompt generado */}
                           {message.role === 'assistant' && message.generatedPrompt && isPromptMode && (
                             <motion.button
                               onClick={() => {
@@ -2942,7 +2942,7 @@ Fecha: ${new Date().toLocaleString()}
                             </motion.button>
                           )}
 
-                          {/* Botón para reabrir NanoBanana JSON si el mensaje tiene uno generado */}
+                          {/* BotÃ³n para reabrir NanoBanana JSON si el mensaje tiene uno generado */}
                           {message.role === 'assistant' && message.generatedNanoBanana && (
                             <motion.button
                               onClick={() => {
@@ -3022,7 +3022,7 @@ Fecha: ${new Date().toLocaleString()}
                         value={inputMessage}
                         onChange={(e) => {
                           setInputMessage(e.target.value);
-                          // Ajustar altura dinámicamente usando la función helper
+                          // Ajustar altura dinÃ¡micamente usando la funciÃ³n helper
                           setTimeout(() => adjustTextareaHeight(), 0);
                         }}
                         onKeyDown={handleKeyPress}
@@ -3039,17 +3039,17 @@ Fecha: ${new Date().toLocaleString()}
                         }}
                       />
 
-                      {/* 🎬 Botón para activar/desactivar modo contextual */}
-                      {/* Botón de cerebro eliminado - el modo Análisis se controla con los chips */}
+                      {/* ðŸŽ¬ BotÃ³n para activar/desactivar modo contextual */}
+                      {/* BotÃ³n de cerebro eliminado - el modo AnÃ¡lisis se controla con los chips */}
 
-                      {/* Botón dinámico: micrófono cuando está vacío, enviar cuando hay texto */}
+                      {/* BotÃ³n dinÃ¡mico: micrÃ³fono cuando estÃ¡ vacÃ­o, enviar cuando hay texto */}
                       <motion.button
                         onClick={() => {
                           if (inputMessage.trim()) {
                             // Si hay texto, enviar mensaje
                             handleSendMessage();
                           } else {
-                            // Si no hay texto, activar/desactivar grabación
+                            // Si no hay texto, activar/desactivar grabaciÃ³n
                             toggleRecording();
                           }
                         }}
@@ -3062,7 +3062,7 @@ Fecha: ${new Date().toLocaleString()}
                             : `bg-gradient-to-r ${theme.bubbleUser} text-white hover:opacity-90 shadow-lg`
                           : isRecording
                             ? 'bg-red-500 text-white hover:bg-red-600 shadow-lg shadow-red-500/50'
-                            : `${currentMode === 'prompt' ? 'bg-purple-100 text-purple-600' : currentMode === 'analysis' ? 'bg-[#00D4B3]/20 text-[#00D4B3]' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botón de envío */
+                            : `${currentMode === 'prompt' ? 'bg-purple-100 text-purple-600' : currentMode === 'analysis' ? 'bg-[#00D4B3]/20 text-[#00D4B3]' : 'bg-[#00D4B3]/20 text-[#00D4B3]'} hover:opacity-90` /* Aqua para botÃ³n de envÃ­o */
                           } ${isTyping && !!inputMessage.trim() ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
                         {isTyping && inputMessage.trim() ? (
@@ -3092,7 +3092,7 @@ Fecha: ${new Date().toLocaleString()}
         fromLia={true}
       />
 
-      {/* Modal de Confirmación de Limpieza */}
+      {/* Modal de ConfirmaciÃ³n de Limpieza */}
       <AnimatePresence>
         {showClearConfirm && (
           <motion.div
@@ -3128,7 +3128,7 @@ Fecha: ${new Date().toLocaleString()}
                   Tienes <span className="font-semibold text-[#00D4B3] dark:text-[#00D4B3]">{normalMessages.length} mensajes</span> guardados en el contexto persistente.
                 </p>
                 <p className="text-gray-600 dark:text-gray-400 text-sm mt-3">
-                  ¿Deseas borrar toda la conversación y el contexto guardado?
+                  Â¿Deseas borrar toda la conversaciÃ³n y el contexto guardado?
                 </p>
               </div>
 
@@ -3152,7 +3152,7 @@ Fecha: ${new Date().toLocaleString()}
         )}
       </AnimatePresence>
 
-      {/* 🎨 Prompt Preview Panel */}
+      {/* ðŸŽ¨ Prompt Preview Panel */}
       <AnimatePresence>
         {isPromptMode && generatedPrompt && isPromptPanelOpen && (
           <PromptPreviewPanel
@@ -3167,7 +3167,7 @@ Fecha: ${new Date().toLocaleString()}
         )}
       </AnimatePresence>
 
-      {/* 🎨 NanoBanana Preview Panel - Posicionado a la derecha, ENCIMA del chat */}
+      {/* ðŸŽ¨ NanoBanana Preview Panel - Posicionado a la derecha, ENCIMA del chat */}
       {nanoBananaSchema && isNanoBananaPanelOpen && (
         <div
           className="fixed right-4 top-20 z-[100001]"
@@ -3193,7 +3193,7 @@ Fecha: ${new Date().toLocaleString()}
 
             }}
             onRegenerate={() => {
-              // Regenerar con el último mensaje
+              // Regenerar con el Ãºltimo mensaje
               const lastUserMessage = nanoBananaMessages.filter(m => m.role === 'user').pop();
               if (lastUserMessage) {
                 setInputMessage(lastUserMessage.content);
@@ -3203,7 +3203,7 @@ Fecha: ${new Date().toLocaleString()}
         </div>
       )}
 
-      {/* Modal de Personalización */}
+      {/* Modal de PersonalizaciÃ³n */}
       <LiaPersonalizationSettings
         isOpen={isPersonalizationOpen}
         onClose={() => setIsPersonalizationOpen(false)}

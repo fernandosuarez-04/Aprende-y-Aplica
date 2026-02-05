@@ -7,10 +7,10 @@ import moment from 'moment';
 import 'moment/locale/es';
 import { ToastNotification } from '@/core/components/ToastNotification/ToastNotification';
 
-// Configurar moment en español
+// Configurar moment en espaÃ±ol
 moment.locale('es', {
   week: {
-    dow: 1, // Lunes como primer día de la semana
+    dow: 1, // Lunes como primer dÃ­a de la semana
   },
 });
 
@@ -78,7 +78,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     type: 'error',
   });
   
-  // Estado para modal de confirmación
+  // Estado para modal de confirmaciÃ³n
   const [confirmDialog, setConfirmDialog] = useState<{
     isOpen: boolean;
     message: string;
@@ -91,12 +91,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     onCancel: () => {},
   });
 
-  // Colores predefinidos para eventos (usando paleta SOFIA)
+  // Colores predefinidos para eventos (usando paleta SOFLIA)
   const eventColors = [
     { name: 'Azul Profundo', value: '#0A2540' },
     { name: 'Aqua', value: '#00D4B3' },
     { name: 'Verde Suave', value: '#10B981' },
-    { name: 'Ámbar', value: '#F59E0B' },
+    { name: 'Ãmbar', value: '#F59E0B' },
     { name: 'Azul Claro', value: '#0066CC' },
     { name: 'Verde', value: '#0B8043' },
     { name: 'Lavanda', value: '#8E24AA' },
@@ -116,8 +116,8 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   // Fecha de hoy (declarada una sola vez)
   const today = moment();
 
-  // Nombres de los días de la semana (para headers de la vista de mes)
-  const weekDayNames = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  // Nombres de los dÃ­as de la semana (para headers de la vista de mes)
+  const weekDayNames = ['Lun', 'Mar', 'MiÃ©', 'Jue', 'Vie', 'SÃ¡b', 'Dom'];
 
   const goToPreviousMonth = () => {
     setCurrentDate(currentDate.clone().subtract(1, 'month'));
@@ -140,7 +140,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     setCurrentDate(currentDate.clone().add(1, 'week'));
   };
 
-  // Funciones para vista de día
+  // Funciones para vista de dÃ­a
   const goToPreviousDay = () => {
     setCurrentDate(currentDate.clone().subtract(1, 'day'));
   };
@@ -149,7 +149,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     setCurrentDate(currentDate.clone().add(1, 'day'));
   };
 
-  // Obtener días de la semana actual (para vista de semana)
+  // Obtener dÃ­as de la semana actual (para vista de semana)
   const getWeekDays = () => {
     const startOfWeek = currentDate.clone().startOf('week');
     const days = [];
@@ -159,7 +159,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     return days;
   };
 
-  // Generar horas del día (de 0 a 23)
+  // Generar horas del dÃ­a (de 0 a 23)
   const hours = Array.from({ length: 24 }, (_, i) => i);
 
   // Obtener rango de fechas para la semana
@@ -181,7 +181,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
 
     const days = [];
 
-    // Días del mes anterior
+    // DÃ­as del mes anterior
     const daysFromPrevMonth = firstDayOfWeek - 1;
     for (let i = daysFromPrevMonth - 1; i >= 0; i--) {
       const date = startOfMonth.clone().subtract(i + 1, 'days');
@@ -193,7 +193,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       });
     }
 
-    // Días del mes actual
+    // DÃ­as del mes actual
     for (let i = 1; i <= daysInMonth; i++) {
       const date = startOfMonth.clone().date(i);
       days.push({
@@ -204,7 +204,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       });
     }
 
-    // Días del mes siguiente
+    // DÃ­as del mes siguiente
     const remainingDays = 42 - days.length;
     for (let i = 1; i <= remainingDays; i++) {
       const date = endOfMonth.clone().add(i, 'days');
@@ -219,7 +219,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     return days;
   };
 
-  // Función para cargar eventos del calendario y sesiones de estudio
+  // FunciÃ³n para cargar eventos del calendario y sesiones de estudio
   const loadEvents = useCallback(async (isManualRefresh = false) => {
     if (isManualRefresh) {
       setIsRefreshing(true);
@@ -231,15 +231,15 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       let endDate: moment.Moment;
       
       if (view === 'month') {
-      // Calcular rango de fechas para el mes actual (incluyendo días del mes anterior y siguiente visibles)
+      // Calcular rango de fechas para el mes actual (incluyendo dÃ­as del mes anterior y siguiente visibles)
       const startOfMonth = currentDate.clone().startOf('month');
       const endOfMonth = currentDate.clone().endOf('month');
       const firstDayOfWeek = startOfMonth.day() === 0 ? 7 : startOfMonth.day();
       const daysFromPrevMonth = firstDayOfWeek - 1;
       
-      // Fecha de inicio: primer día visible en el calendario
+      // Fecha de inicio: primer dÃ­a visible en el calendario
         startDate = startOfMonth.clone().subtract(daysFromPrevMonth, 'days');
-      // Fecha de fin: último día visible en el calendario (42 días desde startDate)
+      // Fecha de fin: Ãºltimo dÃ­a visible en el calendario (42 dÃ­as desde startDate)
         endDate = startDate.clone().add(41, 'days');
       } else if (view === 'week') {
         // Calcular rango de fechas para la semana actual
@@ -247,7 +247,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         startDate = weekRange.start.clone().startOf('day');
         endDate = weekRange.end.clone().endOf('day');
       } else if (view === 'day') {
-        // Calcular rango de fechas para el día actual
+        // Calcular rango de fechas para el dÃ­a actual
         startDate = currentDate.clone().startOf('day');
         endDate = currentDate.clone().endOf('day');
       } else {
@@ -296,7 +296,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           }
           return {
             id: session.id || `study-${session.id}`,
-            title: session.title || 'Sesión de estudio',
+            title: session.title || 'SesiÃ³n de estudio',
             description: session.description,
             start: session.start_time,
             end: session.end_time,
@@ -316,9 +316,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       if (customEventsResponse.ok) {
         const customData = await customEventsResponse.json();
         
-        // Mostrar advertencia si PostgREST aún no reconoce la tabla
+        // Mostrar advertencia si PostgREST aÃºn no reconoce la tabla
         if (customData.warning) {
-          console.warn('⚠️', customData.warning);
+          console.warn('âš ï¸', customData.warning);
         }
         
         customEvents = (customData.events || []).map((event: any) => ({
@@ -336,13 +336,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           color: event.color || undefined,
         }));
       } else if (customEventsResponse.status === 503) {
-        // Si el servicio no está disponible (tabla no reconocida por PostgREST)
+        // Si el servicio no estÃ¡ disponible (tabla no reconocida por PostgREST)
         const errorData = await customEventsResponse.json().catch(() => ({}));
-        console.warn('⚠️ Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
-        customEvents = []; // Continuar con array vacío
+        console.warn('âš ï¸ Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
+        customEvents = []; // Continuar con array vacÃ­o
       }
       
-      // Filtrar eventos duplicados: si un evento del calendario externo ya está en customEvents, no incluirlo
+      // Filtrar eventos duplicados: si un evento del calendario externo ya estÃ¡ en customEvents, no incluirlo
       const customEventExternalIds = new Set(
         customEvents
           .filter(e => e.googleEventId || e.externalEventId)
@@ -354,7 +354,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           .filter((id): id is string => id !== null)
       );
       
-      // Filtrar eventos del calendario externo que ya están en customEvents o en sesiones de estudio
+      // Filtrar eventos del calendario externo que ya estÃ¡n en customEvents o en sesiones de estudio
       const uniqueCalendarEvents = calendarEvents.filter(event => {
         // Limpiar el ID del evento (puede venir con formato de recurrencia)
         const cleanEventId = event.externalEventId 
@@ -365,12 +365,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           return true; // Si no tiene ID externo, incluirlo (evento local)
         }
         
-        // Si el evento tiene un ID externo y ese ID ya está en customEvents, excluirlo
+        // Si el evento tiene un ID externo y ese ID ya estÃ¡ en customEvents, excluirlo
         if (customEventExternalIds.has(cleanEventId)) {
           return false;
         }
         
-        // Si el evento tiene un ID que corresponde a una sesión de estudio, excluirlo
+        // Si el evento tiene un ID que corresponde a una sesiÃ³n de estudio, excluirlo
         // (ya se muestra como studySession)
         if (studySessionExternalIds.has(cleanEventId)) {
           return false;
@@ -394,7 +394,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     }
   }, [currentDate, view]);
   
-  // Función para recarga manual
+  // FunciÃ³n para recarga manual
   const handleManualRefresh = async () => {
     await loadEvents(true);
   };
@@ -404,7 +404,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     loadEvents();
   }, [loadEvents]);
   
-  // Recarga automática cada 5 minutos
+  // Recarga automÃ¡tica cada 5 minutos
   useEffect(() => {
     const interval = setInterval(() => {
       loadEvents(false);
@@ -443,10 +443,10 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
   const handleDeleteEvent = () => {
     if (!selectedEvent) return;
     
-    // Mostrar modal de confirmación en lugar de confirm() del navegador
+    // Mostrar modal de confirmaciÃ³n en lugar de confirm() del navegador
     setConfirmDialog({
       isOpen: true,
-      message: '¿Estás seguro de que deseas eliminar este evento?',
+      message: 'Â¿EstÃ¡s seguro de que deseas eliminar este evento?',
       onConfirm: async () => {
         setConfirmDialog({ ...confirmDialog, isOpen: false });
         await performDeleteEvent();
@@ -615,31 +615,31 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     setIsEventModalOpen(true);
   };
   
-  // Obtener eventos para un día específico
+  // Obtener eventos para un dÃ­a especÃ­fico
   const getEventsForDay = (date: moment.Moment): CalendarEvent[] => {
     return events.filter((event) => {
       const eventStart = moment(event.start);
       const eventEnd = moment(event.end);
       
-      // Normalizar fechas a medianoche para comparación de días
+      // Normalizar fechas a medianoche para comparaciÃ³n de dÃ­as
       const dayStart = date.clone().startOf('day');
       const dayEnd = date.clone().endOf('day');
       
-      // Si el evento es de todo el día, usar solo la fecha
+      // Si el evento es de todo el dÃ­a, usar solo la fecha
       if (event.isAllDay) {
         const eventStartDay = eventStart.clone().startOf('day');
         const eventEndDay = eventEnd.clone().startOf('day');
         return date.isSameOrAfter(eventStartDay, 'day') && date.isSameOrBefore(eventEndDay, 'day');
       }
       
-      // Para eventos con hora específica, verificar si se superponen con el día
+      // Para eventos con hora especÃ­fica, verificar si se superponen con el dÃ­a
       // El evento se muestra si:
-      // - Comienza antes o durante el día Y termina después o durante el día
+      // - Comienza antes o durante el dÃ­a Y termina despuÃ©s o durante el dÃ­a
       return eventStart.isSameOrBefore(dayEnd) && eventEnd.isSameOrAfter(dayStart);
     });
   };
 
-  // Calcular posición y altura de un evento en la vista de semana
+  // Calcular posiciÃ³n y altura de un evento en la vista de semana
   const getEventPosition = (event: CalendarEvent, date: moment.Moment) => {
     if (event.isAllDay) {
       return { top: 0, height: 16, isAllDay: true };
@@ -648,9 +648,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     const eventStart = moment(event.start);
     const eventEnd = moment(event.end);
     
-    // Si el evento no está en este día, no calcular posición
+    // Si el evento no estÃ¡ en este dÃ­a, no calcular posiciÃ³n
     if (!date.isSame(eventStart, 'day') && !date.isSame(eventEnd, 'day')) {
-      // Verificar si está en el rango del día
+      // Verificar si estÃ¡ en el rango del dÃ­a
       const dayStart = date.clone().startOf('day');
       const dayEnd = date.clone().endOf('day');
       if (!(eventStart.isBefore(dayEnd) && eventEnd.isAfter(dayStart))) {
@@ -658,19 +658,19 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       }
     }
     
-    // Calcular minutos desde el inicio del día
+    // Calcular minutos desde el inicio del dÃ­a
     const startMinutes = eventStart.hour() * 60 + eventStart.minute();
     const endMinutes = eventEnd.hour() * 60 + eventEnd.minute();
     const durationMinutes = endMinutes - startMinutes;
     
     // Cada hora tiene 64px de altura (h-16 = 4rem = 64px)
     const top = (startMinutes / 60) * 64;
-    const height = Math.max((durationMinutes / 60) * 64, 20); // Mínimo 20px
+    const height = Math.max((durationMinutes / 60) * 64, 20); // MÃ­nimo 20px
     
     return { top, height, isAllDay: false };
   };
   
-  // Calcular datos según la vista activa
+  // Calcular datos segÃºn la vista activa
   
   if (!isMounted) {
     return null;
@@ -684,7 +684,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
     <div className="h-full w-full flex flex-col max-w-[100vw] overflow-x-hidden">
       {/* Header del Calendario - Estilo Google Calendar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-5 pb-3 border-b border-[#E9ECEF] dark:border-[#6C757D]/30 gap-4 sm:gap-0">
-        {/* Título del mes/año, rango de semana o día */}
+        {/* TÃ­tulo del mes/aÃ±o, rango de semana o dÃ­a */}
         <h2 className="text-xl font-semibold text-[#0A2540] dark:text-white truncate max-w-full">
           {view === 'month' 
             ? currentDate.format('MMMM YYYY')
@@ -694,9 +694,9 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
           }
         </h2>
 
-        {/* Controles de navegación y vista */}
+        {/* Controles de navegaciÃ³n y vista */}
         <div className="flex items-center gap-2 sm:gap-4 w-full sm:w-auto justify-between sm:justify-end overflow-x-auto no-scrollbar">
-          {/* Botón para crear evento */}
+          {/* BotÃ³n para crear evento */}
           <button
             onClick={handleCreateEvent}
             className="px-3 sm:px-4 py-2 text-sm font-medium text-white bg-[#0A2540] hover:bg-[#0d2f4d] rounded-lg transition-colors flex items-center gap-2 flex-shrink-0"
@@ -736,11 +736,11 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                   : 'text-[#0A2540] dark:text-[#00D4B3] hover:text-white hover:bg-[#0A2540]/80 dark:hover:bg-[#00D4B3]/80'
               }`}
             >
-              Día
+              DÃ­a
             </button>
           </div>
 
-          {/* Controles de navegación */}
+          {/* Controles de navegaciÃ³n */}
           <div className="flex items-center gap-2">
             <motion.button
               layout
@@ -803,7 +803,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     ? 'Mes anterior' 
                     : view === 'week'
                     ? 'Semana anterior'
-                    : 'Día anterior'
+                    : 'DÃ­a anterior'
                 }
               >
                 <ChevronLeft className="w-5 h-5" />
@@ -822,7 +822,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     ? 'Mes siguiente' 
                     : view === 'week'
                     ? 'Semana siguiente'
-                    : 'Día siguiente'
+                    : 'DÃ­a siguiente'
                 }
               >
                 <ChevronRight className="w-5 h-5" />
@@ -832,13 +832,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         </div>
       </div>
 
-      {/* Contenido del Calendario según la vista */}
+      {/* Contenido del Calendario segÃºn la vista */}
       {view === 'month' && (
         /* Vista de Mes */
         <div className="flex-1 flex flex-col border-x-0 sm:border border-y sm:border-y border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-none sm:rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
           <div className="flex-1 flex flex-col w-full min-w-0">
             <div className="flex-1 flex flex-col w-full min-w-0">
-              {/* Headers de días de la semana */}
+              {/* Headers de dÃ­as de la semana */}
               <div className="grid grid-cols-7 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                 {weekDayNames.map((day, index) => (
                   <div
@@ -850,13 +850,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 ))}
               </div>
 
-          {/* Días del calendario */}
+          {/* DÃ­as del calendario */}
           <div className="flex-1 grid grid-cols-7 auto-rows-fr">
             {monthDays.map((dayInfo, index) => {
               const isCurrentMonth = dayInfo.isCurrentMonth;
               const isToday = dayInfo.isToday;
               
-              // Calcular eventos para este día
+              // Calcular eventos para este dÃ­a
               const dayEvents = getEventsForDay(dayInfo.date);
               const MAX_EVENTS_TO_SHOW = 3;
               const eventsToDisplay = dayEvents.slice(0, MAX_EVENTS_TO_SHOW);
@@ -880,7 +880,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     hover:bg-gray-50 dark:hover:bg-[#2C333A] cursor-pointer flex flex-col items-center sm:items-stretch overflow-hidden min-w-0
                   `}
                 >
-                  {/* Número del día */}
+                  {/* NÃºmero del dÃ­a */}
                   <div className="flex justify-between items-start mb-1">
                     <span
                       className={`
@@ -914,7 +914,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             backgroundColor: eventColor,
                             borderColor: eventColor,
                           }}
-                          title={`${event.title}${event.isAllDay ? ' (Todo el día)' : ''}`}
+                          title={`${event.title}${event.isAllDay ? ' (Todo el dÃ­a)' : ''}`}
                         >
                           {event.title}
                         </div>
@@ -922,7 +922,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                     })}
                     {moreCount > 0 && (
                       <div className="text-[8px] sm:text-[10px] text-gray-500 font-medium pl-1">
-                        +{moreCount} más
+                        +{moreCount} mÃ¡s
                       </div>
                     )}
                   </div>
@@ -939,12 +939,12 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329] w-full max-w-full">
           <div className="flex-1 flex flex-col overflow-x-auto touch-pan-x w-full">
             <div className="flex-1 flex flex-col min-w-[800px]">
-              {/* Headers de días de la semana */}
+              {/* Headers de dÃ­as de la semana */}
               <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            {/* Celda vacía para la columna de horas - Ancho fijo estrecho */}
+            {/* Celda vacÃ­a para la columna de horas - Ancho fijo estrecho */}
             <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0"></div>
             
-            {/* Headers de días - Flex para distribuir el espacio restante */}
+            {/* Headers de dÃ­as - Flex para distribuir el espacio restante */}
             <div className="flex flex-1">
               {weekDays.map((day, index) => {
                 const dayDate = weekDays[index];
@@ -977,7 +977,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </div>
           </div>
 
-          {/* Grid de horas y días */}
+          {/* Grid de horas y dÃ­as */}
           <div className="flex-1 overflow-y-auto">
             <div className="flex">
               {/* Columna de horas - Ancho fijo estrecho */}
@@ -994,7 +994,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 ))}
               </div>
 
-              {/* Columnas de días - Flex para distribuir el espacio restante */}
+              {/* Columnas de dÃ­as - Flex para distribuir el espacio restante */}
               <div className="flex flex-1 relative">
                 {weekDays.map((dayDate, dayIndex) => {
                   const isToday = dayDate.isSame(today, 'day');
@@ -1032,7 +1032,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                            isMicrosoft ? '#0078D4' : '#0066CC');
                         
                         if (position.isAllDay) {
-                          // Eventos de todo el día en la parte superior
+                          // Eventos de todo el dÃ­a en la parte superior
                           return (
                             <div
                               key={event.id}
@@ -1090,14 +1090,14 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       </div>
       )}
       {view === 'day' && (
-        /* Vista de Día - Estilo Google Calendar */
+        /* Vista de DÃ­a - Estilo Google Calendar */
         <div className="flex-1 flex flex-col border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg overflow-hidden bg-white dark:bg-[#1E2329]">
-          {/* Header del día */}
+          {/* Header del dÃ­a */}
           <div className="flex border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
-            {/* Celda vacía para la columna de horas - Ancho fijo estrecho */}
+            {/* Celda vacÃ­a para la columna de horas - Ancho fijo estrecho */}
             <div className="w-16 border-r border-[#E9ECEF] dark:border-[#6C757D]/30 flex-shrink-0"></div>
             
-            {/* Header del día - Ocupa todo el espacio restante */}
+            {/* Header del dÃ­a - Ocupa todo el espacio restante */}
             <div className="flex-1 px-4 py-3">
               <div className="flex items-center justify-between">
                 <div>
@@ -1125,7 +1125,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </div>
           </div>
 
-          {/* Grid de horas y día */}
+          {/* Grid de horas y dÃ­a */}
           <div className="flex-1 overflow-y-auto">
             <div className="flex">
               {/* Columna de horas - Ancho fijo estrecho */}
@@ -1142,7 +1142,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 ))}
               </div>
 
-              {/* Columna del día - Ocupa todo el espacio restante */}
+              {/* Columna del dÃ­a - Ocupa todo el espacio restante */}
               <div
                 className={`
                   flex-1 relative
@@ -1175,7 +1175,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                            isMicrosoft ? '#0078D4' : '#0066CC');
                         
                         if (position.isAllDay) {
-                          // Eventos de todo el día en la parte superior
+                          // Eventos de todo el dÃ­a en la parte superior
                           return (
                             <div
                               key={event.id}
@@ -1323,7 +1323,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                 {/* Contenido del Modal - Mejorado */}
                 <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 overscroll-contain">
                   {isEditMode || isCreatingEvent ? (
-                    /* Formulario de Edición/Creación - Mejorado */
+                    /* Formulario de EdiciÃ³n/CreaciÃ³n - Mejorado */
                     <form
                       onSubmit={(e) => {
                         e.preventDefault();
@@ -1331,13 +1331,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                       }}
                       className="space-y-5"
                     >
-                      {/* Título - Mejorado */}
+                      {/* TÃ­tulo - Mejorado */}
                       <div>
                         <input
                           type="text"
                           value={eventForm.title}
                           onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
-                          placeholder="Añadir título"
+                          placeholder="AÃ±adir tÃ­tulo"
                           className="w-full px-4 py-2.5 text-base font-medium bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                           required
                           autoFocus
@@ -1419,7 +1419,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           </div>
                         </div>
 
-                        {/* Checkbox Todo el día - Mejorado */}
+                        {/* Checkbox Todo el dÃ­a - Mejorado */}
                         <div className="flex items-center gap-3 pl-8">
                           <input
                             type="checkbox"
@@ -1429,39 +1429,39 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                             className="w-5 h-5 text-[#0A2540] border-[#E9ECEF] dark:border-[#6C757D] rounded-lg focus:ring-2 focus:ring-[#00D4B3] bg-white dark:bg-[#1E2329]"
                           />
                           <label htmlFor="isAllDay" className="text-sm font-medium text-[#0A2540] dark:text-white cursor-pointer">
-                            Todo el día
+                            Todo el dÃ­a
                           </label>
                         </div>
                       </div>
 
-                      {/* Ubicación - Mejorado */}
+                      {/* UbicaciÃ³n - Mejorado */}
                       <div className="flex items-start gap-3">
                         <MapPin className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-2.5" />
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
-                            Ubicación
+                            UbicaciÃ³n
                           </label>
                           <input
                             type="text"
                             value={eventForm.location}
                             onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
-                            placeholder="Añadir ubicación"
+                            placeholder="AÃ±adir ubicaciÃ³n"
                             className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all"
                           />
                         </div>
                       </div>
 
-                      {/* Descripción - Mejorado */}
+                      {/* DescripciÃ³n - Mejorado */}
                       <div className="flex items-start gap-3">
                         <CalendarIcon className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-2.5" />
                         <div className="flex-1">
                           <label className="block text-xs font-medium text-[#6C757D] dark:text-gray-400 mb-1.5">
-                            Descripción
+                            DescripciÃ³n
                           </label>
                           <textarea
                             value={eventForm.description}
                             onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
-                            placeholder="Añadir descripción"
+                            placeholder="AÃ±adir descripciÃ³n"
                             rows={4}
                             className="w-full px-3 py-2 text-sm border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg bg-white dark:bg-[#1E2329] text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#00D4B3] focus:border-transparent transition-all resize-none"
                           />
@@ -1502,7 +1502,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
             </div>
           </div>
 
-                      {/* Botones de acción - Mejorados */}
+                      {/* Botones de acciÃ³n - Mejorados */}
                       <div className="flex items-center justify-end gap-3 pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                         <button
                           type="button"
@@ -1539,7 +1539,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                   ) : (
                     /* Vista de Detalle - Mejorada */
                     <>
-                      {/* Indicador de color y título */}
+                      {/* Indicador de color y tÃ­tulo */}
                       <div className="flex items-start gap-4 mb-4">
                         <div 
                           className="w-5 h-5 rounded-lg flex-shrink-0 mt-0.5 shadow-sm"
@@ -1556,7 +1556,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           </h3>
                           {selectedEvent?.source === 'study_session' && (
                             <span className="inline-block px-2 py-0.5 text-xs font-medium text-[#0A2540] dark:text-[#00D4B3] bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-md">
-                              Sesión de estudio
+                              SesiÃ³n de estudio
                             </span>
                           )}
                         </div>
@@ -1569,7 +1569,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                           <div className="flex-1">
                             {selectedEvent.isAllDay ? (
                               <div className="text-sm text-[#0A2540] dark:text-white">
-                                <div className="font-semibold mb-1">Todo el día</div>
+                                <div className="font-semibold mb-1">Todo el dÃ­a</div>
                                 <div className="text-[#6C757D] dark:text-gray-400">
                                   {moment(selectedEvent.start).format('dddd, D [de] MMMM [de] YYYY')}
                                 </div>
@@ -1593,7 +1593,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         </div>
                       )}
 
-                      {/* Ubicación - Mejorado */}
+                      {/* UbicaciÃ³n - Mejorado */}
                       {selectedEvent?.location && (
                         <div className="flex items-start gap-3">
                           <MapPin className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-0.5" />
@@ -1605,7 +1605,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         </div>
                       )}
 
-                      {/* Descripción - Mejorado */}
+                      {/* DescripciÃ³n - Mejorado */}
                       {selectedEvent?.description && (
                         <div className="flex items-start gap-3">
                           <CalendarIcon className="w-5 h-5 text-[#6C757D] dark:text-gray-500 flex-shrink-0 mt-0.5" />
@@ -1617,13 +1617,13 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
                         </div>
                       )}
 
-                      {/* Información del proveedor - Mejorado */}
+                      {/* InformaciÃ³n del proveedor - Mejorado */}
                       {selectedEvent && (
                         <div className="pt-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30">
                           <div className="text-xs font-medium text-[#6C757D] dark:text-gray-400">
                             {selectedEvent.provider === 'google' && 'Sincronizado desde Google Calendar'}
                             {selectedEvent.provider === 'microsoft' && 'Sincronizado desde Microsoft Calendar'}
-                            {selectedEvent.provider === 'study' && 'Sesión de estudio planificada'}
+                            {selectedEvent.provider === 'study' && 'SesiÃ³n de estudio planificada'}
                             {selectedEvent.provider === 'local' && 'Evento personalizado'}
                           </div>
                         </div>
@@ -1646,7 +1646,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         duration={toast.type === 'error' ? 6000 : 4000}
       />
       
-      {/* Modal de Confirmación */}
+      {/* Modal de ConfirmaciÃ³n */}
       <AnimatePresence>
         {confirmDialog.isOpen && (
           <motion.div
@@ -1671,7 +1671,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
               {/* Header */}
               <div className="px-5 py-4 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
                 <h3 className="text-base font-semibold text-[#0A2540] dark:text-white">
-                  Confirmar eliminación
+                  Confirmar eliminaciÃ³n
                 </h3>
               </div>
 

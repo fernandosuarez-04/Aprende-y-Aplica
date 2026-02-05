@@ -131,11 +131,11 @@ export function ROIImpactSection() {
           </motion.span>
 
           <h2 className="text-3xl lg:text-5xl font-bold text-white mb-6">
-            {t('landing.roi.title', 'ROI que habla por sí mismo')}
+            {t('landing.roi.title', 'ROI que habla por sÃ­ mismo')}
           </h2>
 
           <p className="text-lg lg:text-xl text-white/60 max-w-3xl mx-auto">
-            {t('landing.roi.subtitle', 'Resultados reales de organizaciones que transformaron su capacitación con SOFIA')}
+            {t('landing.roi.subtitle', 'Resultados reales de organizaciones que transformaron su capacitaciÃ³n con SOFLIA')}
           </p>
         </motion.div>
 
@@ -208,7 +208,7 @@ export function ROIImpactSection() {
           className="text-center"
         >
           <p className="text-white/40 text-sm">
-            {t('landing.roi.disclaimer', '* Métricas basadas en resultados promedio de clientes. Los resultados pueden variar según la implementación.')}
+            {t('landing.roi.disclaimer', '* MÃ©tricas basadas en resultados promedio de clientes. Los resultados pueden variar segÃºn la implementaciÃ³n.')}
           </p>
         </motion.div>
       </div>

@@ -1,12 +1,12 @@
 {
-  "appName": "SOFIA",
+  "appName": "SOFLIA",
   "welcome": "Bienvenido",
   "language": "Idioma",
   "change_language": "Cambiar idioma",
   "languages": {
-    "es": "Español",
-    "en": "Inglés",
-    "pt": "Portugués"
+    "es": "EspaÃ±ol",
+    "en": "InglÃ©s",
+    "pt": "PortuguÃ©s"
   },
   "languageSelector": {
     "label": "Idioma: {{language}}",
@@ -19,7 +19,7 @@
     "news": "Noticias",
     "promptDirectory": {
       "title": "Prompt Directory",
-      "description": "Colección de prompts de IA"
+      "description": "ColecciÃ³n de prompts de IA"
     },
     "appsDirectory": {
       "title": "Apps Directory",
@@ -28,53 +28,53 @@
   },
   "navbar": {
     "home": "Inicio",
-    "login": "Iniciar Sesión",
+    "login": "Iniciar SesiÃ³n",
     "register": "Registrarse",
     "logoAlt": "Logo de Aprende y Aplica",
     "clickCounter": "Contador: {{current}}/{{total}}"
   },
   "aiChat": {
     "placeholder": "Escribe tu pregunta...",
-    "online": "En línea",
+    "online": "En lÃ­nea",
     "pressEnter": "Presiona Enter para enviar",
     "clickToSend": "Clic para enviar",
     "clickToDictate": "Clic para dictar",
     "responseFallback": "Lo siento, no pude procesar tu mensaje en este momento.",
-    "errorGeneric": "Lo siento, ocurrió un error. Por favor intenta de nuevo.",
-    "helpPrompt": "¿Qué puedo hacer aquí? Ayúdame",
+    "errorGeneric": "Lo siento, ocurriÃ³ un error. Por favor intenta de nuevo.",
+    "helpPrompt": "Â¿QuÃ© puedo hacer aquÃ­? AyÃºdame",
     "helpFallback": "Lo siento, no pude generar una respuesta.",
     "helpError": "Lo siento, hubo un error al procesar tu solicitud de ayuda. Por favor, intenta de nuevo.",
-    "initialMessage": "¡Hola! 👋 Soy Lia, tu asistente de IA. Estoy aquí para ayudarte con cualquier pregunta que tengas.",
-    "clearConversation": "Limpiar conversación",
+    "initialMessage": "Â¡Hola! ðŸ‘‹ Soy Lia, tu asistente de IA. Estoy aquÃ­ para ayudarte con cualquier pregunta que tengas.",
+    "clearConversation": "Limpiar conversaciÃ³n",
     "changeMode": "Cambiar modo de Lia",
     "clearContext": "Limpiar contexto",
-    "clearContextConfirm": "¿Deseas limpiar el contexto y empezar una conversación nueva?",
+    "clearContextConfirm": "Â¿Deseas limpiar el contexto y empezar una conversaciÃ³n nueva?",
     "reportProblem": "Reportar problema",
     "promptMode": {
-      "placeholder": "Describe qué tipo de prompt quieres crear...",
-      "title": "Diseñador de Prompts",
+      "placeholder": "Describe quÃ© tipo de prompt quieres crear...",
+      "title": "DiseÃ±ador de Prompts",
       "description": "Crea y refina prompts profesionales guiados por LIA.",
       "viewGenerated": "Ver Prompt Generado",
       "download": "Descargar",
-      "titleLabel": "Título",
+      "titleLabel": "TÃ­tulo",
       "contentLabel": "Contenido",
-      "emptyDescription": "Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prácticas.",
-      "loginRequired": "Debes iniciar sesión para guardar prompts"
+      "emptyDescription": "Genera y refina prompts profesionales. Indica el objetivo, el tono y los requisitos; LIA te entrega un prompt listo para usar con buenas prÃ¡cticas.",
+      "loginRequired": "Debes iniciar sesiÃ³n para guardar prompts"
     },
     "nanobanaMode": {
       "title": "NanoBanana Pro",
       "description": "Genera JSON estructurado para renderizado visual preciso.",
-      "emptyDescription": "Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografías o diagramas y obtén esquemas precisos y reproducibles.",
-      "welcome": "🎨 ¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**¿Qué puedo crear?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Fotografías (productos, marketing, lifestyle)\n• 📊 Diagramas (flujos, arquitecturas, procesos)\n\nDescríbeme lo que necesitas y generaré un JSON preciso y reproducible.",
+      "emptyDescription": "Genera JSON estructurado para NanoBanana Pro. Describe UI, fotografÃ­as o diagramas y obtÃ©n esquemas precisos y reproducibles.",
+      "welcome": "ðŸŽ¨ Â¡Bienvenido al Modo NanoBanana!\n\nSoy tu asistente para crear JSON estructurado optimizado para NanoBanana Pro.\n\n**Â¿QuÃ© puedo crear?**\nâ€¢ ðŸ“± UI/Wireframes (apps, dashboards, landing pages)\nâ€¢ ðŸ“¸ FotografÃ­as (productos, marketing, lifestyle)\nâ€¢ ðŸ“Š Diagramas (flujos, arquitecturas, procesos)\n\nDescrÃ­beme lo que necesitas y generarÃ© un JSON preciso y reproducible.",
       "viewJson": "Ver JSON NanoBanana"
     },
     "contextMode": {
       "title": "Contexto Persistente",
-      "description": "Mantiene los últimos {{count}} mensajes entre páginas",
-      "emptyDescription": "Mantiene la conversación activa entre páginas. Guarda automáticamente los últimos {{count}} mensajes para continuar donde lo dejaste.",
+      "description": "Mantiene los Ãºltimos {{count}} mensajes entre pÃ¡ginas",
+      "emptyDescription": "Mantiene la conversaciÃ³n activa entre pÃ¡ginas. Guarda automÃ¡ticamente los Ãºltimos {{count}} mensajes para continuar donde lo dejaste.",
       "active": "Contexto activo: {{count}} mensaje",
       "active_plural": "Contexto activo: {{count}} mensajes",
-      "showingLast": "(mostrando últimos {{count}})"
+      "showingLast": "(mostrando Ãºltimos {{count}})"
     },
     "assistantMode": {
       "title": "Asistente",
@@ -87,7 +87,7 @@
       "speaking": "Hablando...",
       "tapToSpeak": "Toca para hablar",
       "tapToStop": "Toca para detener",
-      "microphoneError": "Error al acceder al micrófono",
+      "microphoneError": "Error al acceder al micrÃ³fono",
       "speechNotSupported": "Tu navegador no soporta reconocimiento de voz"
     }
   },
@@ -103,71 +103,71 @@
   "onboarding": {
     "steps": {
       "1": {
-        "title": "¡Bienvenido a Aprende y Aplica!",
-        "description": "Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial.",
-        "speech": "Bienvenido a Aprende y Aplica. Soy tu asistente inteligente. Estoy aquí para guiarte en tu viaje de aprendizaje con inteligencia artificial."
+        "title": "Â¡Bienvenido a Aprende y Aplica!",
+        "description": "Soy tu asistente inteligente. Estoy aquÃ­ para guiarte en tu viaje de aprendizaje con inteligencia artificial.",
+        "speech": "Bienvenido a Aprende y Aplica. Soy tu asistente inteligente. Estoy aquÃ­ para guiarte en tu viaje de aprendizaje con inteligencia artificial."
       },
       "2": {
         "title": "Conoce a LIA",
-        "description": "LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas, ayudarte con tareas y adaptarse al contexto de cada página.",
-        "speech": "LIA es tu compañera de aprendizaje que te acompañará en todas partes. Puede responder tus preguntas y adaptarse al contexto de cada página.",
+        "description": "LIA es tu compaÃ±era de aprendizaje que te acompaÃ±arÃ¡ en todas partes. Puede responder tus preguntas, ayudarte con tareas y adaptarse al contexto de cada pÃ¡gina.",
+        "speech": "LIA es tu compaÃ±era de aprendizaje que te acompaÃ±arÃ¡ en todas partes. Puede responder tus preguntas y adaptarse al contexto de cada pÃ¡gina.",
         "actionLabel": "Ver Dashboard"
       },
       "3": {
         "title": "Explora el contenido",
-        "description": "Accede a cursos, talleres, comunidades y noticias sobre IA. Todo diseñado para que aprendas de manera práctica y efectiva.",
-        "speech": "Accede a cursos, talleres, comunidades y noticias sobre inteligencia artificial. Todo diseñado para que aprendas de manera práctica y efectiva.",
+        "description": "Accede a cursos, talleres, comunidades y noticias sobre IA. Todo diseÃ±ado para que aprendas de manera prÃ¡ctica y efectiva.",
+        "speech": "Accede a cursos, talleres, comunidades y noticias sobre inteligencia artificial. Todo diseÃ±ado para que aprendas de manera prÃ¡ctica y efectiva.",
         "actionLabel": "Ver Cursos"
       },
       "4": {
-        "title": "¡Estás listo!",
-        "description": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible en la esquina inferior derecha para ayudarte.",
-        "speech": "Ahora puedes comenzar tu aventura. Recuerda, LIA estará siempre disponible para ayudarte.",
+        "title": "Â¡EstÃ¡s listo!",
+        "description": "Ahora puedes comenzar tu aventura. Recuerda, LIA estarÃ¡ siempre disponible en la esquina inferior derecha para ayudarte.",
+        "speech": "Ahora puedes comenzar tu aventura. Recuerda, LIA estarÃ¡ siempre disponible para ayudarte.",
         "actionLabel": "Comenzar"
       }
     },
     "buttons": {
       "previous": "Anterior",
       "next": "Siguiente",
-      "start": "¡Comenzar!",
-      "skipIntro": "Saltar introducción"
+      "start": "Â¡Comenzar!",
+      "skipIntro": "Saltar introducciÃ³n"
     }
   },
   "menu": {
-    "stats": "Mis Estadísticas",
+    "stats": "Mis EstadÃ­sticas",
     "learning": "Mi aprendizaje",
     "certificates": "Mis Certificados",
     "notifications": "Notificaciones",
     "profile": "Editar perfil",
-    "account": "Configuración de la cuenta",
+    "account": "ConfiguraciÃ³n de la cuenta",
     "subscriptions": "Suscripciones",
-    "paymentMethods": "Métodos de pago",
+    "paymentMethods": "MÃ©todos de pago",
     "purchaseHistory": "Historial de compras",
     "theme": {
       "system": "Modo sistema",
       "light": "Modo claro",
       "dark": "Modo oscuro"
     },
-    "adminPanel": "Panel de Administración",
+    "adminPanel": "Panel de AdministraciÃ³n",
     "instructorPanel": "Panel de Instructor",
     "viewTour": "Ver Tour",
-    "logout": "Cerrar sesión"
+    "logout": "Cerrar sesiÃ³n"
   },
   "lia": {
     "tips": [
-      "¿Encontraste un bug? Cuéntame y lo reportaré.",
-      "Si te perdiste en esta página, dime y te guío.",
-      "¿Buscas un recurso específico? Pregúntame.",
+      "Â¿Encontraste un bug? CuÃ©ntame y lo reportarÃ©.",
+      "Si te perdiste en esta pÃ¡gina, dime y te guÃ­o.",
+      "Â¿Buscas un recurso especÃ­fico? PregÃºntame.",
       "Puedo explicarte cualquier concepto de tu curso.",
-      "¿Necesitas revisar tu progreso? Estoy aquí para ayudar.",
-      "Pídeme un resumen de tu última lección.",
-      "¿Quieres practicar con un quiz rápido? Solo pídelo."
+      "Â¿Necesitas revisar tu progreso? Estoy aquÃ­ para ayudar.",
+      "PÃ­deme un resumen de tu Ãºltima lecciÃ³n.",
+      "Â¿Quieres practicar con un quiz rÃ¡pido? Solo pÃ­delo."
     ],
     "quickActions": {
-      "capabilities": "¿Qué puedes hacer?",
+      "capabilities": "Â¿QuÃ© puedes hacer?",
       "courses": "Ver mis cursos",
-      "recommend": "Recomiéndame",
-      "help": "Ayuda rápida"
+      "recommend": "RecomiÃ©ndame",
+      "help": "Ayuda rÃ¡pida"
     },
     "header": {
       "title": "LIA",
@@ -175,7 +175,7 @@
     },
     "chat": {
       "inputPlaceholder": "Escribe un mensaje a LIA...",
-      "cleanHistory": "Limpiar conversación"
+      "cleanHistory": "Limpiar conversaciÃ³n"
     }
   },
   "landing": {
@@ -191,13 +191,13 @@
       "scheduleDemo": "Agendar demo"
     },
     "hero": {
-      "tag": "Plataforma B2B de Capacitación en IA",
-      "title": "Capacitación en IA con",
+      "tag": "Plataforma B2B de CapacitaciÃ³n en IA",
+      "title": "CapacitaciÃ³n en IA con",
       "highlight": "impacto medible",
-      "titleEnd": "para tu organización",
-      "description": "SOFIA es la plataforma de capacitación corporativa que combina inteligencia artificial, planificación inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.",
+      "titleEnd": "para tu organizaciÃ³n",
+      "description": "SOFLIA es la plataforma de capacitaciÃ³n corporativa que combina inteligencia artificial, planificaciÃ³n inteligente y certificaciones verificables para desarrollar las competencias de tu equipo.",
       "ctaPrimary": "Agendar demo ejecutiva",
-      "ctaSecondary": "Solicitar diagnóstico",
+      "ctaSecondary": "Solicitar diagnÃ³stico",
       "benefits": {
         "aiPowered": "Potenciado por IA",
         "measurable": "Resultados medibles",
@@ -205,13 +205,13 @@
       }
     },
     "logoWall": {
-      "title": "Organizaciones que confían en SOFIA"
+      "title": "Organizaciones que confÃ­an en SOFLIA"
     },
     "lia": {
       "badge": "Inteligencia Artificial",
       "tag": "Tu asistente personal",
       "title": "Conoce a",
-      "description": "Tu asistente de aprendizaje con inteligencia artificial que te guía, responde tus dudas y personaliza tu experiencia de capacitación en tiempo real.",
+      "description": "Tu asistente de aprendizaje con inteligencia artificial que te guÃ­a, responde tus dudas y personaliza tu experiencia de capacitaciÃ³n en tiempo real.",
       "features": {
         "chat": "Chat Inteligente",
         "chatDesc": "Respuestas instant en ES, EN, PT",
@@ -224,11 +224,11 @@
       }
     },
     "trust": {
-      "title": "Enterprise-ready desde el día uno",
-      "subtitle": "Diseñada para cumplir con los estándares más exigentes de capacitación corporativa",
+      "title": "Enterprise-ready desde el dÃ­a uno",
+      "subtitle": "DiseÃ±ada para cumplir con los estÃ¡ndares mÃ¡s exigentes de capacitaciÃ³n corporativa",
       "badges": {
         "multilingual": {
-          "title": "Multilingüe",
+          "title": "MultilingÃ¼e",
           "description": "ES, EN, PT"
         },
         "scorm": {
@@ -261,20 +261,20 @@
     },
     "platform": {
       "tag": "La Plataforma",
-      "title": "Capacitación corporativa potenciada por inteligencia artificial",
-      "description": "SOFIA combina tecnología de punta con diseño centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organización.",
+      "title": "CapacitaciÃ³n corporativa potenciada por inteligencia artificial",
+      "description": "SOFLIA combina tecnologÃ­a de punta con diseÃ±o centrado en el usuario para ofrecer una experiencia de aprendizaje que genera resultados medibles para tu organizaciÃ³n.",
       "features": {
         "aiTraining": {
-          "title": "Capacitación en IA",
+          "title": "CapacitaciÃ³n en IA",
           "description": "Cursos especializados en inteligencia artificial para equipos corporativos"
         },
         "liaAssistant": {
           "title": "Asistente LIA",
-          "description": "IA contextual 24/7 que se adapta a cada usuario y lección"
+          "description": "IA contextual 24/7 que se adapta a cada usuario y lecciÃ³n"
         },
         "studyPlanner": {
           "title": "Planificador de Estudios",
-          "description": "Sincronización automática con Google Calendar y Microsoft Outlook"
+          "description": "SincronizaciÃ³n automÃ¡tica con Google Calendar y Microsoft Outlook"
         },
         "analytics": {
           "title": "Analytics Ejecutivos",
@@ -282,14 +282,14 @@
         },
         "certificates": {
           "title": "Certificados Verificables",
-          "description": "Hash SHA-256 + QR para validación instantánea"
+          "description": "Hash SHA-256 + QR para validaciÃ³n instantÃ¡nea"
         }
       }
     },
     "capabilities": {
       "tag": "Capacidades",
       "title": "Todo lo que necesitas para capacitar a tu equipo",
-      "subtitle": "Cada funcionalidad está diseñada para generar impacto medible en tu organización",
+      "subtitle": "Cada funcionalidad estÃ¡ diseÃ±ada para generar impacto medible en tu organizaciÃ³n",
       "items": {
         "lia": {
           "title": "LIA - Asistente IA",
@@ -298,8 +298,8 @@
         },
         "studyPlanner": {
           "title": "Study Planner",
-          "benefit": "Sincronización con calendarios corporativos",
-          "result": "Adopción sin fricción"
+          "benefit": "SincronizaciÃ³n con calendarios corporativos",
+          "result": "AdopciÃ³n sin fricciÃ³n"
         },
         "analytics": {
           "title": "Analytics y Reportes",
@@ -307,13 +307,13 @@
           "result": "Visibilidad de ROI"
         },
         "teams": {
-          "title": "Gestión por Equipos",
-          "benefit": "Jerarquías región/zona/equipo",
+          "title": "GestiÃ³n por Equipos",
+          "benefit": "JerarquÃ­as regiÃ³n/zona/equipo",
           "result": "Control granular"
         },
         "certificates": {
           "title": "Certificados",
-          "benefit": "Hash + QR verificable públicamente",
+          "benefit": "Hash + QR verificable pÃºblicamente",
           "result": "Credenciales confiables"
         },
         "whiteLabel": {
@@ -323,12 +323,12 @@
         },
         "scorm": {
           "title": "SCORM",
-          "benefit": "Compatibilidad con estándares e-learning",
-          "result": "Migración sin fricciones"
+          "benefit": "Compatibilidad con estÃ¡ndares e-learning",
+          "result": "MigraciÃ³n sin fricciones"
         },
         "community": {
           "title": "Comunidad",
-          "benefit": "Foros y colaboración entre empleados",
+          "benefit": "Foros y colaboraciÃ³n entre empleados",
           "result": "Cultura de aprendizaje"
         }
       }
@@ -336,46 +336,46 @@
     "useCases": {
       "tag": "Casos de Uso",
       "title": "Casos de uso que impulsan resultados",
-      "subtitle": "Cada solución está diseñada para resolver desafíos específicos de tu organización",
+      "subtitle": "Cada soluciÃ³n estÃ¡ diseÃ±ada para resolver desafÃ­os especÃ­ficos de tu organizaciÃ³n",
       "labels": {
-        "pain": "Desafío",
-        "solution": "Solución",
+        "pain": "DesafÃ­o",
+        "solution": "SoluciÃ³n",
         "result": "Resultado"
       },
       "items": {
         "upskilling": {
           "title": "Upskilling en IA a Escala",
           "pain": "Equipos sin competencias en inteligencia artificial",
-          "solution": "Rutas de aprendizaje estructuradas con certificación",
-          "result": "Capacitación estandarizada en toda la organización"
+          "solution": "Rutas de aprendizaje estructuradas con certificaciÃ³n",
+          "result": "CapacitaciÃ³n estandarizada en toda la organizaciÃ³n"
         },
         "onboarding": {
           "title": "Onboarding Acelerado",
           "pain": "Tiempo de productividad demasiado largo",
-          "solution": "Rutas de inducción + LIA como guía",
-          "result": "Reducción de tiempo de ramp-up"
+          "solution": "Rutas de inducciÃ³n + LIA como guÃ­a",
+          "result": "ReducciÃ³n de tiempo de ramp-up"
         },
         "salesEnablement": {
           "title": "Enablement Comercial",
           "pain": "Equipos de ventas desactualizados",
-          "solution": "Capacitación continua + certificaciones",
-          "result": "Mejora en tasas de conversión"
+          "solution": "CapacitaciÃ³n continua + certificaciones",
+          "result": "Mejora en tasas de conversiÃ³n"
         },
         "partnerTraining": {
-          "title": "Capacitación a Partners",
+          "title": "CapacitaciÃ³n a Partners",
           "pain": "Partners sin conocimiento de producto",
           "solution": "Portal white-label para canales",
-          "result": "Partners más productivos"
+          "result": "Partners mÃ¡s productivos"
         },
         "customerTraining": {
-          "title": "Capacitación a Clientes",
-          "pain": "Baja adopción de producto",
+          "title": "CapacitaciÃ³n a Clientes",
+          "pain": "Baja adopciÃ³n de producto",
           "solution": "Academy para clientes y usuarios",
-          "result": "Mayor retención y NPS"
+          "result": "Mayor retenciÃ³n y NPS"
         },
         "compliance": {
-          "title": "Compliance y Estandarización",
-          "pain": "Falta de trazabilidad en capacitación",
+          "title": "Compliance y EstandarizaciÃ³n",
+          "pain": "Falta de trazabilidad en capacitaciÃ³n",
           "solution": "Certificados verificables + reportes",
           "result": "Cumplimiento auditable"
         }
@@ -383,50 +383,50 @@
     },
     "roi": {
       "tag": "Impacto Medible",
-      "title": "ROI que habla por sí mismo",
-      "subtitle": "Resultados reales de organizaciones que transformaron su capacitación con SOFIA",
+      "title": "ROI que habla por sÃ­ mismo",
+      "subtitle": "Resultados reales de organizaciones que transformaron su capacitaciÃ³n con SOFLIA",
       "metrics": {
-        "onboarding": "Reducción tiempo de onboarding",
+        "onboarding": "ReducciÃ³n tiempo de onboarding",
         "savings": "Ahorro anual estimado",
         "completion": "Tasa de completitud de cursos",
         "productivity": "Incremento en productividad"
       },
-      "disclaimer": "* Métricas basadas en resultados promedio de clientes. Los resultados pueden variar según la implementación."
+      "disclaimer": "* MÃ©tricas basadas en resultados promedio de clientes. Los resultados pueden variar segÃºn la implementaciÃ³n."
     },
     "integrations": {
       "tag": "Integraciones",
       "title": "Se integra con tu stack corporativo",
-      "description": "Conecta SOFIA con tus herramientas existentes para una experiencia sin fricciones. Despliegue ágil con sincronización de calendarios, compatibilidad e-learning y opciones para integraciones personalizadas.",
+      "description": "Conecta SOFLIA con tus herramientas existentes para una experiencia sin fricciones. Despliegue Ã¡gil con sincronizaciÃ³n de calendarios, compatibilidad e-learning y opciones para integraciones personalizadas.",
       "features": {
-        "calendar": "Sincronización con Google Calendar y Microsoft Outlook",
+        "calendar": "SincronizaciÃ³n con Google Calendar y Microsoft Outlook",
         "elearning": "Compatible con SCORM",
         "api": "Conectividad para CRM, HRIS y sistemas internos",
-        "deploy": "Implementación en semanas, no meses"
+        "deploy": "ImplementaciÃ³n en semanas, no meses"
       },
-      "cta": "Más información"
+      "cta": "MÃ¡s informaciÃ³n"
     },
     "liaSection": {
       "tag": "Asistente de IA",
-      "title": "¿Qué puede hacer",
+      "title": "Â¿QuÃ© puede hacer",
       "titleEnd": "por ti?",
-      "description": "LIA es tu asistente de aprendizaje con inteligencia artificial, disponible 24/7 para ayudarte en cada paso de tu capacitación.",
+      "description": "LIA es tu asistente de aprendizaje con inteligencia artificial, disponible 24/7 para ayudarte en cada paso de tu capacitaciÃ³n.",
       "capabilitiesTitle": "Capacidades de LIA",
       "actionsTitle": "LIA puede ayudarte a:",
       "capabilities": {
-        "conversation": "Conversación Natural",
-        "conversationDesc": "Comunícate como si hablaras con un tutor personal",
+        "conversation": "ConversaciÃ³n Natural",
+        "conversationDesc": "ComunÃ­cate como si hablaras con un tutor personal",
         "context": "Contexto Inteligente",
-        "contextDesc": "Entiende en qué lección estás y te ayuda específicamente",
+        "contextDesc": "Entiende en quÃ© lecciÃ³n estÃ¡s y te ayuda especÃ­ficamente",
         "studyPlanner": "Planificador Proactivo",
         "studyPlannerDesc": "Crea y gestiona tu plan de estudios, detecta atrasos y reprograma",
-        "rolePersonalization": "Según tu Rol",
-        "rolePersonalizationDesc": "Personaliza la experiencia según tu cargo y nivel en la empresa",
-        "anywhere": "Donde Estés",
-        "anywhereDesc": "Te ayuda en cualquier sección de la plataforma",
-        "multilingual": "Multilingüe",
-        "multilingualDesc": "Responde en español, inglés y portugués",
+        "rolePersonalization": "SegÃºn tu Rol",
+        "rolePersonalizationDesc": "Personaliza la experiencia segÃºn tu cargo y nivel en la empresa",
+        "anywhere": "Donde EstÃ©s",
+        "anywhereDesc": "Te ayuda en cualquier secciÃ³n de la plataforma",
+        "multilingual": "MultilingÃ¼e",
+        "multilingualDesc": "Responde en espaÃ±ol, inglÃ©s y portuguÃ©s",
         "recommendations": "Recomendaciones",
-        "recommendationsDesc": "Sugiere cursos y recursos según tus intereses",
+        "recommendationsDesc": "Sugiere cursos y recursos segÃºn tus intereses",
         "support": "Soporte Continuo",
         "supportDesc": "Disponible 24/7 para resolver tus dudas"
       },
@@ -435,118 +435,118 @@
         "1": "Explicar conceptos complejos de manera simple",
         "2": "Crear y gestionar tu plan de estudios proactivamente",
         "3": "Detectar sesiones atrasadas y proponer reprogramaciones",
-        "4": "Personalizar recomendaciones según tu rol y nivel",
-        "5": "Ayudarte en cualquier sección de la plataforma",
+        "4": "Personalizar recomendaciones segÃºn tu rol y nivel",
+        "5": "Ayudarte en cualquier secciÃ³n de la plataforma",
         "6": "Guiarte por la plataforma paso a paso",
-        "7": "Generar resúmenes de lecciones"
+        "7": "Generar resÃºmenes de lecciones"
       },
       "preview": {
-        "online": "En línea",
-        "message": "¡Hola! 👋 Soy LIA, tu asistente de aprendizaje. Estoy aquí para ayudarte a alcanzar tus metas de capacitación. ¿En qué puedo ayudarte hoy?",
+        "online": "En lÃ­nea",
+        "message": "Â¡Hola! ðŸ‘‹ Soy LIA, tu asistente de aprendizaje. Estoy aquÃ­ para ayudarte a alcanzar tus metas de capacitaciÃ³n. Â¿En quÃ© puedo ayudarte hoy?",
         "placeholder": "Escribe tu pregunta..."
       }
     },
     "security": {
       "tag": "Seguridad Enterprise",
-      "title": "Gobierno y control que tu organización necesita",
-      "subtitle": "Diseñada para cumplir con los estándares de seguridad y trazabilidad más exigentes",
+      "title": "Gobierno y control que tu organizaciÃ³n necesita",
+      "subtitle": "DiseÃ±ada para cumplir con los estÃ¡ndares de seguridad y trazabilidad mÃ¡s exigentes",
       "features": {
         "roles": {
           "title": "Roles y Permisos",
-          "description": "Control granular de acceso por rol y jerarquía",
+          "description": "Control granular de acceso por rol y jerarquÃ­a",
           "check1": "Permisos personalizables",
-          "check2": "Segregación de datos"
+          "check2": "SegregaciÃ³n de datos"
         },
         "hierarchy": {
-          "title": "Gestión Jerárquica",
-          "description": "Organiza por región, zona, departamento y equipo",
+          "title": "GestiÃ³n JerÃ¡rquica",
+          "description": "Organiza por regiÃ³n, zona, departamento y equipo",
           "check1": "Multinivel flexible",
           "check2": "Reportes por unidad"
         },
         "audit": {
-          "title": "Auditoría y Logs",
+          "title": "AuditorÃ­a y Logs",
           "description": "Trazabilidad completa de acciones y eventos",
           "check1": "Historial completo",
-          "check2": "Exportable para auditorías"
+          "check2": "Exportable para auditorÃ­as"
         },
         "visibility": {
           "title": "Visibilidad Ejecutiva",
-          "description": "Dashboards y reportes para la dirección",
+          "description": "Dashboards y reportes para la direcciÃ³n",
           "check1": "KPIs en tiempo real",
           "check2": "Alertas configurables"
         },
         "encryption": {
-          "title": "Encriptación",
-          "description": "Datos protegidos en tránsito y en reposo",
+          "title": "EncriptaciÃ³n",
+          "description": "Datos protegidos en trÃ¡nsito y en reposo",
           "check1": "TLS 1.3",
-          "check2": "Encriptación AES-256"
+          "check2": "EncriptaciÃ³n AES-256"
         },
         "sso": {
           "title": "SSO / SAML",
-          "description": "Integración con proveedores de identidad",
+          "description": "IntegraciÃ³n con proveedores de identidad",
           "check1": "Azure AD, Okta, Google",
-          "check2": "Próximamente disponible"
+          "check2": "PrÃ³ximamente disponible"
         }
       },
-      "badge": "Enterprise-ready desde el día uno"
+      "badge": "Enterprise-ready desde el dÃ­a uno"
     },
     "faq": {
       "tag": "Preguntas Frecuentes",
       "title": "Respuestas a las preguntas que importan",
-      "subtitle": "Todo lo que necesitas saber para tomar una decisión informada.",
+      "subtitle": "Todo lo que necesitas saber para tomar una decisiÃ³n informada.",
       "help": {
-        "title": "¿Tienes más preguntas?",
+        "title": "Â¿Tienes mÃ¡s preguntas?",
         "description": "Agenda una demo y resolvemos todas tus dudas."
       },
       "items": {
         "roi": {
-          "question": "¿Cómo se mide el ROI de la capacitación?",
-          "answer": "SOFIA proporciona dashboards con métricas clave: tasa de completitud, tiempo de capacitación, certificaciones obtenidas y correlación con indicadores de negocio. Puedes exportar reportes para justificar la inversión ante dirección."
+          "question": "Â¿CÃ³mo se mide el ROI de la capacitaciÃ³n?",
+          "answer": "SOFLIA proporciona dashboards con mÃ©tricas clave: tasa de completitud, tiempo de capacitaciÃ³n, certificaciones obtenidas y correlaciÃ³n con indicadores de negocio. Puedes exportar reportes para justificar la inversiÃ³n ante direcciÃ³n."
         },
         "implementation": {
-          "question": "¿Cuál es el tiempo de implementación?",
-          "answer": "La implementación típica toma 2-4 semanas, dependiendo de la complejidad de tu estructura organizacional y las integraciones requeridas. Ofrecemos acompañamiento completo durante el proceso."
+          "question": "Â¿CuÃ¡l es el tiempo de implementaciÃ³n?",
+          "answer": "La implementaciÃ³n tÃ­pica toma 2-4 semanas, dependiendo de la complejidad de tu estructura organizacional y las integraciones requeridas. Ofrecemos acompaÃ±amiento completo durante el proceso."
         },
         "integration": {
-          "question": "¿Cómo se integra con sistemas existentes?",
-          "answer": "SOFIA ofrece integración nativa con Google Calendar y Microsoft Outlook. Para CRM, HRIS y otros sistemas, proporcionamos integración documentada para sincronización."
+          "question": "Â¿CÃ³mo se integra con sistemas existentes?",
+          "answer": "SOFLIA ofrece integraciÃ³n nativa con Google Calendar y Microsoft Outlook. Para CRM, HRIS y otros sistemas, proporcionamos integraciÃ³n documentada para sincronizaciÃ³n."
         },
         "governance": {
-          "question": "¿Cómo se gobierna el acceso y la trazabilidad?",
-          "answer": "El sistema incluye roles y permisos personalizables, gestión por jerarquías organizacionales, y logs de auditoría completos. Todo es exportable para cumplir con requerimientos de compliance."
+          "question": "Â¿CÃ³mo se gobierna el acceso y la trazabilidad?",
+          "answer": "El sistema incluye roles y permisos personalizables, gestiÃ³n por jerarquÃ­as organizacionales, y logs de auditorÃ­a completos. Todo es exportable para cumplir con requerimientos de compliance."
         },
         "multilingual": {
-          "question": "¿Cómo soporta multi-idioma?",
-          "answer": "SOFIA está disponible en español, inglés y portugués. LIA detecta automáticamente el idioma del usuario y responde en ese idioma. El contenido puede estar disponible en múltiples idiomas."
+          "question": "Â¿CÃ³mo soporta multi-idioma?",
+          "answer": "SOFLIA estÃ¡ disponible en espaÃ±ol, inglÃ©s y portuguÃ©s. LIA detecta automÃ¡ticamente el idioma del usuario y responde en ese idioma. El contenido puede estar disponible en mÃºltiples idiomas."
         },
         "certificates": {
-          "question": "¿Cómo funciona la certificación verificable?",
-          "answer": "Cada certificado tiene un hash SHA-256 único y un código QR. Cualquiera puede verificar la autenticidad del certificado en nuestra página pública de verificación sin necesidad de crear cuenta."
+          "question": "Â¿CÃ³mo funciona la certificaciÃ³n verificable?",
+          "answer": "Cada certificado tiene un hash SHA-256 Ãºnico y un cÃ³digo QR. Cualquiera puede verificar la autenticidad del certificado en nuestra pÃ¡gina pÃºblica de verificaciÃ³n sin necesidad de crear cuenta."
         },
         "whitelabel": {
-          "question": "¿Qué incluye el white-label?",
-          "answer": "El plan Enterprise incluye personalización completa: logo, colores, tipografía, dominio personalizado y certificados con branding corporativo. Tu equipo verá la plataforma como si fuera propia."
+          "question": "Â¿QuÃ© incluye el white-label?",
+          "answer": "El plan Enterprise incluye personalizaciÃ³n completa: logo, colores, tipografÃ­a, dominio personalizado y certificados con branding corporativo. Tu equipo verÃ¡ la plataforma como si fuera propia."
         },
         "adoption": {
-          "question": "¿Cómo se gestiona el cambio y adopción?",
-          "answer": "LIA actúa como guía durante todo el proceso, ayudando a los usuarios a navegar la plataforma. Además, ofrecemos materiales de onboarding, comunicación interna sugerida y métricas de adopción en tiempo real."
+          "question": "Â¿CÃ³mo se gestiona el cambio y adopciÃ³n?",
+          "answer": "LIA actÃºa como guÃ­a durante todo el proceso, ayudando a los usuarios a navegar la plataforma. AdemÃ¡s, ofrecemos materiales de onboarding, comunicaciÃ³n interna sugerida y mÃ©tricas de adopciÃ³n en tiempo real."
         }
       }
     },
     "cta": {
       "tag": "Comienza Hoy",
-      "title": "Transforma la capacitación de tu organización",
-      "subtitle": "Agenda una demo ejecutiva y descubre cómo SOFIA puede impulsar el desarrollo de tu equipo con resultados medibles.",
+      "title": "Transforma la capacitaciÃ³n de tu organizaciÃ³n",
+      "subtitle": "Agenda una demo ejecutiva y descubre cÃ³mo SOFLIA puede impulsar el desarrollo de tu equipo con resultados medibles.",
       "form": {
         "name": "Tu nombre",
         "email": "tu@empresa.com",
         "company": "Nombre de tu empresa",
         "submit": "Solicitar demo ejecutiva",
-        "alternative": "¿Prefieres contactarnos directamente?"
+        "alternative": "Â¿Prefieres contactarnos directamente?"
       },
       "success": {
-        "title": "¡Mensaje recibido!",
-        "description": "Nuestro equipo se pondrá en contacto contigo pronto para agendar tu demo."
+        "title": "Â¡Mensaje recibido!",
+        "description": "Nuestro equipo se pondrÃ¡ en contacto contigo pronto para agendar tu demo."
       },
       "trust": {
         "noCommitment": "Sin compromiso",
@@ -555,15 +555,15 @@
       }
     },
     "footer": {
-      "description": "Plataforma de capacitación corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificación inteligente y certificaciones verificables.",
+      "description": "Plataforma de capacitaciÃ³n corporativa en IA que transforma el desarrollo de talento con inteligencia artificial, planificaciÃ³n inteligente y certificaciones verificables.",
       "sections": {
         "platform": "Plataforma",
         "solutions": "Soluciones",
         "resources": "Recursos",
-        "company": "Compañía"
+        "company": "CompaÃ±Ã­a"
       },
       "links": {
-        "features": "Características",
+        "features": "CaracterÃ­sticas",
         "lia": "Asistente LIA",
         "studyPlanner": "Study Planner",
         "analytics": "Analytics",
@@ -573,7 +573,7 @@
         "sales": "Ventas",
         "partners": "Partners",
         "customers": "Clientes",
-        "documentation": "Documentación",
+        "documentation": "DocumentaciÃ³n",
         "integrations": "Integraciones",
         "liaLink": "LIA",
         "security": "Seguridad",
@@ -584,7 +584,7 @@
       },
       "legal": {
         "privacy": "Privacidad",
-        "terms": "Términos",
+        "terms": "TÃ©rminos",
         "contact": "Contacto"
       }
     }

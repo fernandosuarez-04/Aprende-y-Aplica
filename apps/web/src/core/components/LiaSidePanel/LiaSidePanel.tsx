@@ -16,14 +16,14 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useLiaPersonalization } from '../../hooks/useLiaPersonalization';
 import { useLanguage } from '../../providers/I18nProvider';
 
-// Función para parsear Markdown completo y convertirlo a elementos React
+// FunciÃ³n para parsear Markdown completo y convertirlo a elementos React
 function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, isDarkMode: boolean = false): React.ReactNode {
   let keyIndex = 0;
   
   // Primero convertir listas con asterisco a guiones
   let processedText = text.replace(/^\*\s+/gm, '- ');
   
-  // Dividir por líneas para procesar cada una
+  // Dividir por lÃ­neas para procesar cada una
   const lines = processedText.split('\n');
   
   // Color del enlace basado en el tema
@@ -86,7 +86,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, 
       lastIndex = match.index + match[0].length;
     }
     
-    // Texto después del último match
+    // Texto despuÃ©s del Ãºltimo match
     if (lastIndex < line.length) {
       elements.push(line.slice(lastIndex));
     }
@@ -94,7 +94,7 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, 
     return elements.length > 0 ? elements : [line];
   };
   
-  // Procesar cada línea y agregar saltos de línea
+  // Procesar cada lÃ­nea y agregar saltos de lÃ­nea
   const result: React.ReactNode[] = [];
   lines.forEach((line, index) => {
     result.push(...processInlineFormatting(line));
@@ -132,14 +132,14 @@ function LiaSidePanelContent() {
   const { resolvedTheme } = useThemeStore();
   const isDarkMode = resolvedTheme === 'dark';
   
-  // Obtener estilos de la organización para modo claro/oscuro
+  // Obtener estilos de la organizaciÃ³n para modo claro/oscuro
   const orgContext = useOrganizationStylesContext();
   const orgStyles = orgContext?.styles;
 
   // Determinar si estamos en el dashboard de usuario o planner
   const isUserDashboard = pathname?.includes('/business-user') || pathname?.includes('/study-planner') || pathname === '/dashboard';
   
-  // Seleccionar los estilos activos según la ruta
+  // Seleccionar los estilos activos segÃºn la ruta
   const effectiveStyles = isUserDashboard 
     ? (orgStyles?.userDashboard || orgStyles?.panel) 
     : orgStyles?.panel;
@@ -147,14 +147,14 @@ function LiaSidePanelContent() {
   // Determinar si es tema claro
   const isLightTheme = !isDarkMode;
   
-  // Colores dinámicos basados en el tema
+  // Colores dinÃ¡micos basados en el tema
   const themeColors = {
     panelBg: isLightTheme ? '#FFFFFF' : (effectiveStyles?.sidebar_background || '#0a0f14'),
     headerBg: isLightTheme ? '#F8FAFC' : (effectiveStyles?.sidebar_background || '#0a0f14'),
     borderColor: isLightTheme ? '#E2E8F0' : (effectiveStyles?.border_color || '#1e2a35'),
     messageBubbleAssistant: isLightTheme ? '#F1F5F9' : (effectiveStyles?.card_background || '#1e2a35'),
     messageBubbleUser: effectiveStyles?.primary_button_color || '#0A2540',
-    // Forzar texto oscuro en modo claro, ignorando el tema de la organización si este es 'sofia-predeterminado' (oscuro)
+    // Forzar texto oscuro en modo claro, ignorando el tema de la organizaciÃ³n si este es 'SOFLIA-predeterminado' (oscuro)
     textPrimary: isLightTheme ? '#1E293B' : (effectiveStyles?.text_color || '#e5e7eb'),
     textSecondary: isLightTheme ? '#64748B' : '#6b7280',
     inputBg: isLightTheme ? '#F1F5F9' : 'rgba(255, 255, 255, 0.05)',
@@ -164,20 +164,20 @@ function LiaSidePanelContent() {
   
   const { messages, isLoading, sendMessage, clearHistory, loadConversation, currentConversationId } = useLiaGeneralChat();
   
-  // 🎙️ Configuración de personalización de LIA para voz
+  // ðŸŽ™ï¸ ConfiguraciÃ³n de personalizaciÃ³n de LIA para voz
   const { settings: liaSettings } = useLiaPersonalization();
   const isVoiceEnabled = liaSettings?.voice_enabled ?? true; // Por defecto activado
   const isDictationEnabled = liaSettings?.dictation_enabled ?? false; // Por defecto desactivado
   const { language } = useLanguage();
   
-  // 🎙️ Estados y refs para síntesis de voz
+  // ðŸŽ™ï¸ Estados y refs para sÃ­ntesis de voz
   const [isSpeaking, setIsSpeaking] = useState(false);
   const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const ttsAbortRef = useRef<AbortController | null>(null);
   const lastReadMessageIdRef = useRef<string | null>(null);
   
-  // 🎙️ Mapeo de idiomas para reconocimiento de voz
+  // ðŸŽ™ï¸ Mapeo de idiomas para reconocimiento de voz
   const speechLanguageMap: Record<string, string> = {
     'es': 'es-ES',
     'en': 'en-US',
@@ -189,7 +189,7 @@ function LiaSidePanelContent() {
   const inputRef = useRef<HTMLInputElement>(null);
   const chatContainerRef = useRef<HTMLDivElement>(null);
   
-  // 🎙️ Estados para dictado
+  // ðŸŽ™ï¸ Estados para dictado
   const [isDictating, setIsDictating] = useState(false);
   const [isProcessingDictation, setIsProcessingDictation] = useState(false);
   const [interimTranscript, setInterimTranscript] = useState(''); // Texto temporal mientras se habla
@@ -197,7 +197,7 @@ function LiaSidePanelContent() {
   const recognitionRef = useRef<any>(null); // Web Speech API Recognition
   const isDictatingRef = useRef<boolean>(false); // Ref para verificar estado actual en callbacks
   const silenceTimeoutRef = useRef<NodeJS.Timeout | null>(null); // Timeout para detectar silencio
-  const lastTranscriptTimeRef = useRef<number>(0); // Timestamp del último texto detectado
+  const lastTranscriptTimeRef = useRef<number>(0); // Timestamp del Ãºltimo texto detectado
   const dictationTextToApplyRef = useRef<string>(''); // Ref para almacenar texto a aplicar al finalizar dictado
   const [currentTip, setCurrentTip] = useState('');
   const [isAvatarExpanded, setIsAvatarExpanded] = useState(false);
@@ -205,7 +205,7 @@ function LiaSidePanelContent() {
   const [isPersonalizationOpen, setIsPersonalizationOpen] = useState(false);
   const optionsMenuRef = useRef<HTMLDivElement>(null);
 
-  // Cerrar menú de opciones al hacer clic fuera
+  // Cerrar menÃº de opciones al hacer clic fuera
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (optionsMenuRef.current && !optionsMenuRef.current.contains(event.target as Node)) {
@@ -249,7 +249,7 @@ function LiaSidePanelContent() {
           setTotalConversations(data.pagination.total || 0);
           setHasMore(data.pagination.hasMore || false);
         } else {
-          // Si no hay información de paginación, asumir que no hay más
+          // Si no hay informaciÃ³n de paginaciÃ³n, asumir que no hay mÃ¡s
           setTotalConversations(data.conversations.length);
           setHasMore(false);
         }
@@ -281,7 +281,7 @@ function LiaSidePanelContent() {
 
   const closeHistory = useCallback(() => {
     setShowHistory(false);
-    setCurrentPage(0); // Resetear página al cerrar historial
+    setCurrentPage(0); // Resetear pÃ¡gina al cerrar historial
   }, []);
 
   const handleSelectConversation = async (conversationId: string) => {
@@ -347,17 +347,17 @@ function LiaSidePanelContent() {
         // Remover de la lista local
         setHistoryList(prev => prev.filter(c => c.conversation_id !== conversationToDelete.id));
         
-        // Si la conversación eliminada es la actual, limpiar el chat
+        // Si la conversaciÃ³n eliminada es la actual, limpiar el chat
         if (currentConversationId === conversationToDelete.id) {
           clearHistory();
         }
       } else {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
-        alert('Error al eliminar conversación: ' + (errorData.error || 'Error desconocido'));
+        alert('Error al eliminar conversaciÃ³n: ' + (errorData.error || 'Error desconocido'));
       }
     } catch (err) {
-      console.error('Error eliminando conversación:', err);
-      alert('Error al eliminar conversación');
+      console.error('Error eliminando conversaciÃ³n:', err);
+      alert('Error al eliminar conversaciÃ³n');
     } finally {
       setDeletingConversationId(null);
       setConversationToDelete(null);
@@ -407,14 +407,14 @@ function LiaSidePanelContent() {
     }
   }, [isOpen, t]); // Re-run if language changes (t changes)
 
-  // Función para manejar clicks en enlaces del chat
+  // FunciÃ³n para manejar clicks en enlaces del chat
   const handleLinkClick = useCallback((url: string) => {
     // Si es una URL interna (comienza con /), navegar con router
     if (url.startsWith('/')) {
       closePanel();
       router.push(url);
     } else if (url.startsWith('http')) {
-      // Si es una URL externa, abrir en nueva pestaña
+      // Si es una URL externa, abrir en nueva pestaÃ±a
       window.open(url, '_blank', 'noopener,noreferrer');
     }
   }, [router, closePanel]);
@@ -425,9 +425,9 @@ function LiaSidePanelContent() {
     if (!container || !isOpen) return;
 
     // Si acabamos de abrir el panel
-    // Usamos setTimeout para asegurar que el layout esté listo
+    // Usamos setTimeout para asegurar que el layout estÃ© listo
     const timer = setTimeout(() => {
-        // Si tenemos una posición guardada, restaurarla
+        // Si tenemos una posiciÃ³n guardada, restaurarla
         if (liaPanelScrollTop !== -1) {
             container.scrollTop = liaPanelScrollTop;
         } else {
@@ -444,12 +444,12 @@ function LiaSidePanelContent() {
     const container = chatContainerRef.current;
     if (!container) return;
 
-    // Si no hay posición guardada (primera carga) o estamos cerca del fondo, hacer scroll
+    // Si no hay posiciÃ³n guardada (primera carga) o estamos cerca del fondo, hacer scroll
     const scrollBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    // Umbral de 150px para considerar que está "abajo"
+    // Umbral de 150px para considerar que estÃ¡ "abajo"
     const isNearBottom = scrollBottom < 150;
     
-    // Si el último mensaje es del usuario, siempre scroll
+    // Si el Ãºltimo mensaje es del usuario, siempre scroll
     const lastMsg = messages[messages.length - 1];
     const isUserMsg = lastMsg?.role === 'user';
 
@@ -467,16 +467,16 @@ function LiaSidePanelContent() {
     }
   }, [isOpen]);
 
-  // 🎙️ Función para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
+  // ðŸŽ™ï¸ FunciÃ³n para limpiar texto antes de leerlo (eliminar markdown, enlaces, etc.)
   const cleanTextForTTS = useCallback((text: string): string => {
     if (!text) return text;
 
     let cleaned = text;
 
-    // Eliminar bloques de código (```código```)
+    // Eliminar bloques de cÃ³digo (```cÃ³digo```)
     cleaned = cleaned.replace(/```[\w]*\n?[\s\S]*?```/g, '');
     
-    // Eliminar títulos Markdown (# ## ###)
+    // Eliminar tÃ­tulos Markdown (# ## ###)
     cleaned = cleaned.replace(/^#{1,6}\s+/gm, '');
     
     // Eliminar negritas (**texto** o __texto__)
@@ -487,22 +487,22 @@ function LiaSidePanelContent() {
     cleaned = cleaned.replace(/([^*\n])\*([^*\n]+)\*([^*\n])/g, '$1$2$3');
     cleaned = cleaned.replace(/([^_\n])_([^_\n]+)_([^_\n])/g, '$1$2$3');
     
-    // Eliminar código en línea (`código`)
+    // Eliminar cÃ³digo en lÃ­nea (`cÃ³digo`)
     cleaned = cleaned.replace(/`([^`]+)`/g, '$1');
     
     // Eliminar enlaces [texto](url) - reemplazar solo con el texto
     cleaned = cleaned.replace(/\[([^\]]+)\]\([^\)]+\)/g, '$1');
     
-    // Eliminar imágenes ![alt](url)
+    // Eliminar imÃ¡genes ![alt](url)
     cleaned = cleaned.replace(/!\[([^\]]*)\]\([^\)]+\)/g, '');
     
     // Eliminar bloques de citas (>)
     cleaned = cleaned.replace(/^>\s+/gm, '');
     
-    // Eliminar líneas horizontales (--- o ***)
+    // Eliminar lÃ­neas horizontales (--- o ***)
     cleaned = cleaned.replace(/^[-*]{3,}$/gm, '');
     
-    // Limpiar espacios múltiples y saltos de línea excesivos
+    // Limpiar espacios mÃºltiples y saltos de lÃ­nea excesivos
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
     cleaned = cleaned.replace(/[ \t]+/g, ' ');
     
@@ -512,7 +512,7 @@ function LiaSidePanelContent() {
     return cleaned;
   }, []);
 
-  // 🎙️ Función para detener todo audio/voz en reproducción
+  // ðŸŽ™ï¸ FunciÃ³n para detener todo audio/voz en reproducciÃ³n
   const stopAllAudio = useCallback(() => {
     try {
       // Abort any in-flight TTS fetch
@@ -537,10 +537,10 @@ function LiaSidePanelContent() {
     }
   }, []);
 
-  // 🎙️ Función para síntesis de voz con ElevenLabs
+  // ðŸŽ™ï¸ FunciÃ³n para sÃ­ntesis de voz con ElevenLabs
   const speakText = useCallback(async (text: string) => {
     if (!isVoiceEnabled || typeof window === 'undefined') {
-      console.log('🔇 [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+      console.log('ðŸ”‡ [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
       return;
     }
 
@@ -548,11 +548,11 @@ function LiaSidePanelContent() {
     const cleanedText = cleanTextForTTS(text);
     
     if (!cleanedText || cleanedText.trim().length === 0) {
-      console.log('🔇 [TTS] Texto vacío después de limpiar');
+      console.log('ðŸ”‡ [TTS] Texto vacÃ­o despuÃ©s de limpiar');
       return;
     }
 
-    console.log('🔊 [TTS] Iniciando lectura de texto:', { 
+    console.log('ðŸ”Š [TTS] Iniciando lectura de texto:', { 
       originalLength: text.length, 
       cleanedLength: cleanedText.length,
       preview: cleanedText.substring(0, 100) + '...'
@@ -569,7 +569,7 @@ function LiaSidePanelContent() {
       const modelId = 'eleven_turbo_v2_5';
 
       if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
         
         // Fallback a Web Speech API
         const utterance = new SpeechSynthesisUtterance(cleanedText);
@@ -652,30 +652,30 @@ function LiaSidePanelContent() {
       // Intentar reproducir el audio
       try {
         await audio.play();
-        console.log('✅ [TTS] Audio reproducido exitosamente');
+        console.log('âœ… [TTS] Audio reproducido exitosamente');
         // Playback started successfully; clear abort controller
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
         // Autoplay bloqueado por el navegador - esto es normal y esperado
-        console.warn('⚠️ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+        console.warn('âš ï¸ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {
-      // Si la petición fue abortada, lo manejamos como info
+      // Si la peticiÃ³n fue abortada, lo manejamos como info
       if (error && (error.name === 'AbortError' || error.message?.includes('aborted'))) {
         // Silenciar errores de abort
       } else {
-        console.error('Error en síntesis de voz con ElevenLabs:', error);
+        console.error('Error en sÃ­ntesis de voz con ElevenLabs:', error);
       }
       setIsSpeaking(false);
     }
   }, [isVoiceEnabled, language, stopAllAudio, cleanTextForTTS]);
 
-  // 🎙️ Detectar cuando llega un nuevo mensaje del asistente y leerlo
+  // ðŸŽ™ï¸ Detectar cuando llega un nuevo mensaje del asistente y leerlo
   useEffect(() => {
     if (!isVoiceEnabled || messages.length === 0 || isLoading) return;
 
-    // Buscar el último mensaje del asistente que no haya sido leído
+    // Buscar el Ãºltimo mensaje del asistente que no haya sido leÃ­do
     const lastAssistantMessage = [...messages].reverse().find(
       msg => msg.role === 'assistant' && msg.id !== lastReadMessageIdRef.current && msg.content.trim().length > 0
     );
@@ -683,7 +683,7 @@ function LiaSidePanelContent() {
     if (lastAssistantMessage) {
       // Esperar un poco para que el mensaje termine de renderizarse (especialmente si es streaming)
       const timer = setTimeout(() => {
-        console.log('🔊 [TTS] Nuevo mensaje del asistente detectado, leyendo...', {
+        console.log('ðŸ”Š [TTS] Nuevo mensaje del asistente detectado, leyendo...', {
           messageId: lastAssistantMessage.id,
           contentLength: lastAssistantMessage.content.length,
           preview: lastAssistantMessage.content.substring(0, 50) + '...'
@@ -707,7 +707,7 @@ function LiaSidePanelContent() {
     };
   }, [isOpen, stopAllAudio]);
 
-  // 🎙️ Función para detener dictado y limpiar recursos
+  // ðŸŽ™ï¸ FunciÃ³n para detener dictado y limpiar recursos
   const stopDictation = useCallback(() => {
     // IMPORTANTE: Capturar el texto ANTES de cambiar isDictating y limpiar estados
     // Esto evita que el input muestre el texto duplicado
@@ -717,7 +717,7 @@ function LiaSidePanelContent() {
         const fullText = (currentFinal + ' ' + currentInterim).trim();
         dictationTextToApplyRef.current = fullText;
         
-        // Limpiar estados INMEDIATAMENTE para evitar duplicación en el render
+        // Limpiar estados INMEDIATAMENTE para evitar duplicaciÃ³n en el render
         return '';
       });
       return '';
@@ -744,7 +744,7 @@ function LiaSidePanelContent() {
       recognitionRef.current = null;
     }
 
-    // Agregar el texto capturado al input DESPUÉS de limpiar estados y cambiar isDictating
+    // Agregar el texto capturado al input DESPUÃ‰S de limpiar estados y cambiar isDictating
     const textToApply = dictationTextToApplyRef.current;
     if (textToApply) {
       // Usar setTimeout para asegurar que los estados se hayan actualizado y React haya re-renderizado
@@ -778,7 +778,7 @@ function LiaSidePanelContent() {
     lastTranscriptTimeRef.current = 0;
   }, []);
 
-  // 🎙️ Función para aplicar el texto transcrito al input
+  // ðŸŽ™ï¸ FunciÃ³n para aplicar el texto transcrito al input
   const applyTranscribedText = useCallback(() => {
     const fullText = (finalTranscript + ' ' + interimTranscript).trim();
     if (fullText) {
@@ -803,10 +803,10 @@ function LiaSidePanelContent() {
     setFinalTranscript('');
   }, [finalTranscript, interimTranscript]);
 
-  // 🎙️ Función para iniciar/detener dictado usando Web Speech API
+  // ðŸŽ™ï¸ FunciÃ³n para iniciar/detener dictado usando Web Speech API
   const toggleDictation = useCallback(async () => {
     if (!isDictationEnabled) {
-      console.warn('Dictado no está habilitado en la configuración');
+      console.warn('Dictado no estÃ¡ habilitado en la configuraciÃ³n');
       return;
     }
 
@@ -829,7 +829,7 @@ function LiaSidePanelContent() {
           // Ignorar errores
         }
       }
-      // Detener dictado (aplicará el texto automáticamente)
+      // Detener dictado (aplicarÃ¡ el texto automÃ¡ticamente)
       stopDictation();
       return;
     }
@@ -844,7 +844,7 @@ function LiaSidePanelContent() {
       const recognition = new SpeechRecognition();
       recognitionRef.current = recognition;
 
-      // Configuración
+      // ConfiguraciÃ³n
       const langMap: Record<string, string> = {
         'es': 'es-ES',
         'en': 'en-US',
@@ -855,10 +855,10 @@ function LiaSidePanelContent() {
       recognition.interimResults = true; // Mostrar resultados intermedios (tiempo real)
       recognition.maxAlternatives = 1;
 
-      // Configuración de timeout para detección de silencio
+      // ConfiguraciÃ³n de timeout para detecciÃ³n de silencio
       const SILENCE_TIMEOUT_MS = 3000; // 3 segundos sin nuevas palabras = detener
 
-      // Función para reiniciar el timeout de silencio
+      // FunciÃ³n para reiniciar el timeout de silencio
       const resetSilenceTimeout = () => {
         // Limpiar timeout anterior
         if (silenceTimeoutRef.current) {
@@ -868,7 +868,7 @@ function LiaSidePanelContent() {
 
         // Crear nuevo timeout
         silenceTimeoutRef.current = setTimeout(() => {
-          console.log('🔇 No se detectaron nuevas palabras por 3 segundos, deteniendo dictado...');
+          console.log('ðŸ”‡ No se detectaron nuevas palabras por 3 segundos, deteniendo dictado...');
           
           // Detener reconocimiento
           if (recognitionRef.current) {
@@ -879,7 +879,7 @@ function LiaSidePanelContent() {
             }
           }
           
-          // Detener dictado (aplicará el texto automáticamente)
+          // Detener dictado (aplicarÃ¡ el texto automÃ¡ticamente)
           stopDictation();
         }, SILENCE_TIMEOUT_MS);
       };
@@ -908,7 +908,7 @@ function LiaSidePanelContent() {
         if (hasNewText) {
           lastTranscriptTimeRef.current = Date.now();
           resetSilenceTimeout();
-          console.log('🔊 Nuevo texto detectado, reiniciando timeout de silencio');
+          console.log('ðŸ”Š Nuevo texto detectado, reiniciando timeout de silencio');
         }
 
         // Actualizar estados
@@ -930,9 +930,9 @@ function LiaSidePanelContent() {
         }
       };
 
-      // Evento: cuando termina el reconocimiento (silencio detectado automáticamente)
+      // Evento: cuando termina el reconocimiento (silencio detectado automÃ¡ticamente)
       recognition.onend = () => {
-        console.log('🎙️ Reconocimiento de voz finalizado');
+        console.log('ðŸŽ™ï¸ Reconocimiento de voz finalizado');
         
         // Limpiar timeout si existe
         if (silenceTimeoutRef.current) {
@@ -940,7 +940,7 @@ function LiaSidePanelContent() {
           silenceTimeoutRef.current = null;
         }
         
-        // Detener dictado (aplicará el texto automáticamente)
+        // Detener dictado (aplicarÃ¡ el texto automÃ¡ticamente)
         stopDictation();
       };
 
@@ -949,17 +949,17 @@ function LiaSidePanelContent() {
         console.error('Error en reconocimiento de voz:', event.error);
         
         if (event.error === 'no-speech') {
-          // No se detectó habla, pero esto es normal, solo detener
-          console.log('No se detectó habla, deteniendo...');
+          // No se detectÃ³ habla, pero esto es normal, solo detener
+          console.log('No se detectÃ³ habla, deteniendo...');
           stopDictation();
         } else if (event.error === 'audio-capture') {
-          alert('No se pudo acceder al micrófono. Por favor, verifica los permisos.');
+          alert('No se pudo acceder al micrÃ³fono. Por favor, verifica los permisos.');
           stopDictation();
         } else if (event.error === 'not-allowed') {
-          alert('Permiso de micrófono denegado. Por favor, permite el acceso al micrófono.');
+          alert('Permiso de micrÃ³fono denegado. Por favor, permite el acceso al micrÃ³fono.');
           stopDictation();
         } else {
-          // Otros errores, intentar continuar o detener según el caso
+          // Otros errores, intentar continuar o detener segÃºn el caso
           console.warn('Error de reconocimiento:', event.error);
           if (event.error === 'network' || event.error === 'aborted') {
             stopDictation();
@@ -969,7 +969,7 @@ function LiaSidePanelContent() {
 
       // Evento: cuando comienza el reconocimiento
       recognition.onstart = () => {
-        console.log('🎙️ Reconocimiento de voz iniciado');
+        console.log('ðŸŽ™ï¸ Reconocimiento de voz iniciado');
         setIsDictating(true);
         isDictatingRef.current = true;
         lastTranscriptTimeRef.current = Date.now();
@@ -980,19 +980,19 @@ function LiaSidePanelContent() {
 
       // Iniciar reconocimiento
       recognition.start();
-      console.log('🎙️ Dictado iniciado con transcripción en tiempo real');
+      console.log('ðŸŽ™ï¸ Dictado iniciado con transcripciÃ³n en tiempo real');
     } catch (error: any) {
       console.error('Error iniciando dictado:', error);
       setIsDictating(false);
       
       if (error?.name === 'NotAllowedError' || error?.message?.includes('not allowed')) {
-        alert('Se necesita permiso para usar el micrófono. Por favor, permite el acceso al micrófono en la configuración del navegador.');
+        alert('Se necesita permiso para usar el micrÃ³fono. Por favor, permite el acceso al micrÃ³fono en la configuraciÃ³n del navegador.');
       } else if (error?.message?.includes('already started')) {
-        // Ya está iniciado, solo actualizar estado
+        // Ya estÃ¡ iniciado, solo actualizar estado
         setIsDictating(true);
         isDictatingRef.current = true;
       } else {
-        alert('Error al acceder al micrófono. Por favor, verifica que tu navegador soporte reconocimiento de voz.');
+        alert('Error al acceder al micrÃ³fono. Por favor, verifica que tu navegador soporte reconocimiento de voz.');
       }
     }
   }, [isDictationEnabled, isDictating, language, stopDictation, applyTranscribedText, finalTranscript, inputValue]);
@@ -1104,9 +1104,9 @@ function LiaSidePanelContent() {
               </div>
             </div>
             
-            {/* Contenedor de acciones (Menú de opciones + Cerrar) */}
+            {/* Contenedor de acciones (MenÃº de opciones + Cerrar) */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              {/* Botón de historial (mantener visible) */}
+              {/* BotÃ³n de historial (mantener visible) */}
               <button
                 onClick={() => {
                   if (showHistory) {
@@ -1134,7 +1134,7 @@ function LiaSidePanelContent() {
                 <Clock style={{ width: '18px', height: '18px' }} color={themeColors.textSecondary} />
               </button>
 
-              {/* Menú de opciones (3 puntos) */}
+              {/* MenÃº de opciones (3 puntos) */}
               <div ref={optionsMenuRef} style={{ position: 'relative' }}>
                 <button
                   onClick={() => setIsOptionsMenuOpen(!isOptionsMenuOpen)}
@@ -1165,7 +1165,7 @@ function LiaSidePanelContent() {
                   <MoreVertical style={{ width: '18px', height: '18px' }} color={themeColors.textSecondary} />
                 </button>
 
-                {/* Menú desplegable */}
+                {/* MenÃº desplegable */}
                 {isOptionsMenuOpen && (
                   <motion.div
                     initial={{ opacity: 0, y: -10, scale: 0.95 }}
@@ -1189,7 +1189,7 @@ function LiaSidePanelContent() {
                     }}
                   >
                     <div style={{ padding: '8px 0' }}>
-                      {/* Opción: Personalización */}
+                      {/* OpciÃ³n: PersonalizaciÃ³n */}
                       <button
                         onClick={() => {
                           setIsPersonalizationOpen(true);
@@ -1217,10 +1217,10 @@ function LiaSidePanelContent() {
                         }}
                       >
                         <Settings style={{ width: '16px', height: '16px' }} color={isLightTheme ? '#6C757D' : '#9CA3AF'} />
-                        <span>Personalización</span>
+                        <span>PersonalizaciÃ³n</span>
                       </button>
 
-                      {/* Opción: Borrar chat */}
+                      {/* OpciÃ³n: Borrar chat */}
                       <button
                         onClick={() => {
                           clearHistory();
@@ -1259,7 +1259,7 @@ function LiaSidePanelContent() {
                 )}
               </div>
 
-              {/* Botón cerrar */}
+              {/* BotÃ³n cerrar */}
               <button
                 onClick={closePanel}
                 style={{
@@ -1506,7 +1506,7 @@ function LiaSidePanelContent() {
                   type="text"
                   value={inputValue + (isDictating ? (inputValue ? ' ' : '') + finalTranscript + (finalTranscript && interimTranscript ? ' ' : '') + interimTranscript : '')}
                   onChange={(e) => {
-                    // Solo permitir edición si no está dictando
+                    // Solo permitir ediciÃ³n si no estÃ¡ dictando
                     if (!isDictating) {
                       setInputValue(e.target.value);
                     }
@@ -1514,9 +1514,9 @@ function LiaSidePanelContent() {
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      // Si está dictando, detener primero
+                      // Si estÃ¡ dictando, detener primero
                       if (isDictating) {
-                        // Detener dictado (aplicará el texto automáticamente)
+                        // Detener dictado (aplicarÃ¡ el texto automÃ¡ticamente)
                         stopDictation();
                       }
                       handleSendMessage();
@@ -1551,7 +1551,7 @@ function LiaSidePanelContent() {
                 )}
               </div>
               
-              {/* 🎙️ Botón de dictado (solo si está habilitado) */}
+              {/* ðŸŽ™ï¸ BotÃ³n de dictado (solo si estÃ¡ habilitado) */}
               {isDictationEnabled && (
                 <button
                   onClick={toggleDictation}
@@ -1726,7 +1726,7 @@ function LiaSidePanelContent() {
                                                 style={{background:'none', border:'none', cursor:'pointer', color: themeColors.textSecondary, padding: 0, opacity: 0.6}}
                                                 onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
                                                 onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                                                title="Editar título"
+                                                title="Editar tÃ­tulo"
                                             >
                                                 <Edit2 size={14} />
                                             </button>
@@ -1753,7 +1753,7 @@ function LiaSidePanelContent() {
                                                         e.currentTarget.style.opacity = '0.6';
                                                     }
                                                 }}
-                                                title="Eliminar conversación"
+                                                title="Eliminar conversaciÃ³n"
                                             >
                                                 {deletingConversationId === conv.conversation_id ? (
                                                     <div style={{
@@ -1782,7 +1782,7 @@ function LiaSidePanelContent() {
                         ))
                     )}
 
-                    {/* Controles de Paginación */}
+                    {/* Controles de PaginaciÃ³n */}
                     {historyList.length > 0 && (
                       <div style={{
                         display: 'flex',
@@ -1826,7 +1826,7 @@ function LiaSidePanelContent() {
                           color: themeColors.textSecondary,
                           fontSize: '13px'
                         }}>
-                          Página {currentPage + 1} {totalConversations > 0 && `(${totalConversations} total)`}
+                          PÃ¡gina {currentPage + 1} {totalConversations > 0 && `(${totalConversations} total)`}
                         </span>
 
                         <button
@@ -1865,7 +1865,7 @@ function LiaSidePanelContent() {
             )}
           </AnimatePresence>
 
-          {/* Modal de Confirmación de Eliminación */}
+          {/* Modal de ConfirmaciÃ³n de EliminaciÃ³n */}
           <AnimatePresence>
             {showDeleteConfirm && conversationToDelete && (
               <motion.div
@@ -1910,7 +1910,7 @@ function LiaSidePanelContent() {
                       fontWeight: 600,
                       margin: '0 0 8px 0'
                     }}>
-                      Eliminar conversación
+                      Eliminar conversaciÃ³n
                     </h3>
                     <p style={{
                       color: themeColors.textSecondary,
@@ -1918,7 +1918,7 @@ function LiaSidePanelContent() {
                       margin: 0,
                       lineHeight: '1.5'
                     }}>
-                      ¿Estás seguro de que quieres eliminar la conversación "{conversationToDelete.title}"?
+                      Â¿EstÃ¡s seguro de que quieres eliminar la conversaciÃ³n "{conversationToDelete.title}"?
                     </p>
                     <p style={{
                       color: '#ef4444',
@@ -1926,7 +1926,7 @@ function LiaSidePanelContent() {
                       margin: '8px 0 0 0',
                       fontWeight: 500
                     }}>
-                      Esta acción no se puede deshacer.
+                      Esta acciÃ³n no se puede deshacer.
                     </p>
                   </div>
                   
@@ -2060,7 +2060,7 @@ function LiaSidePanelContent() {
         </motion.aside>
         )}
       </AnimatePresence>
-      {/* Modal de Personalización */}
+      {/* Modal de PersonalizaciÃ³n */}
       {isPersonalizationOpen && (
         <LiaPersonalizationSettings
           isOpen={isPersonalizationOpen}

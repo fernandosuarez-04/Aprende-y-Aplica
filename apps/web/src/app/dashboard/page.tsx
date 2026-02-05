@@ -22,16 +22,16 @@ const plans = [
     {
         id: 'starter',
         name: 'Starter',
-        description: 'Ideal para equipos pequeños que inician su transformación digital',
+        description: 'Ideal para equipos pequeÃ±os que inician su transformaciÃ³n digital',
         price: 299,
         period: 'mes',
         users: 'Hasta 10 usuarios',
         featured: false,
         features: [
-            'Acceso a biblioteca de cursos básicos',
+            'Acceso a biblioteca de cursos bÃ¡sicos',
             'Asistente LIA (100 consultas/mes)',
-            'Asignación de cursos',
-            'Reportes básicos',
+            'AsignaciÃ³n de cursos',
+            'Reportes bÃ¡sicos',
             'Soporte por email',
         ],
         color: 'text-blue-500',
@@ -65,7 +65,7 @@ const plans = [
     {
         id: 'enterprise',
         name: 'Enterprise',
-        description: 'Solución completa para grandes organizaciones',
+        description: 'SoluciÃ³n completa para grandes organizaciones',
         price: null,
         period: 'Personalizado',
         users: 'Usuarios ilimitados',
@@ -73,12 +73,12 @@ const plans = [
         features: [
             'Todo lo de Business +',
             'Contenido personalizado',
-            'API de integración',
+            'API de integraciÃ³n',
             'SSO / SAML',
             'Account Manager dedicado',
             'SLA garantizado',
             'Onboarding personalizado',
-            'Capacitación a administradores',
+            'CapacitaciÃ³n a administradores',
         ],
         color: 'text-purple-500',
         bgColor: 'bg-purple-500/10',
@@ -118,7 +118,7 @@ export default function DashboardPage() {
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 flex items-center justify-center shadow-lg shadow-teal-500/20">
                             <Sparkles className="w-5 h-5 text-white" />
                         </div>
-                        <span className="text-xl font-bold tracking-tight">SOFIA</span>
+                        <span className="text-xl font-bold tracking-tight">SOFLIA</span>
                     </div>
 
                     <div className="flex items-center gap-4">
@@ -166,7 +166,7 @@ export default function DashboardPage() {
                         transition={{ delay: 0.2 }}
                         className="text-xl text-gray-400 max-w-2xl mx-auto"
                     >
-                        Transforma el aprendizaje de tu organización con nuestra plataforma impulsada por IA.
+                        Transforma el aprendizaje de tu organizaciÃ³n con nuestra plataforma impulsada por IA.
                         Comienza gratis o escala con nuestros planes premium.
                     </motion.p>
                 </div>
@@ -187,7 +187,7 @@ export default function DashboardPage() {
                         >
                             {plan.featured && (
                                 <div className="absolute top-0 left-0 right-0 py-1.5 text-center bg-teal-500 text-[#0F1419] text-xs font-bold uppercase tracking-wider">
-                                    Más Popular
+                                    MÃ¡s Popular
                                 </div>
                             )}
 
@@ -259,7 +259,7 @@ export default function DashboardPage() {
                     transition={{ delay: 0.8 }}
                     className="mt-20 text-center pb-8"
                 >
-                    <p className="text-gray-500 mb-4">¿Tienes dudas sobre qué plan elegir?</p>
+                    <p className="text-gray-500 mb-4">Â¿Tienes dudas sobre quÃ© plan elegir?</p>
                     <a
                         href="mailto:ventas@aprendeyaplica.com"
                         className="inline-flex items-center gap-2 text-teal-400 hover:text-teal-300 transition-colors font-medium"

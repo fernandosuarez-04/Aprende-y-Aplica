@@ -56,7 +56,7 @@ export function CourseSkillsSelector({
   }, []);
 
   useEffect(() => {
-    if (courseId) {
+    if (courseId && courseId !== 'new') {
       fetchCourseSkills();
     }
   }, [courseId]);
@@ -290,11 +290,10 @@ export function CourseSkillsSelector({
                         onClick={() => setSelectedCategory("all")}
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
-                        className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-                          selectedCategory === "all"
+                        className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${selectedCategory === "all"
                             ? "bg-[#00D4B3] text-white shadow-md"
                             : "bg-white dark:bg-[#0A0D12] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3]/50"
-                        }`}
+                          }`}
                       >
                         Todas
                       </motion.button>
@@ -304,11 +303,10 @@ export function CourseSkillsSelector({
                           onClick={() => setSelectedCategory(category)}
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
-                          className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${
-                            selectedCategory === category
+                          className={`px-4 py-2 rounded-lg text-xs font-medium whitespace-nowrap transition-all duration-200 ${selectedCategory === category
                               ? "bg-[#00D4B3] text-white shadow-md"
                               : "bg-white dark:bg-[#0A0D12] text-[#6C757D] dark:text-white/60 border border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#00D4B3]/50"
-                          }`}
+                            }`}
                         >
                           {category}
                         </motion.button>

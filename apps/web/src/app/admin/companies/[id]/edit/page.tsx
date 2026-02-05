@@ -32,7 +32,7 @@ import {
 } from '@heroicons/react/24/outline'
 
 // ============================================
-// DESIGN SYSTEM - SOFIA COLORS
+// DESIGN SYSTEM - SOFLIA COLORS
 // ============================================
 const colors = {
     primary: '#0A2540',

@@ -80,7 +80,7 @@ export function CTASection() {
           transition={{ duration: 0.8, ease: [0.25, 0.46, 0.45, 0.94] }}
           style={{ scale }}
         >
-          {/* Logo SOFIA */}
+          {/* Logo SOFLIA */}
           <motion.div
             className="flex justify-center mb-8"
             initial={{ opacity: 0, scale: 0 }}
@@ -101,7 +101,7 @@ export function CTASection() {
             >
               <Image
                 src="/Logo.png"
-                alt="SOFIA Logo"
+                alt="SOFLIA Logo"
                 width={80}
                 height={80}
                 className="w-16 h-16 lg:w-20 lg:h-20 object-contain"
@@ -134,7 +134,7 @@ export function CTASection() {
               }}
               className="bg-clip-text text-transparent bg-gradient-to-r from-[#0A2540] via-[#00D4B3] to-[#0A2540] dark:from-white dark:via-[#00D4B3] dark:to-white bg-[length:200%_auto]"
             >
-              ¿Listo para revolucionar
+              Â¿Listo para revolucionar
             </motion.span>
             <br />
             <motion.span
@@ -161,10 +161,10 @@ export function CTASection() {
             viewport={{ once: true }}
             transition={{ delay: 0.3, duration: 0.6 }}
           >
-            Únete a miles de profesionales que ya están transformando su futuro con IA
+            Ãšnete a miles de profesionales que ya estÃ¡n transformando su futuro con IA
           </motion.p>
 
-          {/* CTA Button - Rediseñado */}
+          {/* CTA Button - RediseÃ±ado */}
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             whileInView={{ opacity: 1, y: 0 }}
@@ -305,7 +305,7 @@ export function CTASection() {
           >
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>Sin tarjeta de crédito</span>
+              <span>Sin tarjeta de crÃ©dito</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
@@ -313,7 +313,7 @@ export function CTASection() {
             </div>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-              <span>Cancelación en cualquier momento</span>
+              <span>CancelaciÃ³n en cualquier momento</span>
             </div>
           </motion.div>
         </motion.div>
@@ -328,21 +328,21 @@ export function CTASection() {
         >
           <div className="flex flex-col sm:flex-row justify-center items-center gap-4 sm:gap-6 text-sm">
             <p className="text-[#6C757D] dark:text-white/60">
-              © {new Date().getFullYear()} SOFIA. Todos los derechos reservados.
+              Â© {new Date().getFullYear()} SOFLIA. Todos los derechos reservados.
             </p>
             <div className="flex items-center gap-4">
               <Link
                 href="/privacy"
                 className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
               >
-                Política de Privacidad
+                PolÃ­tica de Privacidad
               </Link>
-              <span className="text-[#6C757D] dark:text-white/40">•</span>
+              <span className="text-[#6C757D] dark:text-white/40">â€¢</span>
               <Link
                 href="/terms"
                 className="text-[#0A2540] dark:text-[#00D4B3] hover:underline transition-colors font-medium"
               >
-                Términos de Servicio
+                TÃ©rminos de Servicio
               </Link>
             </div>
           </div>

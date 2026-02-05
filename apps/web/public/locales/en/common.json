@@ -1,5 +1,5 @@
 {
-  "appName": "SOFIA",  
+  "appName": "SOFLIA",  
   "welcome": "Welcome",
   "language": "Language",
   "change_language": "Change language",
@@ -44,7 +44,7 @@
     "helpPrompt": "What can I do here? Help me",
     "helpFallback": "Sorry, I couldn't generate a response.",
     "helpError": "Sorry, there was an error processing your help request. Please try again.",
-    "initialMessage": "Hi! 👋 I'm Lia, your AI assistant. I'm here to help you with any questions you have.",
+    "initialMessage": "Hi! ðŸ‘‹ I'm Lia, your AI assistant. I'm here to help you with any questions you have.",
     "clearConversation": "Clear conversation",
     "changeMode": "Change Lia mode",
     "clearContext": "Clear context",
@@ -65,7 +65,7 @@
       "title": "NanoBanana Pro",
       "description": "Generate structured JSON for precise visual rendering.",
       "emptyDescription": "Generate structured JSON for NanoBanana Pro. Describe UI, photographs, or diagrams and get precise, reproducible schemas.",
-      "welcome": "🎨 Welcome to NanoBanana Mode!\n\nI'm your assistant for creating structured JSON optimized for NanoBanana Pro.\n\n**What can I create?**\n• 📱 UI/Wireframes (apps, dashboards, landing pages)\n• 📸 Photographs (products, marketing, lifestyle)\n• 📊 Diagrams (flows, architectures, processes)\n\nDescribe what you need and I'll generate a precise and reproducible JSON.",
+      "welcome": "ðŸŽ¨ Welcome to NanoBanana Mode!\n\nI'm your assistant for creating structured JSON optimized for NanoBanana Pro.\n\n**What can I create?**\nâ€¢ ðŸ“± UI/Wireframes (apps, dashboards, landing pages)\nâ€¢ ðŸ“¸ Photographs (products, marketing, lifestyle)\nâ€¢ ðŸ“Š Diagrams (flows, architectures, processes)\n\nDescribe what you need and I'll generate a precise and reproducible JSON.",
       "viewJson": "View NanoBanana JSON"
     },
     "contextMode": {
@@ -194,7 +194,7 @@
       "title": "AI Training with",
       "highlight": "measurable impact",
       "titleEnd": "for your organization",
-      "description": "SOFIA is the corporate training platform that combines artificial intelligence, smart planning, and verifiable certifications to develop your team's competencies.",
+      "description": "SOFLIA is the corporate training platform that combines artificial intelligence, smart planning, and verifiable certifications to develop your team's competencies.",
       "ctaPrimary": "Schedule Executive Demo",
       "ctaSecondary": "Request Assessment",
       "benefits": {
@@ -204,7 +204,7 @@
       }
     },
     "logoWall": {
-      "title": "Organizations that trust SOFIA"
+      "title": "Organizations that trust SOFLIA"
     },
     "trust": {
       "title": "Enterprise-ready from day one",
@@ -245,7 +245,7 @@
     "platform": {
       "tag": "The Platform",
       "title": "Corporate training powered by artificial intelligence",
-      "description": "SOFIA combines cutting-edge technology with user-centered design to deliver a learning experience that generates measurable results for your organization.",
+      "description": "SOFLIA combines cutting-edge technology with user-centered design to deliver a learning experience that generates measurable results for your organization.",
       "features": {
         "aiTraining": {
           "title": "AI Training",
@@ -367,7 +367,7 @@
     "roi": {
       "tag": "Measurable Impact",
       "title": "ROI that speaks for itself",
-      "subtitle": "Real results from organizations that transformed their training with SOFIA",
+      "subtitle": "Real results from organizations that transformed their training with SOFLIA",
       "metrics": {
         "onboarding": "Onboarding time reduction",
         "savings": "Estimated annual savings",
@@ -379,7 +379,7 @@
     "integrations": {
       "tag": "Integrations",
       "title": "Integrates with your corporate stack",
-      "description": "Connect SOFIA with your existing tools for a frictionless experience. Agile deployment with calendar sync, e-learning compatibility and options for custom integrations.",
+      "description": "Connect SOFLIA with your existing tools for a frictionless experience. Agile deployment with calendar sync, e-learning compatibility and options for custom integrations.",
       "features": {
         "calendar": "Sync with Google Calendar and Microsoft Outlook",
         "elearning": "Compatible with SCORM",
@@ -443,7 +443,7 @@
       "items": {
         "roi": {
           "question": "How is training ROI measured?",
-          "answer": "SOFIA provides dashboards with key metrics: completion rate, training time, earned certifications, and correlation with business indicators. You can export reports to justify the investment to leadership."
+          "answer": "SOFLIA provides dashboards with key metrics: completion rate, training time, earned certifications, and correlation with business indicators. You can export reports to justify the investment to leadership."
         },
         "implementation": {
           "question": "What is the implementation timeline?",
@@ -451,7 +451,7 @@
         },
         "integration": {
           "question": "How does it integrate with existing systems?",
-          "answer": "SOFIA offers native integration with Google Calendar and Microsoft Outlook. For CRM, HRIS and other systems, we provide documented integration for synchronization."
+          "answer": "SOFLIA offers native integration with Google Calendar and Microsoft Outlook. For CRM, HRIS and other systems, we provide documented integration for synchronization."
         },
         "governance": {
           "question": "How is access and traceability governed?",
@@ -459,7 +459,7 @@
         },
         "multilingual": {
           "question": "How does it support multiple languages?",
-          "answer": "SOFIA is available in Spanish, English and Portuguese. LIA automatically detects the user's language and responds in that language. Content can be available in multiple languages."
+          "answer": "SOFLIA is available in Spanish, English and Portuguese. LIA automatically detects the user's language and responds in that language. Content can be available in multiple languages."
         },
         "certificates": {
           "question": "How does verifiable certification work?",
@@ -478,7 +478,7 @@
     "cta": {
       "tag": "Start Today",
       "title": "Transform your organization's training",
-      "subtitle": "Schedule an executive demo and discover how SOFIA can boost your team's development with measurable results.",
+      "subtitle": "Schedule an executive demo and discover how SOFLIA can boost your team's development with measurable results.",
       "form": {
         "name": "Your name",
         "email": "you@company.com",

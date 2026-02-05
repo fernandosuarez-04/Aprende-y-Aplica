@@ -2,17 +2,17 @@ import { GoogleOAuthConfig } from '@/features/auth/types/oauth.types';
 import { getBaseUrl } from '@/lib/env';
 
 /**
- * Configuración de Google OAuth 2.0
+ * ConfiguraciÃ³n de Google OAuth 2.0
  * 
- * IMPORTANTE: El nombre de la aplicación mostrado en la pantalla de consentimiento de Google OAuth
- * debe configurarse en Google Cloud Console como "sofialia.ai" para que coincida con el dominio.
+ * IMPORTANTE: El nombre de la aplicaciÃ³n mostrado en la pantalla de consentimiento de Google OAuth
+ * debe configurarse en Google Cloud Console como "SOFLIAlia.ai" para que coincida con el dominio.
  * 
- * Configuración en Google Cloud Console:
+ * ConfiguraciÃ³n en Google Cloud Console:
  * - APIs & Services > OAuth consent screen
- * - App name: sofialia.ai
- * - Application home page: https://sofialia.ai
- * - Application privacy policy link: https://sofialia.ai/privacy
- * - Application terms of service link: https://sofialia.ai/terms
+ * - App name: SOFLIAlia.ai
+ * - Application home page: https://SOFLIAlia.ai
+ * - Application privacy policy link: https://SOFLIAlia.ai/privacy
+ * - Application terms of service link: https://SOFLIAlia.ai/terms
  */
 export const GOOGLE_OAUTH_CONFIG: GoogleOAuthConfig = {
   clientId: process.env.GOOGLE_OAUTH_CLIENT_ID!,
@@ -36,7 +36,7 @@ export const GOOGLE_OAUTH_URLS = {
 };
 
 /**
- * Genera la URL de autorización de Google
+ * Genera la URL de autorizaciÃ³n de Google
  */
 export function getGoogleAuthUrl(state?: string): string {
   const params = new URLSearchParams({
@@ -53,16 +53,16 @@ export function getGoogleAuthUrl(state?: string): string {
 }
 
 /**
- * Valida la configuración de Google OAuth
+ * Valida la configuraciÃ³n de Google OAuth
  */
 export function validateGoogleOAuthConfig(): void {
   if (!GOOGLE_OAUTH_CONFIG.clientId) {
-    throw new Error('GOOGLE_OAUTH_CLIENT_ID no está configurado');
+    throw new Error('GOOGLE_OAUTH_CLIENT_ID no estÃ¡ configurado');
   }
   if (!GOOGLE_OAUTH_CONFIG.clientSecret) {
-    throw new Error('GOOGLE_OAUTH_CLIENT_SECRET no está configurado');
+    throw new Error('GOOGLE_OAUTH_CLIENT_SECRET no estÃ¡ configurado');
   }
   if (!process.env.NEXT_PUBLIC_APP_URL) {
-    throw new Error('NEXT_PUBLIC_APP_URL no está configurado');
+    throw new Error('NEXT_PUBLIC_APP_URL no estÃ¡ configurado');
   }
 }

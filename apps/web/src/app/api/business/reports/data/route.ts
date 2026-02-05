@@ -26,7 +26,7 @@ export interface ReportFilters {
 
 /**
  * GET /api/business/reports/data
- * Obtiene datos para generar reportes según tipo y filtros
+ * Obtiene datos para generar reportes segÃºn tipo y filtros
  */
 export async function GET(request: NextRequest) {
   try {
@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
     if (!auth.organizationId) {
       return NextResponse.json({
         success: false,
-        error: 'No tienes una organización asignada'
+        error: 'No tienes una organizaciÃ³n asignada'
       }, { status: 403 })
     }
 
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       default:
         return NextResponse.json({
           success: false,
-          error: 'Tipo de reporte no válido'
+          error: 'Tipo de reporte no vÃ¡lido'
         }, { status: 400 })
     }
 
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
       generated_at: new Date().toISOString()
     })
   } catch (error) {
-    logger.error('💥 Error in /api/business/reports/data:', error)
+    logger.error('ðŸ’¥ Error in /api/business/reports/data:', error)
     return NextResponse.json({
       success: false,
       error: 'Error al generar el reporte'
@@ -113,7 +113,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * Genera reporte de análisis de IA con LIA
+ * Genera reporte de anÃ¡lisis de IA con LIA
  */
 async function generateLiaAnalysisReport(supabase: any, organizationId: string, filters: ReportFilters) {
   // 1. Recopilar datos de todas las fuentes relevantes
@@ -127,7 +127,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   // Obtener IDs de usuarios para consultas adicionales
   const userIds = usersReport.users.map((u: any) => u.user_id)
 
-  // 2. Consultas adicionales para análisis profundo (Equipos, Planner, LIA)
+  // 2. Consultas adicionales para anÃ¡lisis profundo (Equipos, Planner, LIA)
   const [workTeamsData, studyPlansData, studySessionsData, liaConversationsData] = await Promise.all([
     // Equipos
     supabase.from('work_teams').select('team_id, name, status').eq('organization_id', organizationId),
@@ -146,7 +146,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
         .select('id, course_id')
         .in('team_id', teamIds)
 
-  // Procesar métricas adicionales
+  // Procesar mÃ©tricas adicionales
   const teamsCount = workTeamsData.data?.length || 0
   const activeTeams = workTeamsData.data?.filter((t: any) => t.status === 'active').length || 0
   const teamAssignmentsCount = teamAssignmentsData?.length || 0
@@ -166,31 +166,31 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   const model = genAI.getGenerativeModel({ model: modelName })
 
   const prompt = `
-    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFIA.
+    ActÃºa como LIA, la experta en anÃ¡lisis de datos y recursos humanos de la plataforma SOFLIA.
     
-    Tu tarea es generar un "Reporte Ejecutivo de Análisis Predictivo y Rendimiento" para el administrador de la organización.
-    Debes analizar los datos proporcionados y generar un informe profesional, detallado y útil para la toma de decisiones.
+    Tu tarea es generar un "Reporte Ejecutivo de AnÃ¡lisis Predictivo y Rendimiento" para el administrador de la organizaciÃ³n.
+    Debes analizar los datos proporcionados y generar un informe profesional, detallado y Ãºtil para la toma de decisiones.
     
-    DATOS DE LA ORGANIZACIÓN:
+    DATOS DE LA ORGANIZACIÃ“N:
     - Total Usuarios: ${usersReport.total_users}
     - Usuarios Activos: ${usersReport.summary?.by_status?.active || 0}
     - Total Cursos Asignados (Directos + Equipos): ${coursesReport.total_assignments}
-    - Tasa de Finalización de Cursos: ${coursesReport.summary?.average_completion_rate?.toFixed(2)}%
+    - Tasa de FinalizaciÃ³n de Cursos: ${coursesReport.summary?.average_completion_rate?.toFixed(2)}%
     
     ESTRUCTURA DE EQUIPOS:
     - Equipos Totales: ${teamsCount}
     - Equipos Activos: ${activeTeams}
     - Cursos Asignados a Equipos: ${teamAssignmentsCount}
-    *Nota: Un alto número de asignaciones a equipos indica una gestión eficiente. Si es 0, sugiere subutilización de esta función.*
+    *Nota: Un alto nÃºmero de asignaciones a equipos indica una gestiÃ³n eficiente. Si es 0, sugiere subutilizaciÃ³n de esta funciÃ³n.*
 
-    PLANIFICACIÓN Y HÁBITOS DE ESTUDIO:
+    PLANIFICACIÃ“N Y HÃBITOS DE ESTUDIO:
     - Planes de Estudio Activos: ${totalStudyPlans}
     - Tasa de Adherencia al Plan (Cumplimiento): ${adherenceRate.toFixed(1)}%
     - Sesiones de Estudio Completadas: ${completedSessions}
 
-    INTERACCIÓN CON INTELIGENCIA ARTIFICIAL (LIA):
-    - Conversaciones de Orientación General: ${aiChatConversations}
-    - Consultas sobre Cursos Específicos: ${courseContextConversations}
+    INTERACCIÃ“N CON INTELIGENCIA ARTIFICIAL (LIA):
+    - Conversaciones de OrientaciÃ³n General: ${aiChatConversations}
+    - Consultas sobre Cursos EspecÃ­ficos: ${courseContextConversations}
     - Total Interacciones: ${totalLiaConversations}
 
     DETALLE DE USUARIOS (Muestra representativa):
@@ -204,32 +204,32 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
     })))}
 
     INSTRUCCIONES PARA EL REPORTE:
-    1. **Resumen Ejecutivo**: Breve visión general del estado de la capacitación y la salud digital de la organización.
-    2. **Análisis de Rendimiento y Adopción**:
-       - Evalúa el ritmo de aprendizaje.
-       - **IMPORTANTE**: Analiza la adopción de herramientas de productividad como el "Planificador de Estudios" y el asistente "LIA". ¿Están usando la IA para aprender mejor?
-    3. **Estructura y Equipos**: Comenta sobre la organización en equipos (${teamsCount} equipos detectados). ¿Se está aprovechando la estructura grupal?
+    1. **Resumen Ejecutivo**: Breve visiÃ³n general del estado de la capacitaciÃ³n y la salud digital de la organizaciÃ³n.
+    2. **AnÃ¡lisis de Rendimiento y AdopciÃ³n**:
+       - EvalÃºa el ritmo de aprendizaje.
+       - **IMPORTANTE**: Analiza la adopciÃ³n de herramientas de productividad como el "Planificador de Estudios" y el asistente "LIA". Â¿EstÃ¡n usando la IA para aprender mejor?
+    3. **Estructura y Equipos**: Comenta sobre la organizaciÃ³n en equipos (${teamsCount} equipos detectados). Â¿Se estÃ¡ aprovechando la estructura grupal?
     4. **Top Talent & Riesgos**:
        - Menciona usuarios destacados.
        - Identifica usuarios en riesgo.
-    5. **Predicciones y Sugerencias Estratégicas**:
-       - Basado en la adherencia (${adherenceRate.toFixed(1)}%), predice si se cumplirán las metas trimestrales.
-       - Sugiere acciones para mejorar el uso del Planificador y LIA si las métricas son bajas.
-    6. **Conclusión Profesional**: Cierre motivador.
+    5. **Predicciones y Sugerencias EstratÃ©gicas**:
+       - Basado en la adherencia (${adherenceRate.toFixed(1)}%), predice si se cumplirÃ¡n las metas trimestrales.
+       - Sugiere acciones para mejorar el uso del Planificador y LIA si las mÃ©tricas son bajas.
+    6. **ConclusiÃ³n Profesional**: Cierre motivador.
 
     FORMATO:
     - Usa Markdown enriquecido.
     - Tono Ejecutivo/Directivo.
-    - Idioma: Español.
+    - Idioma: EspaÃ±ol.
     - **FIRMA (OBLIGATORIO):** Al final del reporte, usa EXCLUSIVAMENTE este formato centrado (usa HTML):
       
       <div style="text-align: center; margin-top: 40px;">
         Atentamente,<br><br>
         <strong>LIA</strong><br>
-        <span style="color: #64748b; font-size: 14px;">Sistema Operativo de Formación de Inteligencia Aplicada</span>
+        <span style="color: #64748b; font-size: 14px;">Sistema Operativo de FormaciÃ³n de Inteligencia Aplicada</span>
       </div>
 
-    - **PROHIBIDO**: No pongas "Sistema de Analítica", "Plataforma SOFIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
+    - **PROHIBIDO**: No pongas "Sistema de AnalÃ­tica", "Plataforma SOFLIA" ni "Estrategia de Talento" en la firma. Usa solo el texto indicado arriba.
   `
 
   try {
@@ -260,7 +260,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   } catch (error) {
     console.error('Error generating LIA report:', error)
     return {
-      analysis_text: "Lo sentimos, no pudimos generar el análisis predictivo en este momento debido a un error de conexión con el motor de IA. Por favor, revisa los datos crudos a continuación.",
+      analysis_text: "Lo sentimos, no pudimos generar el anÃ¡lisis predictivo en este momento debido a un error de conexiÃ³n con el motor de IA. Por favor, revisa los datos crudos a continuaciÃ³n.",
       raw_data: {
         users: usersReport,
         activity: activityReport,
@@ -328,14 +328,14 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
 
   const userIds = (orgUsers || []).filter((ou: any) => ou.users).map((ou: any) => ou.users.id)
 
-  // Obtener información de cursos asignados
+  // Obtener informaciÃ³n de cursos asignados
   const { data: assignments } = await supabase
     .from('organization_course_assignments')
     .select('user_id, course_id, status, completion_percentage, courses!organization_course_assignments_course_id_fkey (id, title)')
     .eq('organization_id', organizationId)
     .in('user_id', userIds.length > 0 ? userIds : ['00000000-0000-0000-0000-000000000000'])
 
-  // Obtener información de certificados
+  // Obtener informaciÃ³n de certificados
   const { data: certificates } = await supabase
     .from('user_course_certificates')
     .select('user_id, course_id, issued_at, courses!user_course_certificates_course_id_fkey (id, title)')
@@ -420,11 +420,11 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
         display_name: ou.users.display_name || `${ou.users.first_name || ''} ${ou.users.last_name || ''}`.trim() || ou.users.username,
         first_name: ou.users.first_name,
         last_name: ou.users.last_name,
-        role: ou.role, // Rol en la organización (owner/admin/member)
-        job_title: ou.job_title || 'No especificado', // Cargo/puesto en esta organización
+        role: ou.role, // Rol en la organizaciÃ³n (owner/admin/member)
+        job_title: ou.job_title || 'No especificado', // Cargo/puesto en esta organizaciÃ³n
         status: ou.status,
         joined_at: ou.joined_at,
-        last_login_at: ou.users.updated_at || ou.users.last_login_at, // Usar updated_at como última conexión
+        last_login_at: ou.users.updated_at || ou.users.last_login_at, // Usar updated_at como Ãºltima conexiÃ³n
         created_at: ou.users.created_at,
         courses: userCourses,
         certificates: userCertificates,
@@ -490,7 +490,7 @@ async function generateCoursesReport(supabase: any, organizationId: string, filt
     logger.error('Error fetching course assignments:', assignmentsError)
   }
 
-  // Obtener información de cursos
+  // Obtener informaciÃ³n de cursos
   const courseIds = [...new Set((assignments || []).map((a: any) => a.course_id))]
   let coursesData: any[] = []
 
@@ -606,7 +606,7 @@ async function generateProgressReport(supabase: any, organizationId: string, fil
 
   const { data: assignments } = await assignmentsQuery
 
-  // Obtener información de cursos
+  // Obtener informaciÃ³n de cursos
   const courseIds = [...new Set((assignments || []).map((a: any) => a.course_id))]
   const { data: courses } = await supabase
     .from('courses')
@@ -630,7 +630,7 @@ async function generateProgressReport(supabase: any, organizationId: string, fil
     }
   })
 
-  // Calcular estadísticas
+  // Calcular estadÃ­sticas
   const completedCount = progressData.filter((p: any) => p.status === 'completed').length
   const inProgressCount = progressData.filter((p: any) => p.status === 'in_progress').length
   const notStartedCount = progressData.filter((p: any) => p.status === 'not_started').length
@@ -713,7 +713,7 @@ async function generateActivityReport(supabase: any, organizationId: string, fil
 
   const { data: enrollments } = await enrollmentsQuery.limit(500)
 
-  // Obtener información de cursos
+  // Obtener informaciÃ³n de cursos
   const courseIds = [...new Set((enrollments || []).map((e: any) => e.course_id))]
   const { data: courses } = await supabase
     .from('courses')
@@ -736,7 +736,7 @@ async function generateActivityReport(supabase: any, organizationId: string, fil
     }
   })
 
-  // Calcular estadísticas
+  // Calcular estadÃ­sticas
   const activeCount = activities.filter((a: any) => a.enrollment_status === 'active').length
   const completedCount = activities.filter((a: any) => a.enrollment_status === 'completed').length
   const inactiveCount = activities.filter((a: any) => a.enrollment_status === 'inactive').length
@@ -773,7 +773,7 @@ async function generateActivityReport(supabase: any, organizationId: string, fil
 }
 
 /**
- * Genera reporte de completación
+ * Genera reporte de completaciÃ³n
  */
 async function generateCompletionReport(supabase: any, organizationId: string, filters: ReportFilters) {
   let assignmentsQuery = supabase
@@ -790,7 +790,7 @@ async function generateCompletionReport(supabase: any, organizationId: string, f
 
   const { data: assignments } = await assignmentsQuery
 
-  // Obtener información de cursos
+  // Obtener informaciÃ³n de cursos
   const courseIds = [...new Set((assignments || []).map((a: any) => a.course_id))]
   const { data: courses } = await supabase
     .from('courses')
@@ -814,7 +814,7 @@ async function generateCompletionReport(supabase: any, organizationId: string, f
   const inProgress = completionData.filter((a: any) => a.status === 'in_progress')
   const notStarted = completionData.filter((a: any) => a.status === 'not_started')
 
-  // Completación por curso
+  // CompletaciÃ³n por curso
   const completionByCourse = new Map()
   completionData.forEach((c: any) => {
     if (!completionByCourse.has(c.course_id)) {
@@ -836,7 +836,7 @@ async function generateCompletionReport(supabase: any, organizationId: string, f
     course.average_completion = ((course.average_completion * (course.total - 1)) + (c.completion_percentage || 0)) / course.total
   })
 
-  // Tasa de completación
+  // Tasa de completaciÃ³n
   const completionRate = completionData.length > 0
     ? (completed.length / completionData.length) * 100
     : 0
@@ -895,7 +895,7 @@ async function generateTimeSpentReport(supabase: any, organizationId: string, fi
 
   const { data: lessonProgress } = await lessonProgressQuery
 
-  // Obtener información de lecciones y cursos
+  // Obtener informaciÃ³n de lecciones y cursos
   const lessonIds = [...new Set((lessonProgress || []).map((p: any) => p.lesson_id))]
   const { data: lessons } = await supabase
     .from('course_lessons')
@@ -1016,7 +1016,7 @@ async function generateCertificatesReport(supabase: any, organizationId: string,
 
   const { data: certificates } = await certificatesQuery
 
-  // Obtener información de cursos
+  // Obtener informaciÃ³n de cursos
   const courseIds = [...new Set((certificates || []).map((c: any) => c.course_id))]
   const { data: courses } = await supabase
     .from('courses')

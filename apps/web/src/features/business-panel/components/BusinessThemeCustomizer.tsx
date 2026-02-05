@@ -20,7 +20,7 @@ import { PRESET_THEMES, getAllThemes, ThemeConfig, generateBrandingTheme, Brandi
 
 type ActivePanel = 'panel' | 'userDashboard' | 'login';
 
-// Función pura fuera del componente para obtener estilos por defecto
+// FunciÃ³n pura fuera del componente para obtener estilos por defecto
 const getDefaultStyle = (): StyleConfig => ({
   background_type: 'gradient',
   background_value: 'linear-gradient(135deg, #1e3a8a 0%, #1e40af 50%, #1e40af 100%)',
@@ -83,7 +83,7 @@ export function BusinessThemeCustomizer() {
     }
   }, [styles, activePanel]);
 
-  // Cargar colores de branding para generar tema automático
+  // Cargar colores de branding para generar tema automÃ¡tico
   useEffect(() => {
     const fetchBrandingColors = async () => {
       try {
@@ -142,7 +142,7 @@ export function BusinessThemeCustomizer() {
     setSaveSuccess(null);
 
     try {
-      // console.log('💾 Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
+      // console.log('ðŸ’¾ Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
 
       const success = await updateStyles(
         panelStyles || undefined,
@@ -153,7 +153,7 @@ export function BusinessThemeCustomizer() {
       if (success) {
         setSaveSuccess('Estilos guardados correctamente');
         setTimeout(() => setSaveSuccess(null), 3000);
-        // console.log('✅ Estilos guardados exitosamente, refrescando...');
+        // console.log('âœ… Estilos guardados exitosamente, refrescando...');
         // Refrescar estilos para asegurar que todos los componentes se actualicen
         await refetch();
       } else {
@@ -161,7 +161,7 @@ export function BusinessThemeCustomizer() {
         setTimeout(() => setSaveError(null), 3000);
       }
     } catch (err: any) {
-      // console.error('❌ Error al guardar estilos:', err);
+      // console.error('âŒ Error al guardar estilos:', err);
       setSaveError(err.message || 'Error al guardar estilos');
       setTimeout(() => setSaveError(null), 3000);
     } finally {
@@ -208,11 +208,11 @@ export function BusinessThemeCustomizer() {
     }
   }, [activePanel, panelStyles, userDashboardStyles, loginStyles]);
 
-  // Generar todos los temas disponibles (8 predefinidos + 1 automático si hay branding)
+  // Generar todos los temas disponibles (8 predefinidos + 1 automÃ¡tico si hay branding)
   const allThemes = useMemo(() => {
     const presetThemes = getAllThemes();
 
-    // Si ya cargamos los colores de branding, generar el tema automático
+    // Si ya cargamos los colores de branding, generar el tema automÃ¡tico
     if (brandingColors && !loadingBranding) {
       const brandingTheme = generateBrandingTheme(brandingColors);
       return [...presetThemes, brandingTheme];
@@ -221,7 +221,7 @@ export function BusinessThemeCustomizer() {
     return presetThemes;
   }, [brandingColors, loadingBranding]);
 
-  // Returns condicionales DESPUÉS de todos los hooks
+  // Returns condicionales DESPUÃ‰S de todos los hooks
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -281,7 +281,7 @@ export function BusinessThemeCustomizer() {
     }
   }
 
-  // Generar CSS del gradiente basado en los colores y ángulo
+  // Generar CSS del gradiente basado en los colores y Ã¡ngulo
   const generateGradientCSS = useCallback((): string => {
     if (gradientColors.length < 2) return 'linear-gradient(135deg, #1e3a8a, #1e40af)'
     const colorsWithStops = gradientColors.map((color, index) => {
@@ -291,7 +291,7 @@ export function BusinessThemeCustomizer() {
     return `linear-gradient(${gradientAngle}deg, ${colorsWithStops})`
   }, [gradientColors, gradientAngle])
 
-  // Actualizar gradiente cuando cambien los colores o el ángulo
+  // Actualizar gradiente cuando cambien los colores o el Ã¡ngulo
   useEffect(() => {
     if (currentStyles.background_type === 'gradient' && gradientColors.length >= 2) {
       const newGradient = generateGradientCSS()
@@ -327,9 +327,9 @@ export function BusinessThemeCustomizer() {
   // Obtener icono para cada tema
   const getThemeIcon = (themeId: string) => {
     const icons: Record<string, string> = {
-      'sofia': 'T', // Tema SOFIA unificado
-      'sofia-predeterminado': 'T', // Compatibilidad legacy
-      'sofia-claro': 'T', // Compatibilidad legacy
+      'SOFLIA': 'T', // Tema SOFLIA unificado
+      'SOFLIA-predeterminado': 'T', // Compatibilidad legacy
+      'SOFLIA-claro': 'T', // Compatibilidad legacy
       'corporativo-azul': 'A',
       'ejecutivo-oscuro': 'D',
       'premium-dorado': 'B',
@@ -338,7 +338,7 @@ export function BusinessThemeCustomizer() {
       'tecnologia-verde': 'B',
       'financiero-proceso': 'B',
       'recursos-procesado': 'K',
-      'branding-personalizado': '★'
+      'branding-personalizado': 'â˜…'
     }
     return icons[themeId] || 'T'
   }
@@ -351,16 +351,16 @@ export function BusinessThemeCustomizer() {
     return theme.panel.background_value
   }
 
-  // Verificar si un tema está seleccionado (con compatibilidad legacy)
+  // Verificar si un tema estÃ¡ seleccionado (con compatibilidad legacy)
   const isThemeSelected = (themeId: string): boolean => {
     const selectedTheme = styles?.selectedTheme;
     if (!selectedTheme) return false;
     
-    // Comparación directa
+    // ComparaciÃ³n directa
     if (selectedTheme === themeId) return true;
     
     // Compatibilidad con temas legacy
-    if (themeId === 'sofia' && (selectedTheme === 'sofia-predeterminado' || selectedTheme === 'sofia-claro')) {
+    if (themeId === 'SOFLIA' && (selectedTheme === 'SOFLIA-predeterminado' || selectedTheme === 'SOFLIA-claro')) {
       return true;
     }
     
@@ -396,7 +396,7 @@ export function BusinessThemeCustomizer() {
             <Palette className="w-6 h-6 text-white" />
           </motion.div>
           <div>
-            <h2 className="text-xl font-bold text-white">Personalización de Tema</h2>
+            <h2 className="text-xl font-bold text-white">PersonalizaciÃ³n de Tema</h2>
             <p className="text-white/60 text-sm">Personaliza la apariencia de tu plataforma</p>
           </div>
         </div>
@@ -490,7 +490,7 @@ export function BusinessThemeCustomizer() {
               {/* Dual Mode Theme Badge */}
               {theme.supportsDualMode && theme.id !== 'branding-personalizado' && (
                 <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-gradient-to-r from-indigo-500 to-purple-500 text-white flex items-center gap-0.5">
-                  <span>☀️</span><span>/</span><span>🌙</span>
+                  <span>â˜€ï¸</span><span>/</span><span>ðŸŒ™</span>
                 </div>
               )}
             </motion.button>
@@ -531,10 +531,10 @@ export function BusinessThemeCustomizer() {
                   Gradiente
                 </label>
                 <div className="space-y-4">
-                  {/* Selector de Ángulo */}
+                  {/* Selector de Ãngulo */}
                   <div>
                     <label className="block text-xs mb-2" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                      Ángulo: {gradientAngle}°
+                      Ãngulo: {gradientAngle}Â°
                     </label>
                     <input
                       type="range"
@@ -547,8 +547,8 @@ export function BusinessThemeCustomizer() {
                       style={{
                         accentColor: 'var(--org-primary-button-color, #3b82f6)'
                       }}
-                      title={`Ángulo del gradiente: ${gradientAngle}°`}
-                      aria-label={`Ángulo del gradiente: ${gradientAngle}°`}
+                      title={`Ãngulo del gradiente: ${gradientAngle}Â°`}
+                      aria-label={`Ãngulo del gradiente: ${gradientAngle}Â°`}
                     />
                   </div>
 
@@ -579,7 +579,7 @@ export function BusinessThemeCustomizer() {
                                 className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-red-500 text-white text-xs flex items-center justify-center hover:bg-red-600 transition-colors"
                                 style={{ fontSize: '10px' }}
                               >
-                                ×
+                                Ã—
                               </button>
                             )}
                           </div>
@@ -633,7 +633,7 @@ export function BusinessThemeCustomizer() {
                     </div>
                   </div>
 
-                  {/* Botones de Acción */}
+                  {/* Botones de AcciÃ³n */}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -652,7 +652,7 @@ export function BusinessThemeCustomizer() {
                       ) : (
                         <>
                           <Copy className="w-4 h-4" />
-                          Copiar Código
+                          Copiar CÃ³digo
                         </>
                       )}
                     </button>
@@ -713,10 +713,10 @@ export function BusinessThemeCustomizer() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Botón Primario */}
+                {/* BotÃ³n Primario */}
                 <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-white/80">Botón Primario</span>
+                    <span className="text-xs font-medium text-white/80">BotÃ³n Primario</span>
                     <button
                       type="button"
                       onClick={() => updateStyle(activePanel, 'primary_button_color', '#3b82f6')}
@@ -748,10 +748,10 @@ export function BusinessThemeCustomizer() {
                   </div>
                 </div>
 
-                {/* Botón Secundario */}
+                {/* BotÃ³n Secundario */}
                 <div className="p-3 rounded-xl" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-white/80">Botón Secundario</span>
+                    <span className="text-xs font-medium text-white/80">BotÃ³n Secundario</span>
                     <button
                       type="button"
                       onClick={() => updateStyle(activePanel, 'secondary_button_color', '#8b5cf6')}
@@ -982,7 +982,7 @@ export function BusinessThemeCustomizer() {
               </div>
               <div>
                 <h3 className="text-base font-bold text-white">Vista Previa</h3>
-                <p className="text-xs text-white/50">Así se verá tu panel</p>
+                <p className="text-xs text-white/50">AsÃ­ se verÃ¡ tu panel</p>
               </div>
             </div>
 
@@ -1048,7 +1048,7 @@ export function BusinessThemeCustomizer() {
         </motion.div>
       </div>
 
-      {/* Mensajes de Éxito/Error */}
+      {/* Mensajes de Ã‰xito/Error */}
       {saveSuccess && (
         <motion.div
           initial={{ opacity: 0, y: -10 }}
@@ -1071,7 +1071,7 @@ export function BusinessThemeCustomizer() {
         </motion.div>
       )}
 
-      {/* Botones de Acción */}
+      {/* Botones de AcciÃ³n */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
