@@ -13,7 +13,7 @@ import {
     Check,
     ArrowRight
 } from 'lucide-react';
-import { useAuth } from '../../features/auth/hooks/useAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 // ============================================
 // SUBSCRIPTION PLANS
@@ -226,8 +226,8 @@ export default function DashboardPage() {
                                     onClick={() => handleSelectPlan(plan.id)}
                                     className={`
                                         w-full py-3.5 rounded-xl font-semibold mb-8 transition-all flex items-center justify-center gap-2 group
-                                        ${plan.featured 
-                                            ? 'bg-teal-500 hover:bg-teal-400 text-[#0F1419] shadow-lg shadow-teal-500/20' 
+                                        ${plan.featured
+                                            ? 'bg-teal-500 hover:bg-teal-400 text-[#0F1419] shadow-lg shadow-teal-500/20'
                                             : 'bg-white/5 hover:bg-white/10 text-white border border-white/10'}
                                     `}
                                 >
