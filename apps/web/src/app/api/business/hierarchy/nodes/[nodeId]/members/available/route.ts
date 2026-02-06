@@ -18,16 +18,21 @@ export async function GET(
         const nodeId = params.nodeId;
         const { searchParams } = new URL(request.url);
         const query = searchParams.get('query') || '';
+        const includeCurrentMembers = searchParams.get('includeCurrentMembers') === 'true';
 
         const supabase = await createClient();
 
-        // 1. Get IDs of current members of THIS NODE to exclude
-        const { data: currentMembers } = await supabase
-            .from('organization_node_users')
-            .select('user_id')
-            .eq('node_id', nodeId);
+        // 1. Get IDs of current members of THIS NODE to exclude (unless requested otherwise)
+        let excludedUserIds: string[] = [];
 
-        const excludedUserIds = (currentMembers || []).map(m => m.user_id);
+        if (!includeCurrentMembers) {
+            const { data: currentMembers } = await supabase
+                .from('organization_node_users')
+                .select('user_id')
+                .eq('node_id', nodeId);
+
+            excludedUserIds = (currentMembers || []).map(m => m.user_id);
+        }
 
         // 2. Get all active user IDs in the ORGANIZATION
         const { data: orgMembers, error: orgError } = await supabase

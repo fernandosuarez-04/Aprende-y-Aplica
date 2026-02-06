@@ -299,6 +299,19 @@ CREATE TABLE public.course_reviews (
   CONSTRAINT course_reviews_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
   CONSTRAINT course_reviews_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id)
 );
+CREATE TABLE public.course_skills (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  course_id uuid NOT NULL,
+  skill_id uuid NOT NULL,
+  is_primary boolean DEFAULT false,
+  is_required boolean DEFAULT true,
+  proficiency_level text DEFAULT 'beginner'::text,
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT course_skills_pkey PRIMARY KEY (id),
+  CONSTRAINT course_skills_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
+  CONSTRAINT course_skills_skill_id_fkey FOREIGN KEY (skill_id) REFERENCES public.skills(skill_id)
+);
 CREATE TABLE public.courses (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   title character varying NOT NULL,
@@ -1271,6 +1284,32 @@ CREATE TABLE public.sectores (
   slug text NOT NULL UNIQUE,
   nombre text NOT NULL,
   CONSTRAINT sectores_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.skill_badges (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  skill_id uuid NOT NULL,
+  level text NOT NULL,
+  badge_url text NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT skill_badges_pkey PRIMARY KEY (id),
+  CONSTRAINT skill_badges_skill_id_fkey FOREIGN KEY (skill_id) REFERENCES public.skills(skill_id)
+);
+CREATE TABLE public.skills (
+  skill_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name text NOT NULL,
+  slug text NOT NULL UNIQUE,
+  description text,
+  category text NOT NULL,
+  icon_url text,
+  icon_type text,
+  icon_name text,
+  color text,
+  level text,
+  is_active boolean DEFAULT true,
+  display_order integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT skills_pkey PRIMARY KEY (skill_id)
 );
 CREATE TABLE public.study_plans (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

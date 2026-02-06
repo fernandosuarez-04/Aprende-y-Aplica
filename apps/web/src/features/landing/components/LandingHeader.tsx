@@ -69,8 +69,8 @@ export function LandingHeader() {
       animate={{ y: 0 }}
       transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
-          ? "bg-white dark:bg-[#0F1419] shadow-lg shadow-black/5 dark:shadow-black/20"
-          : "bg-white dark:bg-[#0F1419]"
+        ? "bg-white dark:bg-[#0F1419] shadow-lg shadow-black/5 dark:shadow-black/20"
+        : "bg-white dark:bg-[#0F1419]"
         }`}
     >
       <div className="container mx-auto px-4 lg:px-8">
@@ -90,12 +90,12 @@ export function LandingHeader() {
                 priority
               />
             </motion.div>
-            <span className="text-xl lg:text-2xl font-bold text-[#0A2540] dark:text-white flex items-center gap-2">
-              SOFLIA
+            <div className="text-xl lg:text-2xl font-bold text-[#0A2540] dark:text-white flex items-center gap-2">
+              <span>SOFLIA</span>
               <span className="px-1.5 py-0.5 text-xs font-bold text-white bg-[#00D4B3] rounded-md tracking-wide uppercase">
                 Learning
               </span>
-            </span>
+            </div>
           </Link>
 
           {/* Desktop Navigation */}
@@ -147,8 +147,8 @@ export function LandingHeader() {
                         }}
                         whileHover={{ x: 4 }}
                         className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${language === option.value
-                            ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
-                            : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
+                          ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
+                          : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
                           }`}
                       >
                         <span className="text-lg">{option.flag}</span>
@@ -194,8 +194,8 @@ export function LandingHeader() {
                       }}
                       whileHover={{ x: 4 }}
                       className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${theme === 'light'
-                          ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
-                          : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
+                        ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
+                        : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
                         }`}
                     >
                       <Sun size={18} />
@@ -209,8 +209,8 @@ export function LandingHeader() {
                       }}
                       whileHover={{ x: 4 }}
                       className={`w-full px-4 py-3 flex items-center gap-3 text-left transition-all ${theme === 'dark'
-                          ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
-                          : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
+                        ? 'bg-[#00D4B3]/10 text-[#00D4B3]'
+                        : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF]/50 dark:hover:bg-white/5'
                         }`}
                     >
                       <Moon size={18} />
@@ -303,8 +303,8 @@ export function LandingHeader() {
                           whileHover={{ scale: 1.05 }}
                           whileTap={{ scale: 0.95 }}
                           className={`px-2.5 py-1.5 text-sm font-medium rounded-lg transition-all ${language === option.value
-                              ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
-                              : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
+                            ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
+                            : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
                             }`}
                         >
                           {option.flag}
@@ -322,8 +322,8 @@ export function LandingHeader() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className={`p-2 rounded-lg transition-all ${theme === 'light'
-                          ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
-                          : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
+                        ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
+                        : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
                         }`}
                     >
                       <Sun size={18} />
@@ -333,8 +333,8 @@ export function LandingHeader() {
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       className={`p-2 rounded-lg transition-all ${theme === 'dark'
-                          ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
-                          : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
+                        ? 'bg-[#00D4B3]/20 text-[#00D4B3]'
+                        : 'text-[#6C757D] dark:text-white/70 hover:bg-[#E9ECEF] dark:hover:bg-white/10'
                         }`}
                     >
                       <Moon size={18} />

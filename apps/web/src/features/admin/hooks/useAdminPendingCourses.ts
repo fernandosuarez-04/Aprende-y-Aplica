@@ -1,6 +1,5 @@
-
 import { useState, useCallback, useEffect } from 'react'
-import { getPendingCourses, approveCourse as approveCourseAction, rejectCourse as rejectCourseAction, AdminCourse } from '../actions/adminCourses.actions'
+import { getPendingCourses, approveCourse as approveCourseAction, rejectCourse as rejectCourseAction, deleteCourse as deleteCourseAction, AdminCourse } from '../actions/adminCourses.actions'
 
 interface UseAdminPendingCoursesReturn {
     courses: AdminCourse[]
@@ -9,6 +8,7 @@ interface UseAdminPendingCoursesReturn {
     refetch: () => Promise<void>
     approveCourse: (id: string, adminId: string) => Promise<boolean>
     rejectCourse: (id: string, reason: string) => Promise<boolean>
+    deleteCourse: (id: string) => Promise<boolean>
 }
 
 export function useAdminPendingCourses(): UseAdminPendingCoursesReturn {
@@ -61,12 +61,27 @@ export function useAdminPendingCourses(): UseAdminPendingCoursesReturn {
         }
     }
 
+    const deleteCourse = async (id: string) => {
+        try {
+            const success = await deleteCourseAction(id)
+            if (success) {
+                await fetchCourses()
+                return true
+            }
+            return false
+        } catch (err) {
+            console.error(err)
+            return false
+        }
+    }
+
     return {
         courses,
         isLoading,
         error,
         refetch: fetchCourses,
         approveCourse,
-        rejectCourse
+        rejectCourse,
+        deleteCourse
     }
 }

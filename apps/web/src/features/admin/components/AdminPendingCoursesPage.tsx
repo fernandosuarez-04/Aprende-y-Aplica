@@ -14,7 +14,8 @@ import {
     XMarkIcon,
     MagnifyingGlassIcon,
     FunnelIcon,
-    InboxIcon
+    InboxIcon,
+    TrashIcon
 } from '@heroicons/react/24/outline'
 import { useAdminPendingCourses } from '../hooks/useAdminPendingCourses'
 import { ConfirmationModal } from './ConfirmationModal'
@@ -51,13 +52,15 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
     const router = useRouter()
     const { courses, isLoading, error, refetch, approveCourse, rejectCourse } = useAdminPendingCourses()
     const [searchTerm, setSearchTerm] = useState('')
+    const [activeTab, setActiveTab] = useState<'pending' | 'rejected'>('pending')
     const [courseToApprove, setCourseToApprove] = useState<string | null>(null)
     const [courseToReject, setCourseToReject] = useState<string | null>(null)
     // const [rejectionReason, setRejectionReason] = useState('') // Implementar modal con motivo si se desea
 
     const filteredCourses = courses.filter(course =>
-        course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (course.instructor_name || '').toLowerCase().includes(searchTerm.toLowerCase())
+        (course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            (course.instructor_name || '').toLowerCase().includes(searchTerm.toLowerCase())) &&
+        course.approval_status === activeTab
     )
 
     const handleApprove = async () => {
@@ -88,7 +91,7 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
         setCourseToReject(null)
     }
 
-    if (isLoading) return <div className="p-8 text-center">Cargando revisiones...</div>
+    if (isLoading) return <div className="p-8 text-center text-[#6C757D] dark:text-gray-400">Cargando revisiones...</div>
     if (error) return <div className="p-8 text-center text-red-500">Error: {error}</div>
 
     return (
@@ -104,6 +107,28 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                     </p>
                 </div>
 
+                {/* Tabs */}
+                <div className="flex items-center gap-4 mb-6 border-b border-[#E9ECEF] dark:border-[#6C757D]/30">
+                    <button
+                        onClick={() => setActiveTab('pending')}
+                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'pending'
+                            ? 'border-[#00D4B3] text-[#0A2540] dark:text-white'
+                            : 'border-transparent text-[#6C757D] dark:text-white/60 hover:text-[#0A2540] dark:hover:text-white'
+                            }`}
+                    >
+                        Pendientes
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('rejected')}
+                        className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${activeTab === 'rejected'
+                            ? 'border-[#EF4444] text-[#EF4444]'
+                            : 'border-transparent text-[#6C757D] dark:text-white/60 hover:text-[#EF4444]'
+                            }`}
+                    >
+                        Rechazados
+                    </button>
+                </div>
+
                 {/* Filters */}
                 <div className="bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-4 mb-6 shadow-sm">
                     <div className="flex flex-col sm:flex-row gap-4">
@@ -114,7 +139,7 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                                 placeholder="Buscar por título o instructor..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
-                                className="w-full pl-10 pr-4 py-2 bg-transparent border rounded-lg focus:ring-2 focus:ring-blue-500"
+                                className="w-full pl-10 pr-4 py-2 bg-transparent border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-lg text-[#0A2540] dark:text-white placeholder-[#6C757D] dark:placeholder-white/60 focus:ring-2 focus:ring-[#00D4B3]/40 focus:border-transparent"
                             />
                         </div>
                     </div>
@@ -122,10 +147,14 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
 
                 {/* Grid */}
                 {filteredCourses.length === 0 ? (
-                    <div className="text-center py-12 bg-white dark:bg-[#1E2329] rounded-xl border border-dashed">
+                    <div className="text-center py-12 bg-white dark:bg-[#1E2329] rounded-xl border border-[#E9ECEF] dark:border-[#6C757D]/30 border-dashed">
                         <InboxIcon className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">No hay cursos pendientes</h3>
-                        <p className="text-gray-500">¡Todo al día! No hay nuevas solicitudes de publicación.</p>
+                        <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                            {activeTab === 'pending' ? 'No hay cursos pendientes' : 'No hay cursos rechazados'}
+                        </h3>
+                        <p className="text-gray-500 dark:text-gray-400">
+                            {activeTab === 'pending' ? '¡Todo al día! No hay nuevas solicitudes.' : 'No se encontraron cursos rechazados con los filtros actuales.'}
+                        </p>
                     </div>
                 ) : (
                     <motion.div
@@ -140,12 +169,18 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                                 variants={itemVariants}
                                 className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                             >
-                                <div className="h-48 relative bg-gray-200">
+                                <div className="h-48 relative bg-gray-200 dark:bg-gray-800">
                                     <CourseThumbnail thumbnailUrl={course.thumbnail_url} title={course.title} />
                                     <div className="absolute top-4 right-4">
-                                        <span className="bg-yellow-100 text-yellow-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-yellow-200 dark:text-yellow-900 border border-yellow-300">
-                                            Pendiente
-                                        </span>
+                                        {course.approval_status === 'rejected' ? (
+                                            <span className="bg-[#EF4444]/10 text-[#EF4444] text-xs font-semibold px-2.5 py-0.5 rounded border border-[#EF4444]/20">
+                                                Rechazado
+                                            </span>
+                                        ) : (
+                                            <span className="bg-[#F59E0B]/10 text-[#F59E0B] text-xs font-semibold px-2.5 py-0.5 rounded border border-[#F59E0B]/20">
+                                                Pendiente
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
 
@@ -153,12 +188,12 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                                     <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-2 line-clamp-1">
                                         {course.title}
                                     </h3>
-                                    <div className="flex items-center gap-2 mb-4 text-sm text-gray-500">
+                                    <div className="flex items-center gap-2 mb-4 text-sm text-[#6C757D] dark:text-gray-400">
                                         <UserCircleIcon className="h-4 w-4" />
                                         <span>{course.instructor_name}</span>
                                     </div>
 
-                                    <div className="flex justify-between items-center text-xs text-gray-400 mb-4 border-t pt-3">
+                                    <div className="flex justify-between items-center text-xs text-[#6C757D] dark:text-gray-500 mb-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/20 pt-3">
                                         <span className="flex items-center gap-1">
                                             <ClockIcon className="h-3 w-3" /> {new Date(course.created_at).toLocaleDateString()}
                                         </span>
@@ -168,25 +203,28 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                                     <div className="flex gap-2">
                                         <button
                                             onClick={() => setCourseToApprove(course.id)}
-                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors"
+                                            className="flex-1 flex items-center justify-center gap-2 px-3 py-2 bg-[#10B981] hover:bg-[#059669] text-white rounded-lg text-sm font-medium transition-colors"
+                                            title="Aprobar y Publicar"
                                         >
                                             <CheckCircleIcon className="h-4 w-4" />
-                                            Aprobar
+                                            {activeTab === 'rejected' ? 'Reconsiderar' : 'Aprobar'}
                                         </button>
                                         <button
                                             onClick={() => router.push(`${basePath}/${course.id}`)}
-                                            className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
+                                            className="px-3 py-2 bg-[#F8F9FA] dark:bg-[#2C3036] hover:bg-[#E9ECEF] dark:hover:bg-[#3A3F45] text-[#495057] dark:text-gray-200 rounded-lg text-sm font-medium transition-colors"
                                             title="Ver Detalles"
                                         >
                                             <EyeIcon className="h-4 w-4" />
                                         </button>
-                                        <button
-                                            onClick={() => setCourseToReject(course.id)}
-                                            className="px-3 py-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-sm font-medium transition-colors"
-                                            title="Rechazar"
-                                        >
-                                            <XMarkIcon className="h-4 w-4" />
-                                        </button>
+                                        {activeTab === 'pending' && (
+                                            <button
+                                                onClick={() => setCourseToReject(course.id)}
+                                                className="px-3 py-2 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#EF4444] rounded-lg text-sm font-medium transition-colors"
+                                                title="Rechazar"
+                                            >
+                                                <XMarkIcon className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>

@@ -68,7 +68,7 @@ export async function GET(
         type,
         parent_id,
         properties,
-        members_count,
+        properties,
         users_count:organization_node_users(count),
         manager:users!manager_id (
           id,
@@ -164,6 +164,13 @@ export async function PUT(
 
         // Sync: If manager_id changed, ensure they are a leader member
         if (body.manager_id && body.manager_id !== null) {
+            // First, downgrade ALL existing leaders to members
+            await supabase
+                .from('organization_node_users')
+                .update({ role: 'member' })
+                .eq('node_id', nodeId)
+                .eq('role', 'leader');
+
             // Check if user is already a member
             const { data: existingMember } = await supabase
                 .from('organization_node_users')
@@ -173,12 +180,10 @@ export async function PUT(
                 .single();
 
             if (existingMember) {
-                if (existingMember.role !== 'leader') {
-                    await supabase
-                        .from('organization_node_users')
-                        .update({ role: 'leader' })
-                        .eq('id', existingMember.id);
-                }
+                await supabase
+                    .from('organization_node_users')
+                    .update({ role: 'leader' })
+                    .eq('id', existingMember.id);
             } else {
                 await supabase
                     .from('organization_node_users')

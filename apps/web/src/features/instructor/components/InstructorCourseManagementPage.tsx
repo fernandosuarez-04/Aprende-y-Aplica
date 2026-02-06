@@ -90,11 +90,11 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       }
     }
     loadPreview()
-    
+
     // Cargar firma del instructor desde la base de datos
     const loadInstructorSignature = async () => {
       if (!user?.id) return
-      
+
       try {
         const res = await fetch(`/api/auth/me`)
         const data = await res.json()
@@ -133,7 +133,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
   // Cargar estadísticas de usuarios cuando se abre la pestaña
   useEffect(() => {
     if (activeTab === 'stats') {
-      ;(async () => {
+      ; (async () => {
         try {
           setStatsLoading(true)
           const res = await fetch(`/api/instructor/workshops/${courseId}/stats`)
@@ -177,7 +177,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
     e.preventDefault()
     try {
       setSavingConfig(true)
-      const res = await fetch(`/api/instructor/workshops/${courseId}` , {
+      const res = await fetch(`/api/instructor/workshops/${courseId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(configData),
@@ -254,11 +254,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
       {feedbackMessage && (
         <div className="fixed top-4 right-4 z-50">
           <div
-            className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-2xl border backdrop-blur-md transition-all duration-300 ${
-              feedbackMessage.type === 'success'
+            className={`flex items-start gap-3 rounded-2xl px-4 py-3 shadow-2xl border backdrop-blur-md transition-all duration-300 ${feedbackMessage.type === 'success'
                 ? 'bg-emerald-500/15 border-emerald-400/40 text-emerald-100'
                 : 'bg-rose-500/15 border-rose-400/40 text-rose-100'
-            }`}
+              }`}
           >
             {feedbackMessage.type === 'success' ? (
               <CheckCircle2 className="w-5 h-5 text-emerald-300 flex-shrink-0" />
@@ -304,11 +303,10 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex-1 py-3 px-6 rounded-lg font-medium text-sm transition-all ${
-                  activeTab === tab.key
+                className={`flex-1 py-3 px-6 rounded-lg font-medium text-sm transition-all ${activeTab === tab.key
                     ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg'
                     : 'text-purple-200 hover:bg-purple-900/20'
-                }`}
+                  }`}
               >
                 <span className="inline-flex items-center justify-center gap-2">
                   <tab.icon className="w-4 h-4" />
@@ -370,203 +368,203 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                   return a.module_title.localeCompare(b.module_title);
                 })
                 .map((module: AdminModule) => (
-                <div key={module.module_id} className="rounded-xl border border-purple-800/30 bg-gray-900/60 overflow-hidden">
-                  <div className="p-6 flex items-center justify-between border-b border-purple-800/30">
-                    <div className="flex items-center space-x-4 flex-1">
-                      <button onClick={() => toggleModule(module.module_id)} className="text-purple-300 hover:text-white">
-                        {expandedModules.has(module.module_id) ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-                      </button>
-                      <div>
-                        <span className="font-bold text-white text-xl">{module.module_title}</span>
-                        <div className="flex items-center space-x-3 mt-1 text-purple-200">
-                          <span className="px-2 py-0.5 text-xs rounded-full bg-green-900/30 text-green-300 border border-green-700/40">
-                            {module.is_published ? '✓ Publicado' : '● Borrador'}
-                          </span>
-                          <span className="text-sm flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {module.module_duration_minutes} min
-                          </span>
+                  <div key={module.module_id} className="rounded-xl border border-purple-800/30 bg-gray-900/60 overflow-hidden">
+                    <div className="p-6 flex items-center justify-between border-b border-purple-800/30">
+                      <div className="flex items-center space-x-4 flex-1">
+                        <button onClick={() => toggleModule(module.module_id)} className="text-purple-300 hover:text-white">
+                          {expandedModules.has(module.module_id) ? <ChevronDown className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+                        </button>
+                        <div>
+                          <span className="font-bold text-white text-xl">{module.module_title}</span>
+                          <div className="flex items-center space-x-3 mt-1 text-purple-200">
+                            <span className="px-2 py-0.5 text-xs rounded-full bg-green-900/30 text-green-300 border border-green-700/40">
+                              {module.is_published ? '✓ Publicado' : '● Borrador'}
+                            </span>
+                            <span className="text-sm flex items-center">
+                              <Clock className="w-4 h-4 mr-1" />
+                              {module.module_duration_minutes} min
+                            </span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center space-x-2">
+                        <button
+                          onClick={() => {
+                            setSelectedModule(module)
+                            setShowModuleModal(true)
+                          }}
+                          className="px-4 py-2 bg-purple-900/30 hover:bg-purple-800/40 rounded-lg text-sm text-purple-200"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => {
+                            setDeletingModule(module)
+                            setShowDeleteModuleModal(true)
+                          }}
+                          className="px-4 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
+                          title="Eliminar módulo"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => {
+                            setEditingModuleId(module.module_id)
+                            setSelectedLesson(null)
+                            setShowLessonModal(true)
+                          }}
+                          className="p-3 bg-indigo-900/30 hover:bg-indigo-800/40 rounded-lg"
+                          title="Agregar lección"
+                        >
+                          <Plus className="w-5 h-5 text-indigo-300" />
+                        </button>
+                      </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <button
-                        onClick={() => {
-                          setSelectedModule(module)
-                          setShowModuleModal(true)
-                        }}
-                        className="px-4 py-2 bg-purple-900/30 hover:bg-purple-800/40 rounded-lg text-sm text-purple-200"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => {
-                          setDeletingModule(module)
-                          setShowDeleteModuleModal(true)
-                        }}
-                        className="px-4 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
-                        title="Eliminar módulo"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => {
-                          setEditingModuleId(module.module_id)
-                          setSelectedLesson(null)
-                          setShowLessonModal(true)
-                        }}
-                        className="p-3 bg-indigo-900/30 hover:bg-indigo-800/40 rounded-lg"
-                        title="Agregar lección"
-                      >
-                        <Plus className="w-5 h-5 text-indigo-300" />
-                      </button>
-                    </div>
-                  </div>
 
-                  {expandedModules.has(module.module_id) && (
-                    <div className="p-6">
-                      {(lessons.filter((l: AdminLesson) => l.module_id === module.module_id).length === 0) ? (
-                        <div className="text-center py-10 text-purple-200/80 border border-dashed border-purple-800/30 rounded-xl">
-                          No hay lecciones aún
-                        </div>
-                      ) : (
-                        <div className="space-y-3">
-                          {lessons.filter((l: AdminLesson) => l.module_id === module.module_id).map((lesson: AdminLesson) => (
-                            <div key={lesson.lesson_id} className="rounded-xl border border-purple-800/30 bg-gray-900/40">
-                              <div className="p-4 flex items-center justify-between">
-                                <div className="flex items-center space-x-3">
-                                  <button onClick={() => toggleLesson(lesson.lesson_id)} className="text-purple-300 hover:text-white">
-                                    {expandedLessons.has(lesson.lesson_id) ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
-                                  </button>
-                                  <div>
-                                    <div className="text-white font-semibold">{lesson.lesson_title}</div>
-                                    <div className="text-xs text-purple-200 mt-1 flex items-center"><Clock className="w-3 h-3 mr-1" />{Math.floor(lesson.duration_seconds / 60)} min</div>
+                    {expandedModules.has(module.module_id) && (
+                      <div className="p-6">
+                        {(lessons.filter((l: AdminLesson) => l.module_id === module.module_id).length === 0) ? (
+                          <div className="text-center py-10 text-purple-200/80 border border-dashed border-purple-800/30 rounded-xl">
+                            No hay lecciones aún
+                          </div>
+                        ) : (
+                          <div className="space-y-3">
+                            {lessons.filter((l: AdminLesson) => l.module_id === module.module_id).map((lesson: AdminLesson) => (
+                              <div key={lesson.lesson_id} className="rounded-xl border border-purple-800/30 bg-gray-900/40">
+                                <div className="p-4 flex items-center justify-between">
+                                  <div className="flex items-center space-x-3">
+                                    <button onClick={() => toggleLesson(lesson.lesson_id)} className="text-purple-300 hover:text-white">
+                                      {expandedLessons.has(lesson.lesson_id) ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+                                    </button>
+                                    <div>
+                                      <div className="text-white font-semibold">{lesson.lesson_title}</div>
+                                      <div className="text-xs text-purple-200 mt-1 flex items-center"><Clock className="w-3 h-3 mr-1" />{Math.floor(lesson.duration_seconds / 60)} min</div>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <button
+                                      onClick={() => {
+                                        setSelectedLesson(lesson)
+                                        setEditingModuleId(lesson.module_id)
+                                        setShowLessonModal(true)
+                                      }}
+                                      className="px-3 py-2 bg-blue-900/30 hover:bg-blue-800/40 rounded-lg text-sm text-blue-200"
+                                      title="Editar lección"
+                                    >
+                                      <Edit3 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setDeletingLesson(lesson)
+                                        setShowDeleteLessonModal(true)
+                                      }}
+                                      className="px-3 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
+                                      title="Eliminar lección"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingLessonId(lesson.lesson_id)
+                                        setShowMaterialModal(true)
+                                      }}
+                                      className="p-2.5 bg-indigo-900/30 hover:bg-indigo-800/40 rounded-lg"
+                                      title="Agregar material"
+                                    >
+                                      <FileText className="w-5 h-5 text-indigo-300" />
+                                    </button>
+                                    <button
+                                      onClick={() => {
+                                        setEditingLessonId(lesson.lesson_id)
+                                        setShowActivityModal(true)
+                                      }}
+                                      className="p-2.5 bg-purple-900/30 hover:bg-purple-800/40 rounded-lg"
+                                      title="Agregar actividad"
+                                    >
+                                      <ClipboardList className="w-5 h-5 text-purple-300" />
+                                    </button>
                                   </div>
                                 </div>
-                                <div className="flex items-center space-x-2">
-                                  <button
-                                    onClick={() => {
-                                      setSelectedLesson(lesson)
-                                      setEditingModuleId(lesson.module_id)
-                                      setShowLessonModal(true)
-                                    }}
-                                    className="px-3 py-2 bg-blue-900/30 hover:bg-blue-800/40 rounded-lg text-sm text-blue-200"
-                                    title="Editar lección"
-                                  >
-                                    <Edit3 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setDeletingLesson(lesson)
-                                      setShowDeleteLessonModal(true)
-                                    }}
-                                    className="px-3 py-2 bg-red-900/30 hover:bg-red-800/40 rounded-lg text-sm text-red-200"
-                                    title="Eliminar lección"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingLessonId(lesson.lesson_id)
-                                      setShowMaterialModal(true)
-                                    }}
-                                    className="p-2.5 bg-indigo-900/30 hover:bg-indigo-800/40 rounded-lg"
-                                    title="Agregar material"
-                                  >
-                                    <FileText className="w-5 h-5 text-indigo-300" />
-                                  </button>
-                                  <button
-                                    onClick={() => {
-                                      setEditingLessonId(lesson.lesson_id)
-                                      setShowActivityModal(true)
-                                    }}
-                                    className="p-2.5 bg-purple-900/30 hover:bg-purple-800/40 rounded-lg"
-                                    title="Agregar actividad"
-                                  >
-                                    <ClipboardList className="w-5 h-5 text-purple-300" />
-                                  </button>
-                                </div>
-                              </div>
 
-                              {expandedLessons.has(lesson.lesson_id) && (
-                                <div className="p-4 border-t border-purple-800/30 grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="bg-gray-900/40 rounded-lg p-4 border border-purple-800/30">
-                                    <div className="flex items-center justify-between mb-3 text-purple-200 font-semibold text-sm">
-                                      <span>Materiales</span>
-                                      <button
-                                        onClick={() => {
-                                          setEditingLessonId(lesson.lesson_id)
-                                          setShowMaterialModal(true)
-                                        }}
-                                        className="text-xs text-indigo-300 hover:text-indigo-200"
-                                      >
-                                        + Agregar
-                                      </button>
-                                    </div>
-                                    {(materials.filter((m: any) => m.lesson_id === lesson.lesson_id).length === 0) ? (
-                                      <p className="text-xs text-purple-300/70">No hay materiales</p>
-                                    ) : (
-                                      <div className="space-y-2 text-xs text-purple-200">
-                                        {materials.filter((m: any) => m.lesson_id === lesson.lesson_id).map((m: any) => (
-                                          <div key={m.material_id} className="p-3 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
-                                            <div className="font-medium text-white">{m.material_title}</div>
-                                            <div className="text-purple-300/80 mt-1">{m.material_type}</div>
-                                          </div>
-                                        ))}
+                                {expandedLessons.has(lesson.lesson_id) && (
+                                  <div className="p-4 border-t border-purple-800/30 grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="bg-gray-900/40 rounded-lg p-4 border border-purple-800/30">
+                                      <div className="flex items-center justify-between mb-3 text-purple-200 font-semibold text-sm">
+                                        <span>Materiales</span>
+                                        <button
+                                          onClick={() => {
+                                            setEditingLessonId(lesson.lesson_id)
+                                            setShowMaterialModal(true)
+                                          }}
+                                          className="text-xs text-indigo-300 hover:text-indigo-200"
+                                        >
+                                          + Agregar
+                                        </button>
                                       </div>
-                                    )}
-                                  </div>
-
-                                  <div className="bg-gray-900/40 rounded-lg p-4 border border-purple-800/30">
-                                    <div className="flex items-center justify-between mb-3 text-purple-200 font-semibold text-sm">
-                                      <span>Actividades</span>
-                                      <button
-                                        onClick={() => {
-                                          setEditingLessonId(lesson.lesson_id)
-                                          setShowActivityModal(true)
-                                        }}
-                                        className="text-xs text-purple-300 hover:text-purple-200"
-                                      >
-                                        + Agregar
-                                      </button>
-                                    </div>
-                                    {(activities.filter((a: any) => a.lesson_id === lesson.lesson_id).length === 0) ? (
-                                      <p className="text-xs text-purple-300/70">No hay actividades</p>
-                                    ) : (
-                                      <div className="space-y-2 text-xs">
-                                        {activities.filter((a: any) => a.lesson_id === lesson.lesson_id).map((a: any) => (
-                                          <div key={a.activity_id} className="p-3 rounded-lg bg-gray-900/60 border border-purple-700/40 flex items-center justify-between">
-                                            <div>
-                                              <div className="font-semibold text-white">{a.activity_title}</div>
-                                              <div className="text-purple-200 mt-1">{a.activity_type}</div>
+                                      {(materials.filter((m: any) => m.lesson_id === lesson.lesson_id).length === 0) ? (
+                                        <p className="text-xs text-purple-300/70">No hay materiales</p>
+                                      ) : (
+                                        <div className="space-y-2 text-xs text-purple-200">
+                                          {materials.filter((m: any) => m.lesson_id === lesson.lesson_id).map((m: any) => (
+                                            <div key={m.material_id} className="p-3 rounded-lg bg-indigo-900/20 border border-indigo-800/30">
+                                              <div className="font-medium text-white">{m.material_title}</div>
+                                              <div className="text-purple-300/80 mt-1">{m.material_type}</div>
                                             </div>
-                                            <button
-                                              onClick={() => {
-                                                setEditingLessonId(lesson.lesson_id)
-                                                setEditingActivityId(a.activity_id)
-                                                setShowActivityModal(true)
-                                              }}
-                                              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-white"
-                                              title="Editar actividad"
-                                            >
-                                              <Edit3 className="w-4 h-4" />
-                                              Editar
-                                            </button>
-                                          </div>
-                                        ))}
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    <div className="bg-gray-900/40 rounded-lg p-4 border border-purple-800/30">
+                                      <div className="flex items-center justify-between mb-3 text-purple-200 font-semibold text-sm">
+                                        <span>Actividades</span>
+                                        <button
+                                          onClick={() => {
+                                            setEditingLessonId(lesson.lesson_id)
+                                            setShowActivityModal(true)
+                                          }}
+                                          className="text-xs text-purple-300 hover:text-purple-200"
+                                        >
+                                          + Agregar
+                                        </button>
                                       </div>
-                                    )}
+                                      {(activities.filter((a: any) => a.lesson_id === lesson.lesson_id).length === 0) ? (
+                                        <p className="text-xs text-purple-300/70">No hay actividades</p>
+                                      ) : (
+                                        <div className="space-y-2 text-xs">
+                                          {activities.filter((a: any) => a.lesson_id === lesson.lesson_id).map((a: any) => (
+                                            <div key={a.activity_id} className="p-3 rounded-lg bg-gray-900/60 border border-purple-700/40 flex items-center justify-between">
+                                              <div>
+                                                <div className="font-semibold text-white">{a.activity_title}</div>
+                                                <div className="text-purple-200 mt-1">{a.activity_type}</div>
+                                              </div>
+                                              <button
+                                                onClick={() => {
+                                                  setEditingLessonId(lesson.lesson_id)
+                                                  setEditingActivityId(a.activity_id)
+                                                  setShowActivityModal(true)
+                                                }}
+                                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-md bg-purple-600 hover:bg-purple-500 text-white"
+                                                title="Editar actividad"
+                                              >
+                                                <Edit3 className="w-4 h-4" />
+                                                Editar
+                                              </button>
+                                            </div>
+                                          ))}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              ))
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ))
             )}
           </div>
         )}
@@ -686,8 +684,8 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     <div className="relative h-80 overflow-hidden">
                       {workshopPreview.thumbnail_url ? (
                         <>
-                          <motion.img 
-                            src={workshopPreview.thumbnail_url} 
+                          <motion.img
+                            src={workshopPreview.thumbnail_url}
                             alt={workshopPreview.title}
                             className="w-full h-full object-cover"
                             whileHover={{ scale: 1.05 }}
@@ -698,7 +696,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       ) : (
                         <div className="w-full h-full bg-gradient-to-br from-[#0A2540] via-[#0A2540]/90 to-[#00D4B3]/20 flex items-center justify-center">
                           <motion.div
-                            animate={{ 
+                            animate={{
                               scale: [1, 1.1, 1],
                               rotate: [0, 5, -5, 0]
                             }}
@@ -709,7 +707,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                           </motion.div>
                         </div>
                       )}
-                      
+
                       {/* Badge de categoría */}
                       <motion.div
                         initial={{ x: -20, opacity: 0 }}
@@ -730,14 +728,13 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                         transition={{ delay: 0.4 }}
                         className="absolute top-6 right-6"
                       >
-                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md text-white text-sm font-semibold shadow-lg ${
-                          workshopPreview.level === 'beginner' ? 'bg-[#10B981]/90' :
-                          workshopPreview.level === 'intermediate' ? 'bg-[#F59E0B]/90' :
-                          'bg-[#0A2540]/90'
-                        }`}>
+                        <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-full backdrop-blur-md text-white text-sm font-semibold shadow-lg ${workshopPreview.level === 'beginner' ? 'bg-[#10B981]/90' :
+                            workshopPreview.level === 'intermediate' ? 'bg-[#F59E0B]/90' :
+                              'bg-[#0A2540]/90'
+                          }`}>
                           {workshopPreview.level === 'beginner' ? '🌱 Principiante' :
-                           workshopPreview.level === 'intermediate' ? '📈 Intermedio' :
-                           '🚀 Avanzado'}
+                            workshopPreview.level === 'intermediate' ? '📈 Intermedio' :
+                              '🚀 Avanzado'}
                         </span>
                       </motion.div>
 
@@ -772,7 +769,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     <div className="bg-white dark:bg-[#1E2329] rounded-2xl border border-[#E9ECEF] dark:border-[#6C757D]/30 p-8 shadow-sm hover:shadow-lg transition-all duration-300">
                       <div className="flex items-center gap-3 mb-6">
                         <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0A2540] to-[#00D4B3] flex items-center justify-center">
-                          <span className="text-2xl">📖</span>
+                          <Book className="w-6 h-6 text-white" />
                         </div>
                         <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">Sobre este curso</h2>
                       </div>
@@ -784,28 +781,28 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     {/* Estadísticas del curso */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                       {[
-                        { 
-                          icon: '⏱️', 
-                          label: 'Duración', 
+                        {
+                          icon: '⏱️',
+                          label: 'Duración',
                           value: `${workshopPreview.duration_total_minutes} min`,
                           color: 'from-[#00D4B3] to-[#10B981]'
                         },
-                        { 
-                          icon: '📊', 
-                          label: 'Nivel', 
-                          value: workshopPreview.level === 'beginner' ? 'Principiante' : 
-                                 workshopPreview.level === 'intermediate' ? 'Intermedio' : 'Avanzado',
+                        {
+                          icon: '📊',
+                          label: 'Nivel',
+                          value: workshopPreview.level === 'beginner' ? 'Principiante' :
+                            workshopPreview.level === 'intermediate' ? 'Intermedio' : 'Avanzado',
                           color: 'from-[#0A2540] to-[#00D4B3]'
                         },
-                        { 
-                          icon: '🎯', 
-                          label: 'Categoría', 
+                        {
+                          icon: '🎯',
+                          label: 'Categoría',
                           value: workshopPreview.category || 'General',
                           color: 'from-[#10B981] to-[#00D4B3]'
                         },
-                        { 
-                          icon: '💰', 
-                          label: 'Precio', 
+                        {
+                          icon: '💰',
+                          label: 'Precio',
                           value: workshopPreview.price > 0 ? `$${workshopPreview.price}` : 'Gratis',
                           color: 'from-[#F59E0B] to-[#10B981]'
                         }
@@ -875,7 +872,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                               Publicado
                             </span>
                           </div>
-                          
+
                           {workshopPreview.slug && (
                             <div className="flex items-center justify-between text-sm">
                               <span className="text-[#6C757D] dark:text-white/60">URL</span>
@@ -1123,7 +1120,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                     <div className="rounded-2xl border border-purple-800/30 bg-gray-900/60 p-6">
                       <div className="text-sm text-purple-300/80 mb-2">Tasa de Abandono</div>
                       <div className="text-3xl font-bold text-red-400">
-                        {userStats?.retention_rate !== undefined 
+                        {userStats?.retention_rate !== undefined
                           ? `${(100 - userStats.retention_rate).toFixed(1)}%`
                           : '—'}
                       </div>
@@ -1139,7 +1136,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                       <LineChartIcon className="w-5 h-5 text-purple-300" />
                       Visualizaciones Avanzadas
                     </h2>
-                    
+
                     {/* Gráfica de Tendencia de Inscripciones */}
                     {chartData.enrollment_trend && chartData.enrollment_trend.length > 0 && (
                       <EnrollmentTrendChart data={chartData.enrollment_trend} />
@@ -1214,21 +1211,20 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
                                   </div>
                                 </td>
                                 <td className="px-6 py-4">
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    user.enrollment_status === 'completed' ? 'bg-green-900/30 text-green-300 border border-green-700/40' :
-                                    user.enrollment_status === 'active' ? 'bg-blue-900/30 text-blue-300 border border-blue-700/40' :
-                                    'bg-gray-800/50 text-gray-300 border border-gray-700/40'
-                                  }`}>
+                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.enrollment_status === 'completed' ? 'bg-green-900/30 text-green-300 border border-green-700/40' :
+                                      user.enrollment_status === 'active' ? 'bg-blue-900/30 text-blue-300 border border-blue-700/40' :
+                                        'bg-gray-800/50 text-gray-300 border border-gray-700/40'
+                                    }`}>
                                     {user.enrollment_status === 'completed' ? 'Completado' :
-                                     user.enrollment_status === 'active' ? 'Activo' :
-                                     user.enrollment_status === 'paused' ? 'Pausado' :
-                                     user.enrollment_status === 'cancelled' ? 'Cancelado' : 'Desconocido'}
+                                      user.enrollment_status === 'active' ? 'Activo' :
+                                        user.enrollment_status === 'paused' ? 'Pausado' :
+                                          user.enrollment_status === 'cancelled' ? 'Cancelado' : 'Desconocido'}
                                   </span>
                                 </td>
                                 <td className="px-6 py-4">
                                   <div className="flex items-center space-x-2">
                                     <div className="flex-1 bg-purple-900/30 rounded-full h-2 overflow-hidden">
-                                      <div 
+                                      <div
                                         className="h-full bg-gradient-to-r from-purple-600 to-indigo-600 transition-all"
                                         style={{ width: `${user.progress_percentage}%` }}
                                       />
@@ -1277,7 +1273,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-xl font-bold text-white mb-4">Confirmar Eliminación</h3>
               <p className="text-gray-300 mb-6">
-                ¿Estás seguro de que deseas eliminar el módulo "{deletingModule.module_title}"? 
+                ¿Estás seguro de que deseas eliminar el módulo "{deletingModule.module_title}"?
                 Esta acción no se puede deshacer y eliminará todas las lecciones asociadas.
               </p>
               <div className="flex justify-end space-x-3">
@@ -1315,7 +1311,7 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
               <h3 className="text-xl font-bold text-white mb-4">Confirmar Eliminación</h3>
               <p className="text-gray-300 mb-6">
-                ¿Estás seguro de que deseas eliminar la lección "{deletingLesson.lesson_title}"? 
+                ¿Estás seguro de que deseas eliminar la lección "{deletingLesson.lesson_title}"?
                 Esta acción no se puede deshacer y eliminará todos los materiales y actividades asociados.
               </p>
               <div className="flex justify-end space-x-3">

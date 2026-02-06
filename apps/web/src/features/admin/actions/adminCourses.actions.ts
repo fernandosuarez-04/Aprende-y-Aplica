@@ -23,6 +23,7 @@ export interface AdminCourse {
     review_count: number
     instructor_name?: string
     duration_hours?: number
+    approval_status?: 'pending' | 'approved' | 'rejected'
 }
 
 export async function getPendingCourses(): Promise<AdminCourse[]> {
@@ -52,7 +53,7 @@ export async function getPendingCourses(): Promise<AdminCourse[]> {
                 email
             )
         `)
-        .eq('approval_status', 'pending')
+        .in('approval_status', ['pending', 'rejected'])
         .order('created_at', { ascending: false })
 
     if (error) {
@@ -207,4 +208,31 @@ export async function rejectCourse(courseId: string, reason: string): Promise<bo
     revalidatePath('/[orgSlug]/business-panel/reviews', 'page')
 
     return true
+}
+
+export async function deleteCourse(courseId: string): Promise<boolean> {
+    const user = await SessionService.getCurrentUser()
+    const adminId = user?.id
+
+    if (!adminId) {
+        console.error('No admin session found for delete action')
+        return false
+    }
+
+    try {
+        // Importación dinámica para evitar ciclos si fuera necesario, o uso directo si no hay ciclo.
+        // Asumo que AdminWorkshopsService está disponible.
+        // Dato: import { AdminWorkshopsService } from '../services/adminWorkshops.service' 
+        // No está importado arriba, necesito agregarlo o implementar la lógica aquí.
+        // Mejor usar el servicio ya existente para mantener consistencia (limpieza de relaciones).
+        const { AdminWorkshopsService } = await import('../services/adminWorkshops.service')
+
+        await AdminWorkshopsService.deleteWorkshop(courseId, adminId)
+
+        revalidatePath('/admin/courses/pending')
+        return true
+    } catch (error) {
+        console.error('Error deleting course:', error)
+        return false
+    }
 }

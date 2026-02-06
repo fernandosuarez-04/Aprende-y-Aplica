@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { requireBusiness } from '@/lib/auth/requireBusiness';
-import { logger } from '@/lib/utils/logger';
+
 
 /**
  * GET /api/business/hierarchy/nodes/[nodeId]/members
@@ -9,13 +9,13 @@ import { logger } from '@/lib/utils/logger';
  */
 export async function GET(
     request: Request,
-    { params }: { params: { nodeId: string } }
+    { params }: { params: Promise<{ nodeId: string }> }
 ) {
     try {
         const auth = await requireBusiness();
         if (auth instanceof NextResponse) return auth;
 
-        const nodeId = params.nodeId;
+        const { nodeId } = await params;
 
         const supabase = await createClient();
 
@@ -55,7 +55,7 @@ export async function GET(
             .order('created_at', { ascending: false });
 
         if (membersError) {
-            logger.error('Error fetching node members:', membersError);
+            console.error('Error fetching node members:', membersError);
             return NextResponse.json(
                 { success: false, error: 'Failed to fetch members' },
                 { status: 500 }
@@ -67,7 +67,7 @@ export async function GET(
             members
         });
     } catch (error) {
-        logger.error('Error in GET /api/business/hierarchy/nodes/[nodeId]/members:', error);
+        console.error('Error in GET /api/business/hierarchy/nodes/[nodeId]/members:', error);
         return NextResponse.json(
             { success: false, error: 'Internal server error' },
             { status: 500 }
@@ -81,38 +81,19 @@ export async function GET(
  */
 export async function POST(
     request: Request,
-    { params }: { params: { nodeId: string } }
+    { params }: { params: Promise<{ nodeId: string }> }
 ) {
     try {
         const auth = await requireBusiness();
         if (auth instanceof NextResponse) return auth;
 
-        // Check permissions (Owner/Admin or Manager of this node/parent?)
-        // For now, restrict to Owner/Admin
-        if (auth.organizationRole !== 'owner' && auth.organizationRole !== 'admin') {
-            return NextResponse.json(
-                { success: false, error: 'Insufficient permissions' },
-                { status: 403 }
-            );
-        }
-
-        const nodeId = params.nodeId;
-        const body = await request.json();
-        const { userId, role = 'member', isPrimary = false } = body;
-
-        if (!userId) {
-            return NextResponse.json(
-                { success: false, error: 'User ID is required' },
-                { status: 400 }
-            );
-        }
-
+        const { nodeId } = await params;
         const supabase = await createClient();
 
-        // 1. Verify Node exists in Org
+        // 1. Verify Node exists
         const { data: node, error: nodeError } = await supabase
             .from('organization_nodes')
-            .select('id')
+            .select('id, manager_id, parent_id')
             .eq('id', nodeId)
             .eq('organization_id', auth.organizationId)
             .single();
@@ -124,10 +105,27 @@ export async function POST(
             );
         }
 
-        // 2. Verify User exists in Organization (organization_users table?)
-        // Actually, we should check if they are an active member of the org context
-        // Ideally we check public.organization_users but schema might vary.
-        // Based on `users/assign/route.ts` it checks `organization_users`.
+        // Check permissions: Owner, Admin, OR Manager of this node
+        const isManager = node.manager_id === auth.userId;
+
+        if (auth.organizationRole !== 'owner' && auth.organizationRole !== 'admin' && !isManager) {
+            return NextResponse.json(
+                { success: false, error: 'Insufficient permissions' },
+                { status: 403 }
+            );
+        }
+
+        const body = await request.json();
+        const { userId, role = 'member', isPrimary = false } = body;
+
+        if (!userId) {
+            return NextResponse.json(
+                { success: false, error: 'User ID is required' },
+                { status: 400 }
+            );
+        }
+
+        // 2. Verify User exists in Organization
         const { data: orgUser, error: userError } = await supabase
             .from('organization_users')
             .select('id, user_id')
@@ -143,39 +141,59 @@ export async function POST(
             );
         }
 
-        // 3. Assign User to Node
+        // 3. Assign User to Node (Upsert/Update if exists)
         // Check if already assigned
         const { data: existingAssignment } = await supabase
             .from('organization_node_users')
-            .select('id')
+            .select('id, role')
             .eq('node_id', nodeId)
             .eq('user_id', userId)
             .single();
 
-        if (existingAssignment) {
-            return NextResponse.json(
-                { success: false, error: 'User already assigned to this node' },
-                { status: 409 }
-            );
+        // 3. If Role is Leader, demote existing leaders first
+        if (role === 'leader') {
+            await supabase
+                .from('organization_node_users')
+                .update({ role: 'member' })
+                .eq('node_id', nodeId)
+                .eq('role', 'leader');
         }
 
-        const { data: newAssignment, error: assignError } = await supabase
-            .from('organization_node_users')
-            .insert({
-                node_id: nodeId,
-                user_id: userId,
-                role,
-                is_primary: isPrimary
-            })
-            .select()
-            .single();
+        let resultData;
 
-        if (assignError) {
-            logger.error('Error assigning user to node:', assignError);
-            return NextResponse.json(
-                { success: false, error: 'Failed to assign user' },
-                { status: 500 }
-            );
+        if (existingAssignment) {
+            // Update existing assignment
+            if (existingAssignment.role === role) {
+                return NextResponse.json(
+                    { success: false, error: 'User already assigned with this role' },
+                    { status: 409 }
+                );
+            }
+
+            const { data, error: updateError } = await supabase
+                .from('organization_node_users')
+                .update({ role, is_primary: isPrimary })
+                .eq('id', existingAssignment.id)
+                .select()
+                .single();
+
+            if (updateError) throw updateError;
+            resultData = data;
+        } else {
+            // Create new assignment
+            const { data, error: insertError } = await supabase
+                .from('organization_node_users')
+                .insert({
+                    node_id: nodeId,
+                    user_id: userId,
+                    role,
+                    is_primary: isPrimary
+                })
+                .select()
+                .single();
+
+            if (insertError) throw insertError;
+            resultData = data;
         }
 
         // 4. If Role is Leader, update Node Manager
@@ -186,20 +204,24 @@ export async function POST(
                 .eq('id', nodeId);
 
             if (updateNodeError) {
-                logger.error('Error updating node manager from member assignment:', updateNodeError);
+                console.error('Error updating node manager from member assignment:', updateNodeError);
                 // We keep the member assignment but log the error
             }
         }
 
         return NextResponse.json({
             success: true,
-            member: newAssignment
+            member: resultData
         });
 
-    } catch (error) {
-        logger.error('Error in POST /api/business/hierarchy/nodes/[nodeId]/members:', error);
+    } catch (error: any) {
+        console.error('Error in POST /api/business/hierarchy/nodes/[nodeId]/members:', error);
         return NextResponse.json(
-            { success: false, error: 'Internal server error' },
+            {
+                success: false,
+                error: 'Internal server error',
+                details: error instanceof Error ? error.message : String(error)
+            },
             { status: 500 }
         );
     }

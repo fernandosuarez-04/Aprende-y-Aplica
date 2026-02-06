@@ -44,7 +44,7 @@ export function MemberAssignmentModal({
     const fetchUsers = async () => {
       setSearching(true)
       try {
-        const results = await HierarchyService.getAvailableUsersForNode(nodeId, searchQuery)
+        const results = await HierarchyService.getAvailableUsersForNode(nodeId, searchQuery, role === 'leader')
         setUsers(results)
       } catch (err) {
         console.error(err)
@@ -59,7 +59,7 @@ export function MemberAssignmentModal({
     }, 500);
 
     return () => clearTimeout(timeoutId);
-  }, [searchQuery, nodeId, isOpen])
+  }, [searchQuery, nodeId, isOpen, role])
 
   const handleAssign = async () => {
     if (!selectedUser) return

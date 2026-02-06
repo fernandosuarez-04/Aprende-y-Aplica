@@ -605,9 +605,10 @@ export class HierarchyService {
   /**
    * Busca usuarios disponibles para asignar a un nodo (que no sean miembros ya)
    */
-  static async getAvailableUsersForNode(nodeId: string, query: string = ''): Promise<import('../types/hierarchy.types').UserWithHierarchy['user'][]> {
+  static async getAvailableUsersForNode(nodeId: string, query: string = '', includeCurrentMembers?: boolean): Promise<import('../types/hierarchy.types').UserWithHierarchy['user'][]> {
     const params = new URLSearchParams();
     if (query) params.set('query', query);
+    if (includeCurrentMembers) params.set('includeCurrentMembers', 'true');
 
     const result = await fetchApi<{ users: any[] }>(`/nodes/${nodeId}/members/available?${params.toString()}`);
     return result.success ? result.data?.users ?? [] : [];

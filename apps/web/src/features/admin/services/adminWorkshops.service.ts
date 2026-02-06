@@ -91,9 +91,9 @@ export class AdminWorkshopsService {
         // Query de instructores (una sola query para todos)
         instructorIds.length > 0
           ? supabase
-              .from('users')
-              .select('id, display_name, first_name, last_name, profile_picture_url')
-              .in('id', instructorIds)
+            .from('users')
+            .select('id, display_name, first_name, last_name, profile_picture_url')
+            .in('id', instructorIds)
           : Promise.resolve({ data: [] }),
 
         // Query de módulos (una sola query para todos los cursos)
@@ -158,18 +158,21 @@ export class AdminWorkshopsService {
         // Conteo total
         supabase
           .from('courses')
-          .select('*', { count: 'exact', head: true }),
+          .select('*', { count: 'exact', head: true })
+          .or('approval_status.eq.approved,approval_status.is.null'),
 
         // Conteo activos
         supabase
           .from('courses')
           .select('*', { count: 'exact', head: true })
-          .eq('is_active', true),
+          .eq('is_active', true)
+          .or('approval_status.eq.approved,approval_status.is.null'),
 
         // Datos para calcular estudiantes, duración e instructores
         supabase
           .from('courses')
           .select('student_count, duration_total_minutes, instructor_id')
+          .or('approval_status.eq.approved,approval_status.is.null')
       ])
 
       // Calcular estadísticas en cliente (más eficiente que múltiples queries)
@@ -463,25 +466,100 @@ export class AdminWorkshopsService {
     const supabase = await createClient()
 
     try {
-      // Obtener datos del taller antes de eliminarlo para el log de auditoría
+      // 1. Obtener datos del taller antes de eliminarlo para el log de auditoría
       const { data: workshopData } = await supabase
         .from('courses')
         .select('*')
         .eq('id', workshopId)
         .single()
 
-      // Eliminar el taller (las inscripciones se manejan automáticamente si hay CASCADE)
+      if (!workshopData) {
+        throw new Error('Taller no encontrado')
+      }
+
+      // 2. Obtener todos los módulos del curso
+      const { data: modules } = await supabase
+        .from('course_modules')
+        .select('module_id')
+        .eq('course_id', workshopId)
+
+      const moduleIds = modules?.map(m => m.module_id) || []
+
+      if (moduleIds.length > 0) {
+        // 3. Obtener todas las lecciones de estos módulos
+        const { data: lessons } = await supabase
+          .from('course_lessons')
+          .select('lesson_id')
+          .in('module_id', moduleIds)
+
+        const lessonIds = lessons?.map(l => l.lesson_id) || []
+
+        if (lessonIds.length > 0) {
+          // 4. ELIMINAR DEPENDENCIAS DE LECCIONES
+          // Usamos Promise.all para ejecutar en paralelo, ignorando errores si no hay registros
+          await Promise.all([
+            supabase.from('lesson_materials').delete().in('lesson_id', lessonIds),
+            supabase.from('lesson_activities').delete().in('lesson_id', lessonIds),
+            supabase.from('lesson_checkpoints').delete().in('lesson_id', lessonIds),
+            supabase.from('lesson_feedback').delete().in('lesson_id', lessonIds),
+            supabase.from('lesson_time_estimates').delete().in('lesson_id', lessonIds),
+            supabase.from('lesson_tracking').delete().in('lesson_id', lessonIds),
+            // Eliminar preguntas comunes de LIA asociadas a lecciones
+            supabase.from('lia_common_questions').delete().in('lesson_id', lessonIds),
+            // Eliminar conversaciones de LIA asociadas a lecciones
+            supabase.from('lia_conversations').delete().in('lesson_id', lessonIds)
+          ])
+
+          // 5. Eliminar las lecciones
+          const { error: deleteLessonsError } = await supabase
+            .from('course_lessons')
+            .delete()
+            .in('lesson_id', lessonIds)
+
+          if (deleteLessonsError) throw deleteLessonsError
+        }
+
+        // 6. Eliminar conversaciones de LIA asociadas a módulos (si las hay, aunque suelen estar ligadas a lecciones)
+        await supabase.from('lia_conversations').delete().in('module_id', moduleIds)
+
+        // 7. Eliminar los módulos
+        const { error: deleteModulesError } = await supabase
+          .from('course_modules')
+          .delete()
+          .in('module_id', moduleIds)
+
+        if (deleteModulesError) throw deleteModulesError
+      }
+
+      // 8. ELIMINAR DEPENDENCIAS DIRECTAS DEL CURSO
+      await Promise.all([
+        supabase.from('course_skills').delete().eq('course_id', workshopId),
+        supabase.from('course_reviews').delete().eq('course_id', workshopId),
+        // Preguntas y respuestas del curso (foro)
+        // Nota: course_question_responses tiene FK a course_questions, borrar preguntas debería borrar respuestas si hay cascade, 
+        // pero por seguridad borramos respuestas primero si tienen course_id directo (cierto esquema lo tiene) o cascade manual.
+        // El esquema muestra course_question_responses tiene course_id.
+        supabase.from('course_question_responses').delete().eq('course_id', workshopId),
+        supabase.from('course_questions').delete().eq('course_id', workshopId),
+
+        supabase.from('hierarchy_course_assignments').delete().eq('course_id', workshopId),
+        supabase.from('lia_conversations').delete().eq('course_id', workshopId),
+        // Eliminar traducciones asociadas al curso
+        supabase.from('content_translations').delete().eq('entity_id', workshopId).eq('entity_type', 'course')
+      ])
+
+      // 9. Finalmente eliminar el taller
       const { error } = await supabase
         .from('courses')
         .delete()
         .eq('id', workshopId)
 
       if (error) {
-        // console.error('Error deleting workshop:', error)
+        console.error('Error deleting workshop:', error)
         throw error
       }
 
-      // Registrar en el log de auditoría
+      // 10. Registrar en el log de auditoría
       await AuditLogService.logAction({
         user_id: adminUserId,
         admin_user_id: adminUserId,
@@ -494,7 +572,7 @@ export class AdminWorkshopsService {
         user_agent: requestInfo?.userAgent
       })
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.deleteWorkshop:', error)
+      console.error('Error in AdminWorkshopsService.deleteWorkshop:', error)
       throw error
     }
   }

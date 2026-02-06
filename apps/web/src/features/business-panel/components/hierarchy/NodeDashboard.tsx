@@ -118,7 +118,7 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
         if (!confirm('¿Estás seguro de remover a este miembro del nodo?')) return;
 
         try {
-            await HierarchyService.removeNodeMember(nodeId, userId);
+            await HierarchyService.removeUserFromNode(nodeId, userId);
             fetchMembers();
             // Refresh data to update counts if needed
             fetchData();
@@ -503,8 +503,8 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
                     <button
                         onClick={() => setActiveTab('overview')}
                         className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'overview'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
                             }`}
                     >
                         Visión General
@@ -512,8 +512,8 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
                     <button
                         onClick={() => setActiveTab('members')}
                         className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'members'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
                             }`}
                     >
                         Miembros
@@ -521,8 +521,8 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
                     <button
                         onClick={() => setActiveTab('structure')}
                         className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'structure'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
                             }`}
                     >
                         Estructura y Mapa
@@ -530,8 +530,8 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
                     <button
                         onClick={() => setActiveTab('learning')}
                         className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'learning'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
                             }`}
                     >
                         Cursos y Aprendizaje
@@ -539,8 +539,8 @@ export function NodeDashboard({ nodeId }: NodeDashboardProps) {
                     <button
                         onClick={() => setActiveTab('chat')}
                         className={`py-4 px-2 border-b-2 font-medium text-sm transition-colors ${activeTab === 'chat'
-                                ? 'border-blue-500 text-blue-400'
-                                : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
+                            ? 'border-blue-500 text-blue-400'
+                            : 'border-transparent text-white/40 hover:text-white hover:border-white/20'
                             }`}
                     >
                         Comunicación
