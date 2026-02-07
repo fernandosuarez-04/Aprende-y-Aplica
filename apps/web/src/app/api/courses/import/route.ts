@@ -35,7 +35,9 @@ const ActivitySchema = z.object({
 const NewMaterialSchema = z.object({
     title: z.string(),
     url: z.string().optional(),
-    type: z.enum(['link', 'download', 'pdf', 'document']),
+    type: z.enum(['link', 'download', 'pdf', 'document', 'quiz']),
+    description: z.string().optional(),
+    data: z.record(z.any()).optional(),
 })
 
 const ContentBlockSchema = z.object({
@@ -242,6 +244,7 @@ export async function POST(request: Request) {
                             let matType = 'link'
                             if (mat.type === 'download') matType = 'document' // o 'pdf' si podemos inferir
                             if (mat.type === 'pdf') matType = 'pdf'
+                            if (mat.type === 'quiz') matType = 'quiz'
 
                             return {
                                 lesson_id: newLesson.lesson_id,
@@ -250,6 +253,8 @@ export async function POST(request: Request) {
                                 external_url: mat.url, // Guardamos en external_url mayormente
                                 file_url: mat.type === 'download' ? mat.url : null, // Si es descarga directa quizas file_url
                                 material_order_index: idx + 1,
+                                material_description: mat.description || null,
+                                content_data: mat.type === 'quiz' ? mat.data : null,
                             }
                         })
 

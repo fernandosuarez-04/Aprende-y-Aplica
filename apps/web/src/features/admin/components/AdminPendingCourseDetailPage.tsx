@@ -305,8 +305,8 @@ function ActivityItem({ activity }: { activity: any }) {
             <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                     <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${activity.activity_type === 'quiz' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                            activity.activity_type === 'ai_chat' || activity.activity_type === 'lia_script' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' :
-                                'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        activity.activity_type === 'ai_chat' || activity.activity_type === 'lia_script' ? 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' :
+                            'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
                         }`}>
                         {activity.activity_type}
                     </span>
@@ -338,16 +338,17 @@ function ActivityItem({ activity }: { activity: any }) {
 }
 
 function QuizViewer({ data }: { data: any }) {
-    if (!data || !data.items) return <p className="text-gray-400 italic">Datos de Quiz inválidos</p>
+    const questions = data?.questions || data?.items
+    if (!data || !questions) return <p className="text-gray-400 italic">Datos de Quiz inválidos</p>
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center text-xs text-gray-500 border-b border-gray-200 dark:border-gray-700 pb-2">
                 <span>Passing Score: {data.passing_score}%</span>
-                <span>{data.items.length} Preguntas</span>
+                <span>{questions.length} Preguntas</span>
             </div>
 
-            {data.items.map((item: any, idx: number) => (
+            {questions.map((item: any, idx: number) => (
                 <div key={item.id || idx} className="bg-white dark:bg-gray-900/50 p-3 rounded border border-gray-100 dark:border-gray-800">
                     <p className="font-medium text-gray-800 dark:text-gray-200 mb-2">
                         {idx + 1}. {item.question}
@@ -356,8 +357,11 @@ function QuizViewer({ data }: { data: any }) {
                         {item.options?.map((opt: string, optIdx: number) => {
                             // Check if this option is the correct answer
                             // correct_answer can be index (number) or string value
-                            const isCorrect = (typeof item.correct_answer === 'number' && item.correct_answer === optIdx) ||
-                                (item.correct_answer === opt)
+                            // Support both snake_case (legacy/viewer) and camelCase (standard/editor)
+                            const correctAnswer = item.correct_answer !== undefined ? item.correct_answer : item.correctAnswer
+
+                            const isCorrect = (typeof correctAnswer === 'number' && correctAnswer === optIdx) ||
+                                (correctAnswer === opt)
 
                             return (
                                 <div key={optIdx} className={`flex items-center gap-2 text-xs ${isCorrect ? 'text-green-600 dark:text-green-400 font-medium' : 'text-gray-600 dark:text-gray-400'}`}>
@@ -397,8 +401,8 @@ function ScriptViewer({ data }: { data: any }) {
                             {scene.character?.[0] || '?'}
                         </div>
                         <div className={`max-w-[80%] p-3 rounded-2xl text-sm ${scene.character === 'Usuario'
-                                ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded-tr-none'
-                                : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-tl-none'
+                            ? 'bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100 rounded-tr-none'
+                            : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-tl-none'
                             }`}>
                             <div className="flex items-center gap-2 mb-1">
                                 <span className="font-bold text-xs opacity-70">{scene.character}</span>
