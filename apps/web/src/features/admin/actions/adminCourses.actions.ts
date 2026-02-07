@@ -100,7 +100,8 @@ export async function getCourseFullDetails(courseId: string): Promise<any> {
                         material_title, 
                         material_type,
                         file_url,
-                        external_url
+                        external_url,
+                        content_data
                     ),
                     activities:lesson_activities(
                         activity_id,

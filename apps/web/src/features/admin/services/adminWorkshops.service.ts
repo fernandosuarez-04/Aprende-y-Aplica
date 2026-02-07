@@ -87,7 +87,7 @@ export class AdminWorkshopsService {
       const instructorIds = [...new Set(courses.map(c => c.instructor_id).filter(Boolean))]
 
       // 🚀 PASO 3: Ejecutar queries en paralelo (no secuenciales)
-      const [instructorsResult, modulesResult] = await Promise.all([
+      const [instructorsResult, modulesResult, assignmentsResult] = await Promise.all([
         // Query de instructores (una sola query para todos)
         instructorIds.length > 0
           ? supabase
@@ -100,7 +100,15 @@ export class AdminWorkshopsService {
         supabase
           .from('course_modules')
           .select('course_id, module_duration_minutes')
+          .in('course_id', courseIds),
+
+        // Query de enrollments activos (una sola query para todos los cursos)
+        // Obtenemos solo course_id para contar en memoria
+        supabase
+          .from('user_course_enrollments')
+          .select('course_id')
           .in('course_id', courseIds)
+          .eq('enrollment_status', 'active')
       ])
 
       // 🚀 PASO 4: Crear mapas para búsqueda O(1)
@@ -121,6 +129,14 @@ export class AdminWorkshopsService {
         durationMap.set(module.course_id, current + (module.module_duration_minutes || 0))
       }
 
+      // Calcular estudiantes activos por curso (Source of Truth: user_course_enrollments)
+      // Esto reemplaza al contador de la tabla courses que puede estar desactualizado
+      const enrollmentsMap = new Map<string, number>()
+      for (const enrollment of (assignmentsResult.data || [])) {
+        const current = enrollmentsMap.get(enrollment.course_id) || 0
+        enrollmentsMap.set(enrollment.course_id, current + 1)
+      }
+
       // 🚀 PASO 5: Enriquecer cursos sin queries adicionales
       const workshopsWithData = courses.map((workshop): AdminWorkshop => {
         const instructor = workshop.instructor_id ? instructorsMap.get(workshop.instructor_id) : null
@@ -129,6 +145,7 @@ export class AdminWorkshopsService {
         return {
           ...workshop,
           duration_total_minutes: calculatedDuration > 0 ? calculatedDuration : (workshop.duration_total_minutes || 0),
+          student_count: enrollmentsMap.get(workshop.id) || 0, // Usar el conteo real calculado
           instructor_name: instructor?.name || 'Instructor no asignado',
           instructor_profile_picture_url: instructor?.picture || null
         }
@@ -153,7 +170,8 @@ export class AdminWorkshopsService {
       const [
         { count: totalWorkshops },
         { count: activeWorkshops },
-        { data: coursesData }
+        { data: coursesData },
+        { data: assignmentsData }
       ] = await Promise.all([
         // Conteo total
         supabase
@@ -172,7 +190,13 @@ export class AdminWorkshopsService {
         supabase
           .from('courses')
           .select('student_count, duration_total_minutes, instructor_id')
-          .or('approval_status.eq.approved,approval_status.is.null')
+          .or('approval_status.eq.approved,approval_status.is.null'),
+
+        // Datos de enrollments activos para contar estudiantes reales
+        supabase
+          .from('user_course_enrollments')
+          .select('course_id') // Solo necesitamos ID para contar
+          .eq('enrollment_status', 'active')
       ])
 
       // Calcular estadísticas en cliente (más eficiente que múltiples queries)
@@ -182,7 +206,7 @@ export class AdminWorkshopsService {
       const uniqueInstructors = new Set<string>()
 
       for (const course of (coursesData || [])) {
-        totalStudents += course.student_count || 0
+        // totalStudents += course.student_count || 0 // YA NO USAMOS ESTE CONTADOR
 
         if (course.duration_total_minutes && course.duration_total_minutes > 0) {
           totalDuration += course.duration_total_minutes
@@ -193,6 +217,10 @@ export class AdminWorkshopsService {
           uniqueInstructors.add(course.instructor_id)
         }
       }
+
+      // Sumar estudiantes reales (Active Enrollments)
+      // Nota: Esto asume que assignmentsData ahora trae user_course_enrollments
+      totalStudents = assignmentsData?.length || 0;
 
       const averageDuration = coursesWithDuration > 0
         ? Math.round(totalDuration / coursesWithDuration)
@@ -507,7 +535,9 @@ export class AdminWorkshopsService {
             // Eliminar preguntas comunes de LIA asociadas a lecciones
             supabase.from('lia_common_questions').delete().in('lesson_id', lessonIds),
             // Eliminar conversaciones de LIA asociadas a lecciones
-            supabase.from('lia_conversations').delete().in('lesson_id', lessonIds)
+            supabase.from('lia_conversations').delete().in('lesson_id', lessonIds),
+            // Eliminar progreso de usuario
+            supabase.from('user_lesson_progress').delete().in('lesson_id', lessonIds)
           ])
 
           // 5. Eliminar las lecciones
@@ -521,6 +551,8 @@ export class AdminWorkshopsService {
 
         // 6. Eliminar conversaciones de LIA asociadas a módulos (si las hay, aunque suelen estar ligadas a lecciones)
         await supabase.from('lia_conversations').delete().in('module_id', moduleIds)
+        // Eliminar progreso de módulos
+        await supabase.from('user_module_progress').delete().in('module_id', moduleIds)
 
         // 7. Eliminar los módulos
         const { error: deleteModulesError } = await supabase
@@ -545,7 +577,9 @@ export class AdminWorkshopsService {
         supabase.from('hierarchy_course_assignments').delete().eq('course_id', workshopId),
         supabase.from('lia_conversations').delete().eq('course_id', workshopId),
         // Eliminar traducciones asociadas al curso
-        supabase.from('content_translations').delete().eq('entity_id', workshopId).eq('entity_type', 'course')
+        supabase.from('content_translations').delete().eq('entity_id', workshopId).eq('entity_type', 'course'),
+        // Eliminar progreso del curso
+        supabase.from('user_course_progress').delete().eq('course_id', workshopId)
       ])
 
       // 9. Finalmente eliminar el taller

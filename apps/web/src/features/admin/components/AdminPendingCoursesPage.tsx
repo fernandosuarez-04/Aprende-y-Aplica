@@ -50,11 +50,12 @@ interface AdminPendingCoursesPageProps {
 
 export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }: AdminPendingCoursesPageProps) {
     const router = useRouter()
-    const { courses, isLoading, error, refetch, approveCourse, rejectCourse } = useAdminPendingCourses()
+    const { courses, isLoading, error, refetch, approveCourse, rejectCourse, deleteCourse } = useAdminPendingCourses()
     const [searchTerm, setSearchTerm] = useState('')
     const [activeTab, setActiveTab] = useState<'pending' | 'rejected'>('pending')
     const [courseToApprove, setCourseToApprove] = useState<string | null>(null)
     const [courseToReject, setCourseToReject] = useState<string | null>(null)
+    const [courseToDelete, setCourseToDelete] = useState<string | null>(null)
     // const [rejectionReason, setRejectionReason] = useState('') // Implementar modal con motivo si se desea
 
     const filteredCourses = courses.filter(course =>
@@ -89,6 +90,17 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
             alert('Error al rechazar el curso')
         }
         setCourseToReject(null)
+    }
+
+    const handleDelete = async () => {
+        if (!courseToDelete) return
+        const success = await deleteCourse(courseToDelete)
+        if (success) {
+            // Success handled by UI refresh
+        } else {
+            alert('Error al eliminar el curso')
+        }
+        setCourseToDelete(null)
     }
 
     if (isLoading) return <div className="p-8 text-center text-[#6C757D] dark:text-gray-400">Cargando revisiones...</div>
@@ -225,6 +237,15 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                                                 <XMarkIcon className="h-4 w-4" />
                                             </button>
                                         )}
+                                        {activeTab === 'rejected' && (
+                                            <button
+                                                onClick={() => setCourseToDelete(course.id)}
+                                                className="px-3 py-2 bg-[#FEF2F2] hover:bg-[#FEE2E2] text-[#EF4444] rounded-lg text-sm font-medium transition-colors border border-[#EF4444]/20"
+                                                title="Eliminar permanentemente"
+                                            >
+                                                <TrashIcon className="h-4 w-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </div>
                             </motion.div>
@@ -256,6 +277,19 @@ export function AdminPendingCoursesPage({ basePath = '/admin/courses/pending' }:
                     title="Rechazar Curso"
                     message="¿Estás seguro de rechazar este curso? Deberás proporcionar una razón (TODO)."
                     confirmText="Rechazar"
+                    cancelText="Cancelar"
+                    type="danger"
+                />
+            )}
+
+            {courseToDelete && (
+                <ConfirmationModal
+                    isOpen={!!courseToDelete}
+                    onClose={() => setCourseToDelete(null)}
+                    onConfirm={handleDelete}
+                    title="Eliminar Curso Rechazado"
+                    message="¿Estás seguro de que deseas eliminar permanentemente este curso? Esta acción no se puede deshacer y borrará todos los datos asociados."
+                    confirmText="Eliminar Definitivamente"
                     cancelText="Cancelar"
                     type="danger"
                 />

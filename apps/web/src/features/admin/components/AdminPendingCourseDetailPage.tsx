@@ -12,7 +12,9 @@ import {
     PlayCircleIcon,
     DocumentTextIcon,
     QuestionMarkCircleIcon,
-    ClockIcon
+    ClockIcon,
+    TrashIcon,
+    ArrowPathIcon
 } from '@heroicons/react/24/outline'
 import { useAdminCourseDetail } from '../hooks/useAdminCourseDetail'
 import { ConfirmationModal } from './ConfirmationModal'
@@ -28,20 +30,14 @@ export function AdminPendingCourseDetailPage({
     successRedirectPath = '/admin/courses/pending'
 }: AdminPendingCourseDetailPageProps) {
     const router = useRouter()
-    const { course, isLoading, error, approveCourse, rejectCourse } = useAdminCourseDetail(courseId)
+    const { course, isLoading, error, approveCourse, rejectCourse, deleteCourse, reconsiderCourse } = useAdminCourseDetail(courseId)
     const [showApproveModal, setShowApproveModal] = useState(false)
     const [showRejectModal, setShowRejectModal] = useState(false)
+    const [showDeleteModal, setShowDeleteModal] = useState(false)
 
     const handleApprove = async () => {
-        const supabase = createClient()
-        const { data: { user } } = await supabase.auth.getUser()
-
-        if (!user) {
-            alert('Sesión inválida')
-            return
-        }
-
-        const success = await approveCourse(user.id)
+        // La validación de usuario se hace ahora en el server action para mayor robustez
+        const success = await approveCourse('') // Pasar string vacío como en la lista
         if (success) {
             router.push(successRedirectPath)
         } else {
@@ -60,9 +56,30 @@ export function AdminPendingCourseDetailPage({
         setShowRejectModal(false)
     }
 
+    const handleDelete = async () => {
+        const success = await deleteCourse()
+        if (success) {
+            router.push(successRedirectPath)
+        } else {
+            alert('Error al eliminar')
+        }
+        setShowDeleteModal(false)
+    }
+
+    const handleReconsider = async () => {
+        const success = await reconsiderCourse()
+        if (success) {
+            // Stay on page, status updates to pending (handled by hook/revalidate)
+        } else {
+            alert('Error al reconsiderar')
+        }
+    }
+
     if (isLoading) return <div className="p-8 flex justify-center"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>
     if (error) return <div className="p-8 text-red-500">Error: {error}</div>
     if (!course) return <div className="p-8">Curso no encontrado</div>
+
+    const isRejected = course.approval_status === 'rejected'
 
     return (
         <div className="p-6 max-w-5xl mx-auto">
@@ -82,7 +99,7 @@ export function AdminPendingCourseDetailPage({
                         {course.thumbnail_url && (
                             <img src={course.thumbnail_url} alt="Portada" className="w-full h-full object-cover" />
                         )}
-                        <div className="absolute top-2 right-2 px-2 py-1 bg-yellow-400 text-yellow-900 text-xs font-bold rounded">
+                        <div className={`absolute top-2 right-2 px-2 py-1 text-xs font-bold rounded ${isRejected ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-800'}`}>
                             {course.approval_status?.toUpperCase()}
                         </div>
                     </div>
@@ -151,19 +168,39 @@ export function AdminPendingCourseDetailPage({
 
             {/* Barra de Acciones Fija (o al final) */}
             <div className="flex gap-4 justify-end sticky bottom-6 bg-white/80 dark:bg-[#0A0D12]/90 backdrop-blur-md p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-20">
-                <button
-                    onClick={() => setShowRejectModal(true)}
-                    className="px-6 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg transition-colors flex items-center gap-2"
-                >
-                    <XCircleIcon className="h-5 w-5" />
-                    Rechazar Curso
-                </button>
+                {isRejected ? (
+                    <>
+                        <button
+                            onClick={() => setShowDeleteModal(true)}
+                            className="px-6 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg transition-colors flex items-center gap-2"
+                        >
+                            <TrashIcon className="h-5 w-5" />
+                            Eliminar
+                        </button>
+                        <button
+                            onClick={handleReconsider}
+                            className="px-6 py-2.5 bg-yellow-100 hover:bg-yellow-200 text-yellow-700 font-medium rounded-lg transition-colors flex items-center gap-2"
+                        >
+                            <ArrowPathIcon className="h-5 w-5" />
+                            Reconsiderar
+                        </button>
+                    </>
+                ) : (
+                    <button
+                        onClick={() => setShowRejectModal(true)}
+                        className="px-6 py-2.5 bg-red-100 hover:bg-red-200 text-red-700 font-medium rounded-lg transition-colors flex items-center gap-2"
+                    >
+                        <XCircleIcon className="h-5 w-5" />
+                        Rechazar Curso
+                    </button>
+                )}
+
                 <button
                     onClick={() => setShowApproveModal(true)}
                     className="px-6 py-2.5 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg shadow-lg shadow-green-600/20 transition-all hover:scale-105 flex items-center gap-2"
                 >
                     <CheckCircleIcon className="h-5 w-5" />
-                    Aprobar y Publicar
+                    {isRejected ? 'Aprobar' : 'Aprobar y Publicar'}
                 </button>
             </div>
 
@@ -185,6 +222,16 @@ export function AdminPendingCourseDetailPage({
                 title="Rechazar Curso"
                 message="Esta acción no se puede deshacer fácilmente. El curso pasará a estado 'rejected'."
                 confirmText="Sí, Rechazar"
+                cancelText="Cancelar"
+                type="danger"
+            />
+            <ConfirmationModal
+                isOpen={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleDelete}
+                title="Eliminar Curso"
+                message="¿Estás seguro de que deseas eliminar permanentemente este curso? Esta acción no se puede deshacer."
+                confirmText="Sí, Eliminar"
                 cancelText="Cancelar"
                 type="danger"
             />
@@ -261,11 +308,7 @@ function LessonItem({ lesson }: { lesson: any }) {
                         {activeTab === 'materials' && (
                             <div className="space-y-2">
                                 {lesson.materials?.length > 0 ? lesson.materials.map((mat: any) => (
-                                    <a key={mat.material_id} href={mat.file_url || mat.external_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 transition-colors group">
-                                        <DocumentTextIcon className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
-                                        <span className="text-sm text-gray-700 dark:text-gray-200">{mat.material_title}</span>
-                                        <span className="text-xs ml-auto text-gray-400 uppercase">{mat.material_type}</span>
-                                    </a>
+                                    <MaterialItem key={mat.material_id} material={mat} />
                                 )) : <p className="text-gray-400 italic">No hay materiales adicionales.</p>}
                             </div>
                         )}
@@ -419,6 +462,61 @@ function ScriptViewer({ data }: { data: any }) {
                     <span className="font-bold">Conclusión:</span> {data.conclusion}
                 </div>
             )}
+        </div>
+    )
+}
+
+function MaterialItem({ material }: { material: any }) {
+    // If it's a simple link/file
+    if (!material.material_type || (material.material_type !== 'quiz' && material.material_type !== 'interactive')) {
+        return (
+            <a href={material.file_url || material.external_url} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 transition-colors group">
+                <DocumentTextIcon className="h-5 w-5 text-gray-400 group-hover:text-blue-500" />
+                <span className="text-sm text-gray-700 dark:text-gray-200">{material.material_title}</span>
+                <span className="text-xs ml-auto text-gray-400 uppercase">{material.material_type || 'archivo'}</span>
+            </a>
+        )
+    }
+
+    // Interactive content (Quiz)
+    let parsedContent = null
+    let error = null
+
+    try {
+        if (typeof material.content_data === 'string') {
+            parsedContent = JSON.parse(material.content_data)
+        } else {
+            parsedContent = material.content_data
+        }
+    } catch (e) {
+        error = 'Error parsing content'
+    }
+
+    return (
+        <div className="bg-gray-50 dark:bg-gray-800/50 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded ${material.material_type === 'quiz' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+                        'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                        }`}>
+                        {material.material_type}
+                    </span>
+                    <h5 className="font-semibold text-sm text-gray-800 dark:text-gray-200">{material.material_title}</h5>
+                </div>
+            </div>
+
+            <div className="p-4">
+                {error ? (
+                    <div className="text-red-500 text-xs font-mono p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                        {error}
+                    </div>
+                ) : (
+                    <div className="text-sm">
+                        {(material.material_type === 'quiz') && <QuizViewer data={parsedContent} />}
+                        {/* Add support for other interactive materials here */}
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
