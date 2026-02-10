@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -305,13 +305,16 @@ export function StudyPlannerLIA() {
   };
 
   // Estados para configuración de estudio
-  // ✅ NUEVO ENFOQUE: "rapido" = terminar lo antes posible, "normal" = tiempo razonable, "largo" = hasta fecha límite
-  // La velocidad de finalización determina cuántas lecciones por día se asignan
-  const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
+  // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
+  // - 'corto' = terminar RÁPIDO → sesiones largas (60-90 min), menos días
+  // - 'balance' = equilibrado → sesiones medias (45-60 min)
+  // - 'largo' = sin prisa → sesiones cortas (20-35 min), más días
+  const [studyApproach, setStudyApproach] = useState<'corto' | 'balance' | 'largo' | null>(null);
   const [targetDate, setTargetDate] = useState<string | null>(null);
   const [hasAskedApproach, setHasAskedApproach] = useState(false);
   const [hasAskedTargetDate, setHasAskedTargetDate] = useState(false);
   const [showApproachModal, setShowApproachModal] = useState(false);
+  const [showApproachButtons, setShowApproachButtons] = useState(false); // ✅ Botones inline de ritmo de estudio
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   // Inicializar currentMonth con el día 1 del mes actual para evitar problemas
@@ -574,6 +577,9 @@ export function StudyPlannerLIA() {
       .replace(/âŒ¨ï¸/g, '')
       .trim();
 
+    // Limpiar bullets mal codificados (â€¢) y convertirlos a guiones
+    cleaned = cleaned.replace(/â€¢/g, '-');
+
     // Dividir en líneas
     const lines = cleaned.split('\n');
     const elements: React.ReactNode[] = [];
@@ -722,17 +728,17 @@ export function StudyPlannerLIA() {
         return;
       }
 
-      // Detectar listas
-      if (trimmed.startsWith('â€¢') || trimmed.startsWith('-')) {
+      // Detectar listas (guiones, bullets, etc.)
+      if (trimmed.startsWith('-') || trimmed.startsWith('•') || trimmed.startsWith('*')) {
         flushParagraph();
         if (!inList) {
           inList = true;
         }
-        const itemText = trimmed.replace(/^[â€¢\-]\s+/, '').trim();
+        const itemText = trimmed.replace(/^[-•*]\s*/, '').trim();
         if (itemText) {
           listItems.push(
             <li key={`li-${index}`} className="flex items-start gap-3.5 font-body text-[15px] text-gray-800 dark:text-slate-50 leading-[1.75] tracking-wide dark:[text-shadow:0_1px_2px_rgba(0,0,0,0.3)]">
-              <span className="text-purple-600 dark:text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg dark:[text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">â€¢</span>
+              <span className="text-purple-600 dark:text-purple-300 font-bold mt-0.5 flex-shrink-0 text-lg dark:[text-shadow:0_1px_3px_rgba(168,85,247,0.5)]">•</span>
               <span className="flex-1">{formatInlineStyles(itemText)}</span>
             </li>
           );
@@ -967,7 +973,7 @@ export function StudyPlannerLIA() {
                 analyzeCalendarAndSuggest(
                   data.provider,
                   undefined,
-                  'normal'
+                  'balance'
                 );
               }, 1000);
             }
@@ -1217,10 +1223,9 @@ INSTRUCCIONES:
           }
 
           // Texto de introducción...
+          // ✅ REFACTOR: Mostrar botones inline inmediatamente en lugar de modal con delay
           if (assignedCourses.length > 0) {
-            return setTimeout(() => {
-              setShowApproachModal(true);
-            }, 7000); // Esperar 7 segundos para que el usuario lea el mensaje de LIA
+            setShowApproachButtons(true);
           }
         } else {
           console.error('Error obteniendo mensaje de bienvenida de LIA');
@@ -1229,10 +1234,9 @@ INSTRUCCIONES:
             role: 'assistant',
             content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. Estoy aquí para ayudarte a organizar tu tiempo de estudio. ¿Qué tipo de sesiones prefieres: rápidas, normales o largas?'
           }]);
+          // ✅ REFACTOR: Mostrar botones inline inmediatamente
           if (assignedCourses.length > 0) {
-            return setTimeout(() => {
-              setShowApproachModal(true);
-            }, 7000); // Esperar 7 segundos
+            setShowApproachButtons(true);
           }
         }
       } catch (error: any) {
@@ -1247,10 +1251,9 @@ INSTRUCCIONES:
           role: 'assistant',
           content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. ¿Cómo te gustaría organizar tus sesiones de estudio?'
         }]);
+        // ✅ REFACTOR: Mostrar botones inline inmediatamente
         if (assignedCourses.length > 0) {
-          return setTimeout(() => {
-            setShowApproachModal(true);
-          }, 7000); // Esperar 7 segundos
+          setShowApproachButtons(true);
         }
       } finally {
         setIsProcessing(false);
@@ -1270,15 +1273,15 @@ INSTRUCCIONES:
     };
   }, [showConversation, conversationHistory.length, showCourseSelector, userContext, assignedCourses, connectedCalendar, liaData.isReady, isRunning]);
 
-  // Asegurar que el modal de approach aparezca cuando el tour termine
-  useEffect(() => {
-    if (!isRunning && assignedCourses.length > 0 && conversationHistory.length > 0 && !showApproachModal && !hasAskedApproach && !studyApproach) {
-      const timer = setTimeout(() => {
-        setShowApproachModal(true);
-      }, 7000); // 7s después del tour para dar tiempo a leer
-      return () => clearTimeout(timer);
-    }
-  }, [isRunning, assignedCourses.length, conversationHistory.length, showApproachModal, hasAskedApproach, studyApproach]);
+  // ✅ COMENTADO: Ya no necesario - ahora usamos botones inline inmediatos
+  // useEffect(() => {
+  //   if (!isRunning && assignedCourses.length > 0 && conversationHistory.length > 0 && !showApproachModal && !hasAskedApproach && !studyApproach) {
+  //     const timer = setTimeout(() => {
+  //       setShowApproachModal(true);
+  //     }, 7000);
+  //     return () => clearTimeout(timer);
+  //   }
+  // }, [isRunning, assignedCourses.length, conversationHistory.length, showApproachModal, hasAskedApproach, studyApproach]);
 
   // NO mostrar automáticamente el modal - solo cuando el usuario lo solicite mediante el botón
 
@@ -1878,13 +1881,13 @@ INSTRUCCIONES:
       // Detectar respuesta sobre enfoque de estudio (voz)
       if (hasAskedApproach && !studyApproach) {
         const lowerQuestion = question.toLowerCase();
-        if (lowerQuestion.includes('rápido') || lowerQuestion.includes('rapido') || lowerQuestion.includes('rápidas') || lowerQuestion.includes('rapidas')) {
-          setStudyApproach('rapido');
-          await handleStudyApproachResponse('rapido');
+        if (lowerQuestion.includes('corto') || lowerQuestion.includes('cortas') || lowerQuestion.includes('rápido') || lowerQuestion.includes('rapido') || lowerQuestion.includes('rápidas') || lowerQuestion.includes('rapidas')) {
+          setStudyApproach('corto');
+          await handleStudyApproachResponse('corto');
           return;
-        } else if (lowerQuestion.includes('normal') || lowerQuestion.includes('normales') || lowerQuestion.includes('equilibrado')) {
-          setStudyApproach('normal');
-          await handleStudyApproachResponse('normal');
+        } else if (lowerQuestion.includes('balance') || lowerQuestion.includes('equilibrado') || lowerQuestion.includes('normal') || lowerQuestion.includes('normales')) {
+          setStudyApproach('balance');
+          await handleStudyApproachResponse('balance');
           return;
         } else if (lowerQuestion.includes('largo') || lowerQuestion.includes('largas') || lowerQuestion.includes('extensas') || lowerQuestion.includes('profundizar')) {
           setStudyApproach('largo');
@@ -2525,7 +2528,7 @@ INSTRUCCIONES:
     minEmpleados: number | null;
     maxEmpleados: number | null;
     userType: 'b2b' | 'b2c' | null;
-    studyApproach?: 'rapido' | 'normal' | 'largo' | null;
+    studyApproach?: 'corto' | 'balance' | 'largo' | null;
     targetDate?: string | null;
   }) => {
     let baseMinutesPerDay = 60; // 1 hora base
@@ -2534,53 +2537,54 @@ INSTRUCCIONES:
     let recommendedBreak = 5; // minutos
     const reasoning: string[] = [];
 
-    // ✅ SIMPLIFICADO: Ya no se usa el studyApproach para ajustar - siempre usar valores estándar
-    // Valores estándar (equivalente a 'normal')
-    baseMinutesPerDay = 75;
-    recommendedSessionLength = 30;
-    recommendedBreak = 10;
-    workloadMultiplier *= 1.0;
-    reasoning.push('Configuración estándar de estudio');
+    // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
+    // - 'corto' = terminar RÁPIDO → sesiones MÁS LARGAS, más lecciones por día
+    // - 'largo' = tomarse el TIEMPO → sesiones más CORTAS, distribución espaciada
+    switch (profile.studyApproach) {
+      case 'corto':
+        // Terminar rápido → sesiones largas para avanzar más por día
+        baseMinutesPerDay = 90;
+        recommendedSessionLength = 75;
+        recommendedBreak = 15;
+        reasoning.push('Sesiones largas de 60-90 min para terminar rápido');
+        break;
+      case 'largo':
+        // Tomarse el tiempo → sesiones cortas, distribución espaciada
+        baseMinutesPerDay = 60;
+        recommendedSessionLength = 25;
+        recommendedBreak = 5;
+        reasoning.push('Sesiones cortas de 20-35 min para aprender sin prisa');
+        break;
+      case 'balance':
+      default:
+        baseMinutesPerDay = 75;
+        recommendedSessionLength = 45;
+        recommendedBreak = 10;
+        reasoning.push('Sesiones equilibradas de 45-60 min');
+        break;
+    }
 
-    // Ajustar según nivel jerárquico (pero respetar el enfoque de estudio seleccionado)
+    // ✅ INTERPRETACIÓN A: Respetar SIEMPRE el enfoque de estudio seleccionado
+    // Solo ajustar workloadMultiplier, NO la duración de sesión
+    // El usuario eligió explícitamente su modo de estudio
     const nivel = profile.nivel?.toLowerCase() || '';
-    const originalSessionLength = recommendedSessionLength; // Guardar la duración del enfoque
 
     if (nivel.includes('c-level') || nivel.includes('ceo') || nivel.includes('director') || nivel.includes('fundador')) {
       workloadMultiplier = 0.5;
-      // Solo ajustar si el enfoque no es rápido (para rápidas, mantener 25 min)
-      if (profile.studyApproach !== 'rapido') {
-        recommendedSessionLength = Math.min(20, originalSessionLength);
-      }
       reasoning.push('Como ejecutivo de alto nivel, tu agenda es muy demandante');
     } else if (nivel.includes('gerente') || nivel.includes('manager') || nivel.includes('líder') || nivel.includes('jefe')) {
       workloadMultiplier = 0.65;
-      // Solo ajustar si el enfoque no es rápido (para rápidas, mantener 25 min)
-      if (profile.studyApproach !== 'rapido') {
-        recommendedSessionLength = Math.min(25, originalSessionLength);
-      }
       reasoning.push('Como gerente/líder, tienes responsabilidades de gestión importantes');
     } else if (nivel.includes('senior') || nivel.includes('especialista')) {
       workloadMultiplier = 0.75;
-      // Solo ajustar si el enfoque no es rápido (para rápidas, mantener 25 min)
-      if (profile.studyApproach !== 'rapido') {
-        recommendedSessionLength = Math.min(30, originalSessionLength);
-      }
       reasoning.push('Como profesional senior, tienes proyectos complejos pero autonomía');
     } else if (nivel.includes('junior') || nivel.includes('trainee') || nivel.includes('practicante')) {
       workloadMultiplier = 1.0;
-      // Para juniors, permitir sesiones más largas incluso con enfoque rápido
-      if (profile.studyApproach !== 'rapido') {
-        recommendedSessionLength = Math.max(45, originalSessionLength);
-      }
       reasoning.push('En tu etapa profesional, el aprendizaje es prioritario');
     } else {
       workloadMultiplier = 0.8;
-      // Mantener la duración del enfoque si no hay nivel específico
-      if (profile.studyApproach !== 'rapido') {
-        recommendedSessionLength = originalSessionLength;
-      }
     }
+    // recommendedSessionLength se mantiene según el modo seleccionado por el usuario
 
     // Ajustar según tamaño de empresa
     const empleados = profile.maxEmpleados || 0;
@@ -2991,7 +2995,7 @@ INSTRUCCIONES:
       return false; // No proceder con análisis aún
     } else if (!hasAskedTargetDate || !targetDate) {
       // Si ya se respondió el enfoque pero no la fecha, mostrar modal de fecha
-      const dateMsg = `Perfecto, veo que prefieres **${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}**.\n\nAhora, **¿tienes alguna fecha estimada para terminar tus cursos?**`;
+      const dateMsg = `Perfecto, veo que prefieres **${studyApproach === 'corto' ? 'terminar rápido' : studyApproach === 'balance' ? 'un ritmo equilibrado' : 'tomarte tu tiempo'}**.\n\nAhora, **¿tienes alguna fecha estimada para terminar tus cursos?**`;
 
       setConversationHistory(prev => [...prev, { role: 'assistant', content: dateMsg }]);
       setHasAskedTargetDate(true);
@@ -3019,19 +3023,21 @@ INSTRUCCIONES:
   };
 
   // Manejar selección de enfoque desde el modal
-  // ✅ NUEVO ENFOQUE: Determina la velocidad de finalización del curso
-  // - rapido: más lecciones por día, terminar lo antes posible
-  // - normal: distribución equilibrada, ritmo razonable
-  // - largo: menos lecciones por día, usar todo el tiempo hasta la fecha límite
-  const handleApproachSelection = async (approach: 'rapido' | 'normal' | 'largo') => {
+  // ✅ INTERPRETACIÓN A: Determina la VELOCIDAD DE COMPLETACIÓN del curso
+  // - corto: terminar RÁPIDO → sesiones largas (60-90 min), menos días
+  // - balance: ritmo equilibrado → sesiones de 45-60 min
+  // - largo: sin prisa → sesiones cortas (20-35 min), más días distribuidos
+  const handleApproachSelection = async (approach: 'corto' | 'balance' | 'largo') => {
+    setShowApproachButtons(false); // ✅ Ocultar botones inline
     setStudyApproach(approach);
     setShowApproachModal(false);
     setIsProcessing(true);
 
+    // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
     const approachText = {
-      rapido: 'terminar el curso lo antes posible (ritmo intensivo)',
-      normal: 'terminar en un tiempo razonable (ritmo equilibrado)',
-      largo: 'tomar mi tiempo hasta la fecha límite (ritmo relajado)'
+      corto: 'terminar rápido (sesiones de 60-90 minutos)',
+      balance: 'ritmo equilibrado (sesiones de 45-60 minutos)',
+      largo: 'tomarte tu tiempo (sesiones de 20-35 minutos)'
     };
 
     // Obtener información de cursos con fechas límite
@@ -3050,7 +3056,7 @@ INSTRUCCIONES:
     } else {
       // ✅ FIX: Si no hay fecha límite, generar una fecha objetivo predeterminada basada en el enfoque
       // Esto evita que el flujo se rompa cuando los cursos no tienen dueDate
-      const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
+      const weeksToAdd = approach === 'corto' ? 2 : (approach === 'balance' ? 4 : 8);
       const defaultTargetDate = new Date();
       defaultTargetDate.setDate(defaultTargetDate.getDate() + (weeksToAdd * 7));
       nearestDueDateFormatted = defaultTargetDate.toLocaleDateString('es-ES', {
@@ -3253,21 +3259,21 @@ INSTRUCCIONES:
   };
 
   // Calcular fecha sugerida basada en el enfoque de estudio
-  const calculateSuggestedDate = (approach: 'rapido' | 'normal' | 'largo'): Date => {
+  const calculateSuggestedDate = (approach: 'corto' | 'balance' | 'largo'): Date => {
     const today = new Date();
     const numCourses = selectedCourseIds.length || 1;
 
     // Estimar semanas necesarias según enfoque y número de cursos
     let weeksNeeded = 0;
 
-    if (approach === 'rapido') {
-      // Sesiones rápidas: más sesiones por semana, completar más rápido
+    if (approach === 'corto') {
+      // Terminar rápido: sesiones largas, completar en menos tiempo
       weeksNeeded = Math.max(4, numCourses * 3); // Mínimo 4 semanas, 3 semanas por curso
-    } else if (approach === 'normal') {
-      // Sesiones normales: ritmo equilibrado
+    } else if (approach === 'balance') {
+      // Ritmo equilibrado: sesiones medianas
       weeksNeeded = Math.max(6, numCourses * 4); // Mínimo 6 semanas, 4 semanas por curso
     } else {
-      // Sesiones largas: menos sesiones pero más profundas
+      // Sin prisa: sesiones cortas, distribuidas en más tiempo
       weeksNeeded = Math.max(8, numCourses * 5); // Mínimo 8 semanas, 5 semanas por curso
     }
 
@@ -3308,7 +3314,7 @@ INSTRUCCIONES:
     setTargetDate(dateText);
     setShowDateModal(false);
 
-    const confirmationMsg = `Excelente, he registrado tu fecha estimada: **${dateText}**.\n\nAhora voy a analizar tu calendario para crear las mejores recomendaciones de horarios que se ajusten a tu enfoque de **${studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas'}** y tu objetivo de completar los cursos para ${dateText}.\n\nDéjame analizar tu disponibilidad...`;
+    const confirmationMsg = `Excelente, he registrado tu fecha estimada: **${dateText}**.\n\nAhora voy a analizar tu calendario para crear las mejores recomendaciones de horarios que se ajusten a tu enfoque de **${studyApproach === 'corto' ? 'terminar rápido' : studyApproach === 'balance' ? 'ritmo equilibrado' : 'tomarte tu tiempo'}** y tu objetivo de completar los cursos para ${dateText}.\n\nDéjame analizar tu disponibilidad...`;
 
     setConversationHistory(prev => [...prev, { role: 'assistant', content: confirmationMsg }]);
 
@@ -3327,14 +3333,14 @@ INSTRUCCIONES:
   };
 
   // Manejar respuesta sobre enfoque de estudio (desde texto/voz)
-  const handleStudyApproachResponse = async (approach: 'rapido' | 'normal' | 'largo') => {
+  const handleStudyApproachResponse = async (approach: 'corto' | 'balance' | 'largo') => {
     await handleApproachSelection(approach);
   };
 
   // ✅ FUNCIÓN ESPECÃFICA PARA ANÃLISIS DE CALENDARIO B2B
   const analyzeCalendarAndSuggestB2B = async (
     provider: string,
-    approach: 'rapido' | 'normal' | 'largo',
+    approach: 'corto' | 'balance' | 'largo',
     userProfile: any,
     assignedCourses: Array<{ courseId: string; title: string; dueDate: string | null }>
   ) => {
@@ -3365,7 +3371,7 @@ INSTRUCCIONES:
       // ✅ FIX: Si no hay fechas límite, generar una fecha predeterminada basada en el enfoque
       if (!furthestDueDate) {
         console.log('âš ï¸ [B2B] No hay fechas límite, generando fecha predeterminada...');
-        const weeksToAdd = approach === 'rapido' ? 2 : (approach === 'normal' ? 4 : 8);
+        const weeksToAdd = approach === 'corto' ? 2 : (approach === 'balance' ? 4 : 8);
         furthestDueDate = new Date();
         furthestDueDate.setDate(furthestDueDate.getDate() + (weeksToAdd * 7));
         nearestDueDate = furthestDueDate; // Si no hay fechas, usar la misma
@@ -3620,7 +3626,7 @@ INSTRUCCIONES:
         await analyzeCalendarAndSuggest(
           provider,
           nearestDueDateFormatted,
-          'normal', // ✅ SIMPLIFICADO: Siempre usar 'normal'
+          'balance', // ✅ SIMPLIFICADO: Siempre usar 'balance'
           true // ✅ skipB2BRedirect: evitar redirección y usar lógica B2C directamente
         );
         console.log('✅ [B2B] Retorno exitoso de analyzeCalendarAndSuggest');
@@ -3648,7 +3654,7 @@ INSTRUCCIONES:
   const handleTargetDateResponse = async (dateResponse: string) => {
     setIsProcessing(true);
 
-    const approachText = studyApproach === 'rapido' ? 'sesiones rápidas' : studyApproach === 'normal' ? 'sesiones normales' : 'sesiones largas';
+    const approachText = studyApproach === 'corto' ? 'terminar rápido' : studyApproach === 'balance' ? 'ritmo equilibrado' : 'tomarte tu tiempo';
 
     const confirmationMsg = `Excelente, he registrado tu fecha estimada: **${dateResponse}**.\n\nAhora voy a analizar tu calendario para crear las mejores recomendaciones de horarios que se ajusten a tu enfoque de **${approachText}** y tu objetivo de completar los cursos ${dateResponse.toLowerCase().includes('no') || dateResponse.toLowerCase().includes('específica') ? 'en el tiempo que prefieras' : `para ${dateResponse}`}.\n\nDéjame analizar tu disponibilidad...`;
 
@@ -3675,7 +3681,7 @@ INSTRUCCIONES:
   const analyzeCalendarAndSuggest = async (
     provider: string,
     targetDateParam?: string,
-    approachParam?: 'rapido' | 'normal' | 'largo' | null,
+    approachParam?: 'corto' | 'balance' | 'largo' | null,
     skipB2BRedirect?: boolean // ✅ Flag para evitar redirección cuando se llama desde B2B
   ) => {
     // ✅ Usar el parámetro si está disponible, sino usar el estado
@@ -3740,7 +3746,7 @@ INSTRUCCIONES:
 
     // ✅ FIX: Si aún no hay fecha, generar una predeterminada basada en el enfoque
     if (!dateToUse) {
-      const weeksToAdd = approachToUse === 'rapido' ? 2 : (approachToUse === 'normal' ? 4 : 8);
+      const weeksToAdd = approachToUse === 'corto' ? 2 : (approachToUse === 'balance' ? 4 : 8);
       const defaultTargetDate = new Date();
       defaultTargetDate.setDate(defaultTargetDate.getDate() + (weeksToAdd * 7));
       dateToUse = defaultTargetDate.toLocaleDateString('es-ES', {
@@ -4340,6 +4346,8 @@ INSTRUCCIONES:
         .map(([dayName]) => dayName);
 
       // 4. Calcular disponibilidad estimada ANTES de filtrar slots (para usar la duración correcta)
+      // ✅ FIX: Usar effectiveApproach (que puede venir como parámetro) en lugar de studyApproach (estado)
+      console.log('📊 [profileAvailability] Calculando con effectiveApproach:', effectiveApproach, '| studyApproach (estado):', studyApproach);
       const profileAvailability = userProfile ? calculateEstimatedAvailability({
         rol: userProfile.professionalProfile?.rol?.nombre || null,
         nivel: userProfile.professionalProfile?.nivel?.nombre || null,
@@ -4347,9 +4355,10 @@ INSTRUCCIONES:
         minEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.minEmpleados || null,
         maxEmpleados: userProfile.professionalProfile?.tamanoEmpresa?.maxEmpleados || null,
         userType: userProfile.userType || null,
-        studyApproach: studyApproach, // Incluir enfoque seleccionado
-        targetDate: targetDate, // Incluir fecha estimada
+        studyApproach: effectiveApproach, // ✅ FIX: Usar effectiveApproach, NO studyApproach
+        targetDate: effectiveTargetDate, // ✅ FIX: Usar effectiveTargetDate
       }) : null;
+      console.log('📊 [profileAvailability] Resultado:', profileAvailability?.recommendedSessionLength, 'min, break:', profileAvailability?.recommendedBreak, 'min');
 
       // Encontrar los mejores slots libres (mayor duración y horarios convenientes)
       type FreeSlotWithDay = {
@@ -4992,14 +5001,18 @@ INSTRUCCIONES:
       const breakLength = profileAvailability?.recommendedBreak || 10;
       const cycleLength = sessionLength + breakLength; // Ej: 30 + 10 = 40 min
 
-      // Determinar duración máxima por slot según enfoque de estudio
+      // ✅ INTERPRETACIÓN A: Determinar duración máxima por slot según enfoque de estudio
+      // - corto (terminar rápido) → más ciclos por slot (sesiones largas)
+      // - largo (sin prisa) → menos ciclos por slot (sesiones cortas)
       let maxSlotDuration: number;
-      if (effectiveApproach === 'rapido') {
-        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min)
+      if (effectiveApproach === 'corto') {
+        // Terminar rápido: permitir más ciclos por slot (sesiones más largas)
+        maxSlotDuration = cycleLength * 3; // 3 ciclos máximo
       } else if (effectiveApproach === 'largo') {
-        maxSlotDuration = cycleLength * 3; // 3 ciclos máximo (ej: 120 min)
+        // Sin prisa: menos ciclos por slot (sesiones más cortas)
+        maxSlotDuration = cycleLength * 1; // 1 ciclo máximo
       } else {
-        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo (ej: 80 min) - normal
+        maxSlotDuration = cycleLength * 2; // 2 ciclos máximo - balance
       }
 
       finalSlots.forEach((slot, index) => {
@@ -5220,7 +5233,7 @@ INSTRUCCIONES:
               ? `${Math.floor(profileAvailability.recommendedSessionLength / 60)} hora${Math.floor(profileAvailability.recommendedSessionLength / 60) > 1 ? 's' : ''}`
               : `${profileAvailability.recommendedSessionLength} minutos`;
 
-            const approachText = effectiveApproach === 'rapido' ? 'sesiones rápidas' : effectiveApproach === 'normal' ? 'sesiones normales' : effectiveApproach === 'largo' ? 'sesiones largas' : 'sesiones';
+            const approachText = effectiveApproach === 'corto' ? 'terminar rápido' : effectiveApproach === 'balance' ? 'ritmo equilibrado' : effectiveApproach === 'largo' ? 'tomarte tu tiempo' : 'sesiones';
             const targetDateText = effectiveTargetDate ? ` y tu objetivo de completar los cursos para ${effectiveTargetDate}` : '';
 
             recommendationIntro.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''} y tu preferencia por **${approachText}**${targetDateText}, estimo que puedes dedicar aproximadamente ${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''} al día para estudiar.`);
@@ -5819,13 +5832,13 @@ INSTRUCCIONES:
             maxGroupsPerSlot = 999; // Sin límite
             skipSlots = 0;
             console.log(`ðŸš¨ [Capacidad Ajustada] Forzando uso de TODOS los slots disponibles para cumplir fecha límite`);
-          } else if (studyApproach === 'rapido') {
-            // Terminar rápido: llenar cada slot al máximo (sin límite de grupos)
+          } else if (effectiveApproach === 'corto') {
+            // ✅ TERMINAR RÁPIDO: llenar cada slot al máximo con sesiones largas (60-90 min)
             maxGroupsPerSlot = 999; // Sin límite práctico
             skipSlots = 0;
-            console.log(`🚀 [Enfoque Rápido] Sin límite de grupos por slot, llenar al máximo`);
-          } else if (studyApproach === 'largo') {
-            // Tomar tiempo: distribuir a lo largo de todo el tiempo disponible
+            console.log(`🚀 [Terminar Rápido] Sin límite de grupos/slot, sesiones largas (60-90 min)`);
+          } else if (effectiveApproach === 'largo') {
+            // ✅ TOMARSE EL TIEMPO: distribuir a lo largo del período con sesiones cortas (20-35 min)
             // Solo aplicar distribución relajada si HAY espacio de sobra (capacidad >= 2x)
             if (capacityRatio >= 2.0) {
               const groupsPerSession = Math.max(1, Math.ceil(totalGroups / totalSlots));
@@ -5836,13 +5849,13 @@ INSTRUCCIONES:
               }
               console.log(`ðŸ“… [Enfoque Relajado] Máximo ${maxGroupsPerSlot} grupos por slot, saltar ${skipSlots} slots entre sesiones`);
             } else {
-              // No hay suficiente espacio para relajarse, usar todos los slots
+              // No hay suficiente espacio, usar todos los slots
               maxGroupsPerSlot = 3;
               skipSlots = 0;
               console.log(`ðŸ“… [Enfoque Relajado â†’ Normal] Capacidad insuficiente para distribución relajada, usando todos los slots`);
             }
           } else {
-            // Normal: equilibrado (2-3 grupos por slot dependiendo del tamaño)
+            // ✅ EQUILIBRADO: sesiones de 45-60 min, distribución balanceada
             maxGroupsPerSlot = 3;
             skipSlots = 0;
             console.log(`âš–ï¸ [Enfoque Equilibrado] Máximo ${maxGroupsPerSlot} grupos por slot`);
@@ -7481,16 +7494,22 @@ Cuéntame:
       let maxSessionMinutes = 60;
       let breakDurationMinutes = 10;
 
-      if (studyApproach === 'rapido') {
-        preferredSessionType = 'short';
-        minSessionMinutes = 20;
-        maxSessionMinutes = 35;
-        breakDurationMinutes = 5;
-      } else if (studyApproach === 'largo') {
+      // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
+      // - 'corto' = terminar RÁPIDO → sesiones MÁS LARGAS
+      // - 'largo' = tomarse el TIEMPO → sesiones más CORTAS
+      console.log(`📊 [maxSessionMinutes] Usando effectiveApproach: ${effectiveApproach}`);
+      if (effectiveApproach === 'corto') {
+        // Terminar rápido → sesiones largas para avanzar más
         preferredSessionType = 'long';
         minSessionMinutes = 60;
         maxSessionMinutes = 90;
         breakDurationMinutes = 15;
+      } else if (effectiveApproach === 'largo') {
+        // Tomarse el tiempo → sesiones cortas, más distribuidas
+        preferredSessionType = 'short';
+        minSessionMinutes = 20;
+        maxSessionMinutes = 35;
+        breakDurationMinutes = 5;
       }
 
       // ✅ HELPER: Parsear fechas en múltiples formatos
@@ -8929,12 +8948,14 @@ Cuéntame:
               preferences: {
                 days: uniqueDays,
                 times: uniqueTimes,
-                // Mapear studyApproach a studyMode para estrategias de descanso
-                studyMode: studyApproach === 'rapido' ? 'pomodoro' : studyApproach === 'largo' ? 'intensive' : 'balanced',
-                maxConsecutiveHours: studyApproach === 'largo' ? 3 : 2 // Más horas para sesiones largas
+                // ✅ INTERPRETACIÓN A: Mapear effectiveApproach a studyMode para estrategias de descanso
+                // corto = terminar rápido → sesiones largas (intensive)
+                // largo = sin prisa → sesiones cortas (pomodoro)
+                studyMode: effectiveApproach === 'corto' ? 'intensive' : effectiveApproach === 'largo' ? 'pomodoro' : 'balanced',
+                maxConsecutiveHours: effectiveApproach === 'corto' ? 3 : 2 // Más horas para terminar rápido
               },
               deadlineDate: deadlineDate,
-              maxSessionMinutes: (studyApproach === 'rapido' ? 30 : studyApproach === 'largo' ? 70 : 50)
+              maxSessionMinutes: (effectiveApproach === 'corto' ? 75 : effectiveApproach === 'largo' ? 25 : 45)
             })
           });
 
@@ -9339,13 +9360,13 @@ Cuéntame:
       // Detectar respuesta sobre enfoque de estudio
       if (hasAskedApproach && !studyApproach) {
         const lowerMessage = message.toLowerCase();
-        if (lowerMessage.includes('rápido') || lowerMessage.includes('rapido') || lowerMessage.includes('rápidas') || lowerMessage.includes('rapidas')) {
-          setStudyApproach('rapido');
-          await handleStudyApproachResponse('rapido');
+        if (lowerMessage.includes('corto') || lowerMessage.includes('cortas') || lowerMessage.includes('rápido') || lowerMessage.includes('rapido') || lowerMessage.includes('rápidas') || lowerMessage.includes('rapidas')) {
+          setStudyApproach('corto');
+          await handleStudyApproachResponse('corto');
           return;
-        } else if (lowerMessage.includes('normal') || lowerMessage.includes('normales') || lowerMessage.includes('equilibrado')) {
-          setStudyApproach('normal');
-          await handleStudyApproachResponse('normal');
+        } else if (lowerMessage.includes('balance') || lowerMessage.includes('equilibrado') || lowerMessage.includes('normal') || lowerMessage.includes('normales')) {
+          setStudyApproach('balance');
+          await handleStudyApproachResponse('balance');
           return;
         } else if (lowerMessage.includes('largo') || lowerMessage.includes('largas') || lowerMessage.includes('extensas') || lowerMessage.includes('profundizar')) {
           setStudyApproach('largo');
@@ -10421,6 +10442,94 @@ Cuéntame:
                   </motion.div>
                 ))}
 
+                {/* ✅ NUEVO: Botones inline de selección de ritmo de estudio (con avatar de LIA) */}
+                {showApproachButtons && !studyApproach && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.2 }}
+                    className="flex justify-start mt-2 group"
+                  >
+                    <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
+                      {/* Avatar de LIA - Desktop */}
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
+                      >
+                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
+                      </motion.div>
+
+                      {/* Avatar de LIA - Mobile */}
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="24px" className="object-cover" />
+                      </div>
+
+                      {/* Contenedor de botones estilo mensaje de LIA */}
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
+                        className="relative bg-[#FFFFFF] dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 mb-3">
+                          <BookOpen className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                          <p className="text-sm font-medium text-[#0A2540] dark:text-white">
+                            ¿Qué ritmo de estudio prefieres?
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {/* Botón Rápido - Terminar pronto con sesiones largas */}
+                          <motion.button
+                            onClick={() => handleApproachSelection('corto')}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#0A2540]/5 dark:hover:bg-[#0A2540]/10 transition-all"
+                          >
+                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
+                              <Zap className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            </div>
+                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Rápido</span>
+                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">60-90 min</span>
+                          </motion.button>
+
+                          {/* Botón Balance */}
+                          <motion.button
+                            onClick={() => handleApproachSelection('balance')}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 transition-all"
+                          >
+                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
+                              <Scale className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            </div>
+                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Balance</span>
+                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">45-60 min</span>
+                          </motion.button>
+
+                          {/* Botón Relajado - Sin prisa con sesiones cortas */}
+                          <motion.button
+                            onClick={() => handleApproachSelection('largo')}
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#0A2540]/5 dark:hover:bg-[#0A2540]/10 transition-all"
+                          >
+                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
+                              <Clock className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            </div>
+                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Sin prisa</span>
+                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">20-35 min</span>
+                          </motion.button>
+                        </div>
+                        <p className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center mt-3">
+                          Selecciona para continuar
+                        </p>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
                 {/* Indicador de procesamiento */}
                 {isProcessing && (
                   <motion.div
@@ -10927,40 +11036,40 @@ Cuéntame:
                             <BookOpen className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                           </div>
                           <div className="flex-1">
-                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">¿Qué tan rápido quieres terminar?</h3>
-                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige el ritmo que mejor se adapte a tu disponibilidad</p>
+                            <h3 className="text-lg font-bold text-[#0A2540] dark:text-white mb-1">¿Qué duración de sesión prefieres?</h3>
+                            <p className="text-[#6C757D] dark:text-gray-400 text-xs">Elige la duración que mejor se adapte a tu disponibilidad</p>
                           </div>
                         </div>
                       </div>
 
                       {/* Opciones de enfoque */}
                       <div className="p-6 space-y-4">
-                        {/* Opción: Rápido/Intensivo */}
+                        {/* Opción: Terminar rápido - Sesiones largas */}
                         <motion.button
-                          onClick={() => handleApproachSelection('rapido')}
+                          onClick={() => handleApproachSelection('corto')}
                           whileHover={{ scale: 1.02, x: 4 }}
                           whileTap={{ scale: 0.98 }}
-                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'rapido'
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'corto'
                             ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
                             : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                             }`}
                         >
                           <div className="flex items-start gap-4">
-                            <div className={`p-2 rounded-lg ${studyApproach === 'rapido'
+                            <div className={`p-2 rounded-lg ${studyApproach === 'corto'
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
                               <Zap className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Quiero terminar rápido</h4>
-                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Más lecciones por día para completar el curso lo antes posible</p>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Terminar rápido</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones largas para avanzar más cada día y terminar antes</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>â€¢ Ritmo intensivo</span>
-                                <span>â€¢ Máximo avance diario</span>
+                                <span>- 60-90 min por sesión</span>
+                                <span>- Descansos de 15 min</span>
                               </div>
                             </div>
-                            {studyApproach === 'rapido' && (
+                            {studyApproach === 'corto' && (
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -10972,32 +11081,32 @@ Cuéntame:
                           </div>
                         </motion.button>
 
-                        {/* Opción: Equilibrado/Razonable */}
+                        {/* Opción: Sesiones Equilibradas */}
                         <motion.button
-                          onClick={() => handleApproachSelection('normal')}
+                          onClick={() => handleApproachSelection('balance')}
                           whileHover={{ scale: 1.02, x: 4 }}
                           whileTap={{ scale: 0.98 }}
-                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'normal'
+                          className={`w-full p-4 rounded-xl border-2 transition-all text-left ${studyApproach === 'balance'
                             ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20 border-[#0A2540]/30 dark:border-[#00D4B3]/30 shadow-sm'
                             : 'bg-[#E9ECEF]/30 dark:bg-[#0A2540]/5 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#E9ECEF]/50 dark:hover:bg-[#0A2540]/10'
                             }`}
                         >
                           <div className="flex items-start gap-4">
-                            <div className={`p-2 rounded-lg ${studyApproach === 'normal'
+                            <div className={`p-2 rounded-lg ${studyApproach === 'balance'
                               ? 'bg-[#0A2540]/10 dark:bg-[#0A2540]/20'
                               : 'bg-[#E9ECEF] dark:bg-[#6C757D]/30'
                               }`}>
                               <Scale className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tiempo razonable</h4>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sesiones equilibradas</h4>
                               <p className="text-xs text-[#6C757D] dark:text-gray-300">Distribución equilibrada para un ritmo cómodo y efectivo</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>â€¢ Ritmo equilibrado</span>
-                                <span>â€¢ Recomendado</span>
+                                <span>- 45-60 min por sesión</span>
+                                <span>- Recomendado</span>
                               </div>
                             </div>
-                            {studyApproach === 'normal' && (
+                            {studyApproach === 'balance' && (
                               <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -11009,7 +11118,7 @@ Cuéntame:
                           </div>
                         </motion.button>
 
-                        {/* Opción: Relajado/Fecha límite */}
+                        {/* Opción: Sin prisa - Tomarse el tiempo */}
                         <motion.button
                           onClick={() => handleApproachSelection('largo')}
                           whileHover={{ scale: 1.02, x: 4 }}
@@ -11027,11 +11136,11 @@ Cuéntame:
                               <Clock className="w-5 h-5 text-[#0A2540] dark:text-[#00D4B3]" />
                             </div>
                             <div className="flex-1">
-                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Tomar mi tiempo</h4>
-                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Menos lecciones por día, usando todo el tiempo hasta la fecha límite</p>
+                              <h4 className="text-base font-semibold text-[#0A2540] dark:text-white mb-1">Sin prisa</h4>
+                              <p className="text-xs text-[#6C757D] dark:text-gray-300">Sesiones cortas distribuidas para aprender a tu ritmo</p>
                               <div className="mt-2 flex items-center gap-2 text-xs text-[#6C757D] dark:text-gray-400">
-                                <span>â€¢ Ritmo relajado</span>
-                                <span>â€¢ Máxima flexibilidad</span>
+                                <span>- 20-35 min por sesión</span>
+                                <span>- Descansos de 5 min</span>
                               </div>
                             </div>
                             {studyApproach === 'largo' && (
@@ -11050,7 +11159,7 @@ Cuéntame:
                       {/* Footer */}
                       <div className="px-5 py-4 border-t border-[#E9ECEF] dark:border-[#6C757D]/30 bg-white dark:bg-[#1E2329]">
                         <p className="text-xs text-[#6C757D] dark:text-gray-400 text-center">
-                          Esta selección determina cuántas lecciones estudiarás por día
+                          Esta selección determina qué tan rápido completarás el curso
                         </p>
                       </div>
                     </motion.div>
@@ -11306,7 +11415,7 @@ Cuéntame:
                       }
                     }}
                     placeholder={isMobile ? "Escribe un mensaje..." : "Escribe tu mensaje o usa el micrófono..."}
-                    disabled={isProcessing || isListening}
+                    disabled={isProcessing || isListening || (showApproachButtons && !studyApproach)}
                     style={{ fontSize: '16px' }} // Prevent iOS zoom
                     className="flex-1 min-w-0 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm transition-all"
                   />
@@ -11324,7 +11433,7 @@ Cuéntame:
                         toggleListening();
                       }
                     }}
-                    disabled={isProcessing || (isListening && !!userMessage.trim())}
+                    disabled={isProcessing || (isListening && !!userMessage.trim()) || (showApproachButtons && !studyApproach)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
@@ -11332,7 +11441,7 @@ Cuéntame:
                       : isListening
                         ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
                         : 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
-                      } ${isProcessing || (isListening && userMessage.trim()) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      } ${(isProcessing || (isListening && userMessage.trim()) || (showApproachButtons && !studyApproach)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <AnimatePresence mode="wait">
                       {isProcessing && userMessage.trim() ? (

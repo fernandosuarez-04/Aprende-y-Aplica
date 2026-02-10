@@ -13,14 +13,14 @@
  * 4. Evita duplicación de lógica en el componente
  */
 
-import React, { 
-  createContext, 
-  useContext, 
-  useState, 
-  useCallback, 
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useCallback,
   useEffect,
   useRef,
-  ReactNode 
+  ReactNode
 } from 'react';
 
 // ============================================================================
@@ -71,7 +71,7 @@ export interface CalendarState {
 
 /** Preferencias de estudio */
 export interface StudyPreferences {
-  approach: 'rapido' | 'normal' | 'largo' | null;
+  approach: 'corto' | 'balance' | 'largo' | null;
   targetDate: string | null;
   preferredDays: string[]; // ['lunes', 'miércoles', 'viernes']
   preferredTimes: string[]; // ['mañana', 'noche']
@@ -81,23 +81,23 @@ export interface StudyPreferences {
 export interface LIAContextState {
   // Datos del usuario
   userProfile: UserProfile | null;
-  
+
   // Cursos y lecciones (FUENTE DE VERDAD)
   courses: CourseInfo[];
   allPendingLessons: PendingLesson[];
   totalPendingLessons: number;
-  
+
   // Estado del calendario
   calendar: CalendarState;
-  
+
   // Preferencias
   preferences: StudyPreferences;
-  
+
   // Estado de carga
   isLoading: boolean;
   isReady: boolean;
   error: string | null;
-  
+
   // Timestamp de última actualización
   lastUpdated: Date | null;
 }
@@ -108,12 +108,12 @@ export interface LIAContextActions {
   loadUserData: () => Promise<void>;
   loadPendingLessons: () => Promise<void>;
   refreshAll: () => Promise<void>;
-  
+
   // Actualizar estado
   setCalendarConnected: (provider: 'google' | 'microsoft') => void;
   skipCalendar: () => void;
   setPreferences: (prefs: Partial<StudyPreferences>) => void;
-  
+
   // Generar contexto para prompt
   getContextForPrompt: () => string;
   getLessonsListForPrompt: () => string;
@@ -178,12 +178,12 @@ export function LIAProvider({ children }: LIAProviderProps) {
       // 1. Obtener datos del usuario
       const userResponse = await fetch('/api/study-planner/user-context');
       if (!userResponse.ok) throw new Error('Error obteniendo contexto de usuario');
-      
+
       const userData = await userResponse.json();
-      
+
       if (userData.success && userData.data) {
         const data = userData.data;
-        
+
         setState(prev => ({
           ...prev,
           userProfile: {
@@ -216,10 +216,10 @@ export function LIAProvider({ children }: LIAProviderProps) {
 
     } catch (error) {
       console.error('❌ [LIAContext] Error cargando datos del usuario:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Error desconocido',
-        isLoading: false 
+        isLoading: false
       }));
     }
   }, []);
@@ -230,12 +230,12 @@ export function LIAProvider({ children }: LIAProviderProps) {
   const loadPendingLessons = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
+
       console.log('📚 [LIAContext] Consultando BD para lecciones pendientes...');
 
       // Usar el endpoint que consulta directamente la BD
       const response = await fetch('/api/study-planner/pending-lessons');
-      
+
       if (!response.ok) {
         throw new Error(`Error en pending-lessons: ${response.status}`);
       }
@@ -281,7 +281,7 @@ export function LIAProvider({ children }: LIAProviderProps) {
       }));
 
       console.log(`✅ [LIAContext] ${allPendingLessons.length} lecciones pendientes cargadas`);
-      
+
       // Log de verificación
       if (allPendingLessons.length > 0) {
         console.log('   📋 Primeras 3 lecciones (nombres exactos):');
@@ -292,10 +292,10 @@ export function LIAProvider({ children }: LIAProviderProps) {
 
     } catch (error) {
       console.error('❌ [LIAContext] Error cargando lecciones:', error);
-      setState(prev => ({ 
-        ...prev, 
+      setState(prev => ({
+        ...prev,
         error: error instanceof Error ? error.message : 'Error desconocido',
-        isLoading: false 
+        isLoading: false
       }));
     }
   }, []);
@@ -381,7 +381,7 @@ export function LIAProvider({ children }: LIAProviderProps) {
     context += `\n## LECCIONES PENDIENTES (${totalPendingLessons} total)\n`;
     context += `⚠️ IMPORTANTE: Usa SOLO estas lecciones con sus nombres y duraciones EXACTAS.\n`;
     context += `⛔ PROHIBIDO inventar lecciones que no estén en esta lista.\n\n`;
-    
+
     for (const lesson of allPendingLessons) {
       context += `- ${lesson.lessonTitle} (${lesson.durationMinutes} min) - ${lesson.moduleTitle}\n`;
     }
@@ -401,10 +401,11 @@ export function LIAProvider({ children }: LIAProviderProps) {
     if (preferences.approach || preferences.targetDate || preferences.preferredDays.length > 0) {
       context += `\n## PREFERENCIAS DE ESTUDIO\n`;
       if (preferences.approach) {
+        // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
         const approachLabels = {
-          'rapido': 'Terminar lo antes posible',
-          'normal': 'Ritmo equilibrado',
-          'largo': 'Tomar mi tiempo',
+          'corto': 'Terminar rápido (sesiones de 60-90 min)',
+          'balance': 'Ritmo equilibrado (sesiones de 45-60 min)',
+          'largo': 'Sin prisa (sesiones de 20-35 min)',
         };
         context += `- Enfoque: ${approachLabels[preferences.approach]}\n`;
       }
@@ -475,11 +476,11 @@ export function LIAProvider({ children }: LIAProviderProps) {
 
 export function useLIA() {
   const context = useContext(LIAContext);
-  
+
   if (!context) {
     throw new Error('useLIA debe usarse dentro de LIAProvider');
   }
-  
+
   return context;
 }
 

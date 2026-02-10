@@ -2,35 +2,43 @@
 
 Este documento detalla el funcionamiento interno, la lógica de distribución de horarios y las reglas de comunicación con la IA (LIA) implementadas para el Planificador de Estudios. Sirve como referencia para entender cómo LIA decide y presenta los horarios.
 
-> **Última Actualización:** 22/12/2025
-> **Estado:** Implementado (Greedy Algorithm V2) - Multiplicadores de sesión desactivados (siempre 1.0)
-> **Cambio reciente:** Corregido flujo de presentación (todas las semanas) y cálculo real de lecciones por semana
+> **Última Actualización:** 10/02/2026
+> **Estado:** Implementado (Greedy Algorithm V2) - Interpretación A de modos de sesión
+> **Cambio reciente:** Invertida la lógica de modos para controlar VELOCIDAD DE COMPLETACIÓN
 
 ---
 
-## 1. Cambios Recientes - Multiplicadores de Sesión Desactivados
+## 1. Semántica de Modos de Sesión (INTERPRETACIÓN A)
 
-### ⚠️ IMPORTANTE: Multiplicadores Desactivados
-A partir de esta versión, los multiplicadores de sesión están **desactivados**:
-- El modal de selección de tipo de sesiones **SÍ SE MUESTRA** (para configuración futura)
-- La selección del usuario (rápida/normal/larga) **SE GUARDA** en el estado `studyApproach`
-- El multiplicador **SIEMPRE ES 1.0** independientemente de la selección
-- Las lecciones usan su **duración base** directamente
+### Definición de Modos
 
-### Razón del Cambio
-La lógica anterior de multiplicadores (x1.0, x1.4, x1.8) no consideraba adecuadamente otros factores importantes para el cálculo de sesiones de estudio. El modal se mantiene activo para permitir configuración futura.
+Los modos de sesión ahora controlan la **velocidad de completación del curso**, NO la duración de las sesiones de manera aislada:
 
-### Flujo Actual
-1. Usuario abre el planificador
-2. LIA saluda mencionando cursos asignados y fechas límite
-3. LIA pregunta qué tipo de sesiones prefiere → **Modal se muestra**
-4. Usuario selecciona tipo de sesiones → **Se guarda pero NO afecta duración**
-5. LIA pregunta si desea conectar calendario
-6. Usuario conecta el calendario (Google/Microsoft)
-7. LIA pregunta por la fecha objetivo
-8. Usuario selecciona fecha
-9. LIA analiza el calendario y genera el plan
-10. Usuario puede modificar o guardar el plan
+| Modo Interno | Nombre en UI | Velocidad | Duración Sesión | Días para completar |
+|-------------|--------------|-----------|-----------------|---------------------|
+| `corto` | **Terminar rápido** | RÁPIDO | 60-90 min | MENOS días |
+| `balance` | **Equilibrado** | NORMAL | 45-60 min | MODERADO |
+| `largo` | **Sin prisa** | LENTO | 20-35 min | MÁS días |
+
+### Lógica Implementada
+
+**Modo `corto` (Terminar rápido):**
+- Sesiones largas de 60-90 minutos
+- Sin límite de grupos de lecciones por slot (`maxGroupsPerSlot = 999`)
+- Llenar cada slot al máximo para avanzar más por día
+- Descansos de 15 minutos
+
+**Modo `balance` (Equilibrado):**
+- Sesiones medianas de 45-60 minutos
+- Máximo 3 grupos de lecciones por slot
+- Distribución balanceada
+- Descansos de 10 minutos
+
+**Modo `largo` (Sin prisa):**
+- Sesiones cortas de 20-35 minutos
+- Máximo 2 grupos de lecciones por slot
+- Saltar slots para distribuir a lo largo del período (`skipSlots > 0`)
+- Descansos de 5 minutos
 
 ---
 
@@ -43,27 +51,33 @@ La lógica principal de asignación de lecciones a huecos de calendario (slots) 
 ### Entradas (Inputs)
 - **`slotsUntilTarget`**: Lista de días/bloques de tiempo disponibles en el calendario del usuario.
 - **`validPendingLessons`**: Lista ordenada de lecciones que el usuario debe completar.
-- **`approachMultiplier`**: **Siempre 1.0** (desactivado temporalmente).
+- **`studyApproach`**: `'corto'`, `'balance'`, o `'largo'` - determina la estrategia de distribución.
 
 ### Proceso (Paso a Paso)
-1. **Cálculo de Duración Real:**
-   Para cada lección, se usa su duración base directamente:
-   `Duración Final = Duración Base de la Lección`
-   *Ejemplo: Lección de 15 min = 15 minutos exactos.*
+
+1. **Determinar Parámetros según Modo:**
+   ```typescript
+   // Modo corto (Terminar rápido):
+   maxSessionMinutes = 90; maxGroupsPerSlot = 999; skipSlots = 0;
+
+   // Modo balance (Equilibrado):
+   maxSessionMinutes = 60; maxGroupsPerSlot = 3; skipSlots = 0;
+
+   // Modo largo (Sin prisa):
+   maxSessionMinutes = 35; maxGroupsPerSlot = 2; skipSlots = calculado;
+   ```
 
 2. **Asignación Voraz (Greedy):**
-   - El sistema itera por cada **Slot** de tiempo disponible (ej: Lunes 09:00-10:00).
-   - Intenta "llenar" el slot con tantas lecciones como quepan.
-   - **Regla de Encaje:** Una lección cabe si `Tiempo Usado en Slot + Duración Final <= Capacidad Total del Slot`.
-     - *Excepción:* Si el slot está vacío (0 min usados), aceptamos la primera lección aunque exceda ligeramente la capacidad (para evitar bloqueo infinito por lecciones largas).
-   - Si la lección cabe, se asigna y se suma su tiempo. Si no, se salta al siguiente slot.
+   - El sistema itera por cada **Slot** de tiempo disponible.
+   - Respeta el límite `maxGroupsPerSlot` según el modo seleccionado.
+   - Para modo `largo`, salta slots para distribuir mejor en el tiempo.
+   - **Regla de Encaje:** Una lección cabe si `Tiempo Usado en Slot + Duración <= Capacidad del Slot`.
 
-3. **Integridad de Datos:**
-   - Se evitan duplicados usando un `Set<string>` de IDs asignados.
-   - Las variables de estado (`lessonDistribution`, `assignedLessonIds`) se reutilizan para evitar conflictos de memoria.
+3. **Fallback de Capacidad:**
+   - Si `capacityRatio < 1.3`, se ignoran las restricciones del modo y se fuerza el uso de todos los slots.
 
 ### Salida (Output)
-- Un objeto `lessonDistribution` que contiene la lista de lecciones por día, incluyendo explícitamente la propiedad `durationMinutes` calculada.
+- Un objeto `lessonDistribution` que contiene la lista de lecciones por día.
 
 ---
 
@@ -88,12 +102,7 @@ El Frontend construye un "mensaje oculto" de sistema que inyecta en el contexto 
 
 Ubicación: `apps/web/src/app/api/study-planner-chat/route.ts`
 
-> **NOTA (2025-12-23):** La API del Study Planner ahora está **aislada** del endpoint general `/api/ai-chat`. 
-> Esto permite:
-> - Usar Gemini 2.0 Flash directamente sin filtros intermedios
-> - Observar la salida raw del modelo para debugging
-> - Evitar interferencias del filtrado de prompt-leak
-> - Mayor control sobre el comportamiento de LIA en el planificador
+> **NOTA:** La API del Study Planner está **aislada** del endpoint general `/api/ai-chat`.
 
 El System Prompt ha sido endurecido para obedecer ciegamente la distribución generada por el algoritmo Greedy.
 
@@ -108,8 +117,12 @@ El System Prompt ha sido endurecido para obedecer ciegamente la distribución ge
 
 ### Estados Principales
 ```typescript
-// El tipo de sesión seleccionado - SE GUARDA pero NO afecta cálculos
-const [studyApproach, setStudyApproach] = useState<'rapido' | 'normal' | 'largo' | null>(null);
+// El modo de sesión seleccionado - controla VELOCIDAD de completación
+const [studyApproach, setStudyApproach] = useState<'corto' | 'balance' | 'largo' | null>(null);
+
+// corto = Terminar rápido (sesiones 60-90 min) → menos días
+// balance = Equilibrado (sesiones 45-60 min) → moderado
+// largo = Sin prisa (sesiones 20-35 min) → más días
 
 // Si ya se preguntó por el enfoque
 const [hasAskedApproach, setHasAskedApproach] = useState(false);
@@ -118,32 +131,55 @@ const [hasAskedApproach, setHasAskedApproach] = useState(false);
 const [showApproachModal, setShowApproachModal] = useState(false);
 ```
 
-### Multiplicador (Desactivado)
+### Parámetros por Modo
 ```typescript
-// En la lógica de distribución
-const approachMultiplier = 1.0; // ✅ FIJO: Siempre 1.0 independiente de studyApproach
+// calculateEstimatedAvailability
+switch (studyApproach) {
+  case 'corto':  // Terminar rápido
+    recommendedSessionLength = 75; recommendedBreak = 15;
+    break;
+  case 'largo':  // Sin prisa
+    recommendedSessionLength = 25; recommendedBreak = 5;
+    break;
+  case 'balance':
+  default:
+    recommendedSessionLength = 45; recommendedBreak = 10;
+    break;
+}
 ```
 
 ---
 
-## 6. Recuperación y Mantenimiento
+## 6. Capas de Diferenciación por Modo
+
+| Capa | Ubicación | Diferenciación |
+|------|-----------|----------------|
+| **Capa 1** | Greedy Algorithm | `maxGroupsPerSlot`, `skipSlots` |
+| **Capa 2** | `savePlanToDatabase` | Rangos de sesión guardados |
+| **Capa 3** | API Determinística | `studyMode`, `maxSessionMinutes` |
+| **Capa 4** | `calculateEstimatedAvailability` | `recommendedSessionLength`, `recommendedBreak` |
+
+---
+
+## 7. Recuperación y Mantenimiento
 
 ### Si el Chat se Borra / Pérdida de Contexto
 Si necesitas restaurar o modificar esta lógica, sigue estos puntos:
 
-1. **Ubicación del Multiplicador:**
-   - Buscar `approachMultiplier = 1.0` en `StudyPlannerLIA.tsx`
-   - Este valor está fijo y no depende de `studyApproach`
+1. **Ubicación de la Lógica de Modos:**
+   - `calculateEstimatedAvailability` (línea ~2538): Define parámetros base por modo
+   - Greedy Algorithm (línea ~5830): Define `maxGroupsPerSlot` y `skipSlots`
+   - API Request (línea ~7501): Define `maxSessionMinutes` y `preferredSessionType`
 
 2. **Problemas Comunes:**
-   - **"0 min" en los horarios:** Verifica que la propiedad `durationMinutes` se esté pasando correctamente en el mapeo de `setSavedLessonDistribution`.
-   - **Multiplicadores activos accidentalmente:** Busca `approachMultiplier` y asegúrate de que sea `1.0`.
+   - **Modos invertidos:** Verificar que `corto` tenga sesiones largas (60-90 min) y `largo` tenga sesiones cortas (20-35 min)
+   - **Misma velocidad para todos los modos:** Revisar las condiciones de `capacityRatio < 1.3` que fuerza el mismo comportamiento
 
-3. **Para Reactivar Multiplicadores:**
-   - Cambiar `const approachMultiplier = 1.0;` por:
-   ```typescript
-   const approachMultiplier = effectiveApproach === 'rapido' ? 1.0 : effectiveApproach === 'normal' ? 1.4 : 1.8;
-   ```
+3. **Para Cambiar la Semántica:**
+   - Actualizar `calculateEstimatedAvailability`
+   - Actualizar la lógica de `maxGroupsPerSlot` en el Greedy Algorithm
+   - Actualizar `maxSessionMinutes` en la API
+   - Actualizar textos de UI en el modal y botones inline
 
 ### Flujo de Datos
 Frontend (Greedy Algo) -> `lessonDistribution` -> `calendarMessage` (String con 'HORARIO EXACTO') -> Backend (Prompt) -> LIA Response.
