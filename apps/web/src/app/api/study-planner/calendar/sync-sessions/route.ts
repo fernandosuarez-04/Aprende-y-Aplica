@@ -97,7 +97,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const planId = (firstSession as any).plan_id;
     
     if (!planId) {
-      console.warn('âš ï¸ La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
+      console.warn('⚠️ La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
     } else {
 
       const { data: planData, error: planError } = await supabase
@@ -109,12 +109,12 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       
       if (planError) {
         console.error('âŒ Error obteniendo plan:', planError);
-        console.warn('âš ï¸ Usando UTC como zona horaria por defecto');
+        console.warn('⚠️ Usando UTC como zona horaria por defecto');
       } else if (planData && planData.timezone) {
         planTimezone = planData.timezone;
 
       } else {
-        console.warn('âš ï¸ El plan no tiene zona horaria configurada, usando UTC');
+        console.warn('⚠️ El plan no tiene zona horaria configurada, usando UTC');
       }
     }
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       try {
         tokenExpiry = new Date(integration.expires_at);
       } catch (e) {
-        console.warn('âš ï¸ [Sync Sessions] Error parseando expires_at:', e);
+        console.warn('⚠️ [Sync Sessions] Error parseando expires_at:', e);
         tokenExpiry = null;
       }
     }
@@ -205,7 +205,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
 
         console.log('[Sync Sessions] ✅ Calendario secundario creado/obtenido:', secondaryCalendarId);
       } else {
-        console.warn('[Sync Sessions] âš ï¸ No se pudo crear el calendario secundario, se usará el principal');
+        console.warn('[Sync Sessions] ⚠️ No se pudo crear el calendario secundario, se usará el principal');
       }
     }
 
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
             .eq('id', session.id);
           
           if (updateError) {
-            console.error(`âš ï¸ [${i + 1}/${sessions.length}] Error actualizando sesión en BD:`, updateError);
+            console.error(`⚠️ [${i + 1}/${sessions.length}] Error actualizando sesión en BD:`, updateError);
             // No fallar la sincronización si solo falla la actualización en BD
           }
           
@@ -437,14 +437,14 @@ async function createGoogleCalendarEvent(
         const formattedLessons = lines.map((line: string) => {
           // Remover el número inicial si existe (ej: "1. " o "1.")
           const cleanLine = line.replace(/^\d+\.\s*/, '').trim();
-          return `â€¢ ${cleanLine}`;
+          return `• ${cleanLine}`;
         }).join('<br>');
         
-        description = `<strong>ðŸ“š Lecciones a estudiar:</strong><br><br>${formattedLessons}`;
+        description = `<strong>📚 Lecciones a estudiar:</strong><br><br>${formattedLessons}`;
       } else if (lines.length === 1) {
         // Solo una lección
         const cleanLine = (lines[0] as string).replace(/^\d+\.\s*/, '').trim();
-        description = `<strong>ðŸ“š Lección:</strong><br><br>â€¢ ${cleanLine}`;
+        description = `<strong>📚 Lección:</strong><br><br>• ${cleanLine}`;
       } else {
         description = session.description;
       }

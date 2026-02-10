@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             }, { status: 400 });
         }
 
-        console.log(`ðŸ“… [Insert Events] Iniciando inserción de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
+        console.log(`📅 [Insert Events] Iniciando inserción de ${lessonDistribution.length} sesiones para usuario ${user.id}`);
 
         // Obtener integración de calendario del usuario
         const supabase = createAdminClient();
@@ -116,7 +116,7 @@ export async function POST(request: NextRequest) {
                 await CalendarIntegrationService.saveSecondaryCalendarId(user.id, calendarId);
                 console.log(`✅ [Insert Events] Usando calendario secundario: ${calendarId}`);
             } else {
-                console.warn('âš ï¸ [Insert Events] No se pudo crear calendario secundario, usando primario');
+                console.warn('⚠️ [Insert Events] No se pudo crear calendario secundario, usando primario');
             }
         }
 
@@ -135,7 +135,7 @@ export async function POST(request: NextRequest) {
             // Crear título del evento
             const lessonTitles = lessons.map(l => l.lessonTitle).join(' | ');
             const courseTitle = lessons[0]?.courseTitle || 'Curso';
-            const title = `ðŸ“š ${courseTitle}: ${lessonTitles}`;
+            const title = `📚 ${courseTitle}: ${lessonTitles}`;
 
             // Crear descripción
             const description = createEventDescription(lessons, planName);
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
             });
         }
 
-        console.log(`ðŸ“ [Insert Events] Preparados ${eventsToInsert.length} eventos para insertar`);
+        console.log(`📝 [Insert Events] Preparados ${eventsToInsert.length} eventos para insertar`);
 
         // Insertar eventos con throttling para evitar rate limiting
         const results: Array<{ success: boolean; eventId?: string; error?: string; index: number }> = [];
@@ -207,7 +207,7 @@ export async function POST(request: NextRequest) {
         const failedCount = results.filter(r => !r.success).length;
         const errors = results.filter(r => !r.success).map(r => `Evento ${r.index + 1}: ${r.error}`);
 
-        console.log(`ðŸ“Š [Insert Events] Resultado: ${insertedCount} insertados, ${failedCount} fallidos`);
+        console.log(`📊 [Insert Events] Resultado: ${insertedCount} insertados, ${failedCount} fallidos`);
 
         return NextResponse.json({
             success: failedCount === 0,
@@ -238,20 +238,20 @@ function createEventDescription(lessons: LessonItem[], planName?: string): strin
     const lines: string[] = [];
 
     if (planName) {
-        lines.push(`ðŸ“– Plan: ${planName}`);
+        lines.push(`📖 Plan: ${planName}`);
         lines.push('');
     }
 
-    lines.push('ðŸ“š Lecciones en esta sesión:');
+    lines.push('📚 Lecciones en esta sesión:');
 
     for (const lesson of lessons) {
         const moduleInfo = lesson.moduleTitle ? ` (${lesson.moduleTitle})` : '';
-        lines.push(`â€¢ ${lesson.lessonTitle}${moduleInfo} - ${lesson.durationMinutes} min`);
+        lines.push(`• ${lesson.lessonTitle}${moduleInfo} - ${lesson.durationMinutes} min`);
     }
 
     const totalDuration = lessons.reduce((sum, l) => sum + l.durationMinutes, 0);
     lines.push('');
-    lines.push(`â±ï¸ Duración total: ${totalDuration} minutos`);
+    lines.push(`⏱️ Duración total: ${totalDuration} minutos`);
     lines.push('');
     lines.push('---');
     lines.push('Creado automáticamente por SOFLIA - Planificador de Estudios');

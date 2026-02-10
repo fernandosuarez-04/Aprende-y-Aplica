@@ -468,17 +468,44 @@ async function getEventsFromCalendar(accessToken: string, calendarId: string, st
     const data = await response.json();
     const events = data.items || [];
 
-    return events.map((event: any) => ({
-      id: event.id,
-      title: event.summary || 'Sin título',
-      description: event.description || '',
-      start: event.start?.dateTime || event.start?.date,
-      end: event.end?.dateTime || event.end?.date,
-      location: event.location || '',
-      status: event.status,
-      isAllDay: !event.start?.dateTime,
-      calendarId: calendarId,
-    }));
+    return events.map((event: any) => {
+      const isAllDay = !event.start?.dateTime;
+
+      // Para eventos de todo el día, Google Calendar devuelve solo fecha (ej: "2026-02-09")
+      // new Date("2026-02-09") se interpreta como UTC midnight, lo que en zonas horarias
+      // del hemisferio occidental causa que el evento se asigne al día anterior.
+      // Solución: Agregar T00:00:00 para que se interprete como hora local.
+      let start = event.start?.dateTime || event.start?.date;
+      let end = event.end?.dateTime || event.end?.date;
+
+      if (isAllDay) {
+        if (event.start?.date) {
+          start = `${event.start.date}T00:00:00`;
+        }
+        if (event.end?.date) {
+          // Google Calendar: end date de all-day es exclusive (día siguiente)
+          // Ajustar al final del día anterior (23:59:59) para que represente correctamente el rango
+          const endDateObj = new Date(event.end.date + 'T00:00:00');
+          endDateObj.setDate(endDateObj.getDate() - 1);
+          const y = endDateObj.getFullYear();
+          const m = String(endDateObj.getMonth() + 1).padStart(2, '0');
+          const d = String(endDateObj.getDate()).padStart(2, '0');
+          end = `${y}-${m}-${d}T23:59:59`;
+        }
+      }
+
+      return {
+        id: event.id,
+        title: event.summary || 'Sin título',
+        description: event.description || '',
+        start,
+        end,
+        location: event.location || '',
+        status: event.status,
+        isAllDay,
+        calendarId: calendarId,
+      };
+    });
   } catch (error) {
     console.error(`Error obteniendo eventos del calendario ${calendarId}:`, error);
     return [];
@@ -597,16 +624,37 @@ async function getMicrosoftCalendarEvents(accessToken: string, startDate: Date, 
     const data = await response.json();
     const events = data.value || [];
 
-    return events.map((event: any) => ({
-      id: event.id,
-      title: event.subject || 'Sin título',
-      description: event.bodyPreview || '',
-      start: event.start?.dateTime,
-      end: event.end?.dateTime,
-      location: event.location?.displayName || '',
-      status: event.showAs,
-      isAllDay: event.isAllDay,
-    }));
+    return events.map((event: any) => {
+      let start = event.start?.dateTime;
+      let end = event.end?.dateTime;
+
+      // Microsoft Graph: para eventos de todo el día, dateTime viene como
+      // "2026-02-09T00:00:00.0000000" sin zona horaria explícita.
+      // Asegurar que cubra el día completo.
+      if (event.isAllDay && start && end) {
+        // Normalizar: start = día T00:00:00, end = día anterior T23:59:59
+        // Microsoft end date es exclusive (día siguiente T00:00:00)
+        const startStr = start.split('T')[0];
+        start = `${startStr}T00:00:00`;
+        const endDateObj = new Date(end.split('T')[0] + 'T00:00:00');
+        endDateObj.setDate(endDateObj.getDate() - 1);
+        const y = endDateObj.getFullYear();
+        const m = String(endDateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(endDateObj.getDate()).padStart(2, '0');
+        end = `${y}-${m}-${d}T23:59:59`;
+      }
+
+      return {
+        id: event.id,
+        title: event.subject || 'Sin título',
+        description: event.bodyPreview || '',
+        start,
+        end,
+        location: event.location?.displayName || '',
+        status: event.showAs,
+        isAllDay: event.isAllDay,
+      };
+    });
   } catch (error) {
     console.error('Error en getMicrosoftCalendarEvents:', error);
     return [];
