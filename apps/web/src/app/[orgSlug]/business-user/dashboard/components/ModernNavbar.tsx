@@ -495,7 +495,7 @@ export function ModernNavbar({
                 <div className="relative">
                   {(organization?.favicon_url || organization?.logo_url) ? (
                     <motion.div
-                      className="relative h-16 w-auto min-w-[36px] flex items-center justify-center"
+                      className="relative h-11 w-auto min-w-[36px] flex items-center justify-center"
                       whileHover={{ scale: 1.05 }}
                       transition={{ type: 'spring', stiffness: 400 }}
                     >

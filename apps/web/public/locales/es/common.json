@@ -153,7 +153,7 @@
     "viewTour": "Ver Tour",
     "logout": "Cerrar sesión"
   },
-  "SofLIA": {
+  "lia": {
     "tips": [
       "¿Encontraste un bug? Cuéntame y lo reportaré.",
       "Si te perdiste en esta página, dime y te guío.",
@@ -590,5 +590,3 @@
     }
   }
 }
-
-

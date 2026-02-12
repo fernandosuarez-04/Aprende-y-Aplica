@@ -2,12 +2,12 @@
 
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useAuth } from '../../features/auth/hooks/useAuth';
-import type { SofLIAMessage } from '../types/SofLIA.types';
+import type { LiaMessage } from '../types/lia.types';
 import { useLanguage } from '../providers/I18nProvider';
 import { sessionRecorder } from '@/lib/rrweb/session-recorder';
 
-export interface UseSofLIAGeneralChatReturn {
-  messages: SofLIAMessage[];
+export interface UseLiaGeneralChatReturn {
+  messages: LiaMessage[];
   isLoading: boolean;
   error: Error | null;
   sendMessage: (message: string, isSystemMessage?: boolean, pageContext?: any) => Promise<void>;
@@ -16,24 +16,24 @@ export interface UseSofLIAGeneralChatReturn {
   currentConversationId: string | null;
 }
 
-export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAGeneralChatReturn {
+export function useLiaGeneralChat(initialMessage?: string | null): UseLiaGeneralChatReturn {
   const { user } = useAuth();
   const { language } = useLanguage();
-  const [messages, setMessages] = useState<SofLIAMessage[]>(
+  const [messages, setMessages] = useState<LiaMessage[]>(
     initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
       ? [
-          {
-            id: 'initial',
-            role: 'assistant',
-            content: initialMessage,
-            timestamp: new Date()
-          }
-        ]
+        {
+          id: 'initial',
+          role: 'assistant',
+          content: initialMessage,
+          timestamp: new Date()
+        }
+      ]
       : []
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  
+
   // Analytics: Mantener conversationId en referencia para persistencia
   const conversationIdRef = useRef<string | null>(null);
 
@@ -45,7 +45,7 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
     if (!message.trim() || isLoading) return;
 
     if (!isSystemMessage) {
-      const userMessage: SofLIAMessage = {
+      const userMessage: LiaMessage = {
         id: Date.now().toString(),
         role: 'user',
         content: message.trim(),
@@ -62,23 +62,23 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
       // Detectar si el mensaje sugiere un reporte de bug con más palabras clave
       const bugKeywords = /error|bug|falla|problema|no funciona|no carga|rompi|broken|crash|colgó|lento|cuelga|no responde|pantalla en blanco|500|404|timeout|se cayó/i;
       const isBugReport = bugKeywords.test(message.toLowerCase());
-      
+
       // Preparar session data solo si es probable reporte de bug
       let sessionSnapshot: string | undefined;
       let enrichedMetadata: any = undefined;
       let recordingStatus: 'active' | 'inactive' | 'restarted' | 'unavailable' | 'error' = 'unavailable';
-      
+
       if (isBugReport && sessionRecorder) {
         try {
           // Log detallado para debugging
 
-          
+
           // Verificar que los métodos existen antes de llamarlos
-          const hasRequiredMethods = 
+          const hasRequiredMethods =
             typeof sessionRecorder.isRrwebAvailable === 'function' &&
             typeof sessionRecorder.isActive === 'function' &&
             typeof sessionRecorder.captureSnapshot === 'function';
-          
+
           if (!hasRequiredMethods) {
 
             recordingStatus = 'error';
@@ -87,17 +87,17 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
           else if (!sessionRecorder.isRrwebAvailable()) {
 
             recordingStatus = 'unavailable';
-          } 
+          }
           // Verificar si la grabación está activa
           else if (!sessionRecorder.isActive()) {
 
-            
+
             // Intentar reiniciar la grabación
             try {
               await sessionRecorder.startRecording(180000); // 3 minutos
 
               recordingStatus = 'restarted';
-              
+
               // Esperar un momento para capturar al menos el estado inicial
               await new Promise(resolve => setTimeout(resolve, 500));
             } catch (restartError) {
@@ -114,16 +114,16 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
           } else {
             recordingStatus = 'active';
           }
-          
+
           // Intentar capturar snapshot si la grabación está disponible
           const snapshot = sessionRecorder.captureSnapshot();
-          
+
           if (snapshot && snapshot.events.length > 0) {
             // Usar compresión para reducir tamaño 60-80%
             sessionSnapshot = await sessionRecorder.exportSessionCompressed(snapshot);
             // Incluir metadata enriquecida del entorno
             enrichedMetadata = sessionRecorder.getEnrichedMetadata(snapshot);
- console.log(`[SofLIA Chat] Capturado snapshot para reporte de bug (${snapshot.events.length} eventos)`);
+            console.log(`[SofLIA Chat] Capturado snapshot para reporte de bug (${snapshot.events.length} eventos)`);
           } else {
 
             // Generar metadata mínima sin grabación
@@ -150,7 +150,7 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
         } catch (err) {
           console.warn('[SofLIA Chat] Error capturando snapshot:', err);
           recordingStatus = 'error';
-          
+
           // Generar metadata mínima en caso de error
           enrichedMetadata = {
             viewport: typeof window !== 'undefined' ? { width: window.innerWidth, height: window.innerHeight } : { width: 0, height: 0 },
@@ -172,7 +172,7 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
           };
         }
       }
-      
+
       // Generar ID de conversación si no existe
       if (!conversationIdRef.current) {
         conversationIdRef.current = crypto.randomUUID();
@@ -245,9 +245,9 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
                 if (data.content) {
                   assistantContent += data.content;
                   // Actualizar mensaje en tiempo real
-                  setMessages(prev => 
-                    prev.map(m => 
-                      m.id === assistantId 
+                  setMessages(prev =>
+                    prev.map(m =>
+                      m.id === assistantId
                         ? { ...m, content: assistantContent }
                         : m
                     )
@@ -260,21 +260,21 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
           }
         }
       }
-      
+
       // Actualizar ID de conversación si es nuevo
       conversationIdRef.current = assistantId;
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err : new Error('Error desconocido');
       setError(errorMessage);
-      
-      const errorResponse: SofLIAMessage = {
+
+      const errorResponse: LiaMessage = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: 'Lo siento, ocurrió un error al procesar tu mensaje. Por favor, intenta de nuevo.',
         timestamp: new Date()
       };
-      
+
       setMessages(prev => [...prev, errorResponse]);
     } finally {
       setIsLoading(false);
@@ -287,15 +287,15 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
 
     try {
       const response = await fetch(`/api/SofLIA/conversations/${conversationId}/messages`);
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
         throw new Error(errorData.error || 'Error cargando conversación');
       }
 
       const data = await response.json();
-      
-      const formattedMessages: SofLIAMessage[] = (data.messages || []).map((msg: any) => ({
+
+      const formattedMessages: LiaMessage[] = (data.messages || []).map((msg: any) => ({
         id: msg.id,
         role: msg.role,
         content: msg.content,
@@ -328,20 +328,20 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
       } catch (error) {
         console.error('[SofLIA Analytics] Error cerrando conversación:', error);
       }
-      
+
       conversationIdRef.current = null;
     }
-    
+
     setMessages(
       initialMessage !== null && initialMessage !== undefined && initialMessage !== ''
         ? [
-            {
-              id: 'initial',
-              role: 'assistant',
-              content: initialMessage,
-              timestamp: new Date()
-            }
-          ]
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: initialMessage,
+            timestamp: new Date()
+          }
+        ]
         : []
     );
     setError(null);
@@ -354,7 +354,7 @@ export function useSofLIAGeneralChat(initialMessage?: string | null): UseSofLIAG
           conversationId: conversationIdRef.current,
           completed: false
         });
-        
+
         if (typeof navigator !== 'undefined' && navigator.sendBeacon) {
           navigator.sendBeacon('/api/SofLIA/end-conversation', data);
         }

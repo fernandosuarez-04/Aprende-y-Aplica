@@ -1,5 +1,5 @@
 ﻿{
-  "appName": "SOFLIA",  
+  "appName": "SOFLIA",
   "welcome": "Welcome",
   "language": "Language",
   "change_language": "Change language",
@@ -153,7 +153,7 @@
     "viewTour": "View Tour",
     "logout": "Sign out"
   },
-  "SofLIA": {
+  "lia": {
     "tips": [
       "Found a bug? Tell me and I'll report it.",
       "Lost on this page? Tell me and I'll guide you.",
@@ -531,5 +531,3 @@
     }
   }
 }
-
-
