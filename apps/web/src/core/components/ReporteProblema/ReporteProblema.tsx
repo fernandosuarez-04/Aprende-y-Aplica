@@ -177,7 +177,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
         recordingSizeStr = `${Math.round(sessionRecording.length / 1024)} KB`;
 
       } else {
-        console.warn('⚠️ No se pudo capturar el snapshot de la sesión');
+        console.warn('[WARN] No se pudo capturar el snapshot de la sesion');
       }
 
       const reportData = {
@@ -210,8 +210,7 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // console.error('❌ Error del servidor:', errorData);
-        throw new Error(errorData.error || 'Error al enviar el reporte');
+          throw new Error(errorData.error || 'Error al enviar el reporte');
       }
 
       const result = await response.json();
@@ -224,7 +223,6 @@ export function ReporteProblema({ isOpen, onClose, preselectedCategory, fromLia 
       }, 3000);
 
     } catch (error) {
-      // console.error('❌ Error al enviar reporte:', error);
       setError(error instanceof Error ? error.message : 'Error desconocido');
     } finally {
       setIsSubmitting(false);

@@ -84,9 +84,9 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
       .eq('user_id', user.id)
       .order('start_time', { ascending: true });
     
-    console.log(`📋 Sesiones encontradas en el plan: ${allSessions?.length || 0}`);
+ console.log(` Sesiones encontradas en el plan: ${allSessions?.length || 0}`);
     if (allSessions && allSessions.length > 0) {
-      console.log(`📋 Primeras 5 sesiones:`, allSessions.slice(0, 5).map(s => ({
+ console.log(` Primeras 5 sesiones:`, allSessions.slice(0, 5).map(s => ({
         id: s.id,
         title: s.title,
         start_time: s.start_time,
@@ -115,10 +115,10 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
     let updatedCount = 0;
     const errors: string[] = [];
     
-    console.log(`🔄 Procesando ${body.updates.length} actualizaciones...`);
+ console.log(` Procesando ${body.updates.length} actualizaciones...`);
 
     for (const update of body.updates) {
-      console.log(`🔄 Procesando actualización:`, {
+ console.log(` Procesando actualización:`, {
         dateStr: update.dateStr,
         originalStartTime: update.originalStartTime,
         newStartTime: update.newStartTime,
@@ -151,7 +151,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
         // Usar fecha/hora original en UTC para comparación más precisa
         const originalStartISO = originalStartDateTime.toISOString();
         
-        console.log(`🔍 Buscando sesión:`, {
+ console.log(` Buscando sesión:`, {
           dateStr: update.dateStr,
           originalStartTime: update.originalStartTime,
           originalHour,
@@ -182,7 +182,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
           const matches = hourMatch && minMatch;
           
           if (matches) {
-            console.log(`✅ Sesión candidata encontrada:`, {
+ console.log(` Sesión candidata encontrada:`, {
               sessionId: session.id,
               sessionStart: session.start_time,
               sessionHour,
@@ -197,7 +197,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
 
         if (!matchingSession) {
           // Log detallado para debugging
-          console.log(`🔍 No se encontró sesión para:`, {
+ console.log(` No se encontró sesión para:`, {
             dateStr: update.dateStr,
             originalStartTime: update.originalStartTime,
             originalHour,
@@ -214,7 +214,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
           continue;
         }
         
-        console.log(`✅ Sesión encontrada:`, {
+ console.log(` Sesión encontrada:`, {
           sessionId: matchingSession.id,
           originalStart: matchingSession.start_time,
           newStart: `${update.newStartTime}`,
@@ -264,7 +264,7 @@ export async function PUT(request: NextRequest): Promise<NextResponse> {
           errors.push(`Error actualizando sesión para ${update.dateStr}: ${updateError.message}`);
         } else {
           updatedCount++;
-          console.log(`✅ Sesión ${matchingSession.id} actualizada: ${update.originalStartTime} → ${update.newStartTime}`);
+ console.log(` Sesión ${matchingSession.id} actualizada: ${update.originalStartTime} ${update.newStartTime}`);
         }
       } catch (error: any) {
         console.error(`Error procesando actualización para ${update.dateStr}:`, error);

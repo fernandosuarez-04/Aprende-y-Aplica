@@ -660,7 +660,7 @@ export function AIChatAgent({
   
   // Debug: Log de configuración de voz
   useEffect(() => {
-    console.log('ðŸ”Š [TTS Config] Configuración de voz:', {
+ console.log(' [TTS Config] Configuración de voz:', {
       hasSettings: !!liaSettings,
       voiceEnabled: isVoiceEnabled,
       loading: liaSettingsLoading,
@@ -757,7 +757,7 @@ export function AIChatAgent({
   // ðŸŽ™ï¸ Función para síntesis de voz con ElevenLabs
   const speakText = useCallback(async (text: string) => {
     if (!isVoiceEnabled || typeof window === 'undefined') {
-      console.log('ðŸ”‡ [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
+ console.log(' [TTS] Voz deshabilitada o no disponible en el navegador', { isVoiceEnabled, isWindow: typeof window !== 'undefined' });
       return;
     }
 
@@ -765,11 +765,11 @@ export function AIChatAgent({
     const cleanedText = cleanTextForTTS(text);
     
     if (!cleanedText || cleanedText.trim().length === 0) {
-      console.log('ðŸ”‡ [TTS] Texto vacío después de limpiar');
+ console.log(' [TTS] Texto vacío después de limpiar');
       return;
     }
 
-    console.log('ðŸ”Š [TTS] Iniciando lectura de texto:', { 
+ console.log(' [TTS] Iniciando lectura de texto:', { 
       originalLength: text.length, 
       cleanedLength: cleanedText.length,
       preview: cleanedText.substring(0, 100) + '...'
@@ -790,7 +790,7 @@ export function AIChatAgent({
       const elevenLabsSettings = getElevenLabsVoiceSettings(liaSettings);
 
       if (!apiKey || !voiceId) {
-        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
+ console.warn(' ElevenLabs credentials not found, using fallback Web Speech API');
         
         // Fallback a Web Speech API con parámetros de tono
         const utterance = new SpeechSynthesisUtterance(cleanedText);
@@ -868,12 +868,12 @@ export function AIChatAgent({
       // Intentar reproducir el audio
       try {
         await audio.play();
-        console.log('✅ [TTS] Audio reproducido exitosamente');
+ console.log(' [TTS] Audio reproducido exitosamente');
         // Playback started successfully; clear abort controller
         if (ttsAbortRef.current === controller) ttsAbortRef.current = null;
       } catch (playError: any) {
         // Autoplay bloqueado por el navegador - esto es normal y esperado
-        console.warn('âš ï¸ [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
+ console.warn(' [TTS] Error al reproducir audio (puede ser bloqueo de autoplay):', playError);
         setIsSpeaking(false);
       }
     } catch (error: any) {
@@ -1117,7 +1117,6 @@ export function AIChatAgent({
         const { x, y } = JSON.parse(savedPosition);
         setPosition({ x, y });
       } catch (e) {
-        // console.error('Error loading saved position:', e);
       }
     }
   }, []);
@@ -1350,7 +1349,7 @@ export function AIChatAgent({
 
     try {
       const intentResult = await IntentDetectionService.detectIntent(inputMessage);
-      console.log('[LIA Agent] ðŸ” Detección de intención:', {
+ console.log('[LIA Agent] Detección de intención:', {
         intent: intentResult.intent,
         confidence: `${(intentResult.confidence * 100).toFixed(1)}%`,
         currentMode: isNanoBananaMode ? 'nanobana' : isPromptMode ? 'prompts' : 'normal',
@@ -1555,7 +1554,7 @@ export function AIChatAgent({
         }
       }
     } catch (error) {
-      console.error('[LIA Agent] âŒ Error detectando intención:', error);
+ console.error('[LIA Agent] Error detectando intención:', error);
       // Continuar normalmente si falla la detección
     }
 
@@ -1679,17 +1678,17 @@ export function AIChatAgent({
         setNanoBananaMessages(prev => [...prev, assistantMessage]);
 
         // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje NanoBanana:', {
+ console.log(' [TTS Check] Verificando si debe leer mensaje NanoBanana:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje NanoBanana');
+ console.log(' [TTS] Llamando speakText para mensaje NanoBanana');
           speakText(assistantMessage.content);
         } else {
-          console.log('âŒ [TTS] No se leerá el mensaje NanoBanana', { 
+ console.log(' [TTS] No se leerá el mensaje NanoBanana', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
@@ -1747,17 +1746,17 @@ export function AIChatAgent({
         setPromptMessages(prev => [...prev, assistantMessage]);
 
         // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje prompt:', {
+ console.log(' [TTS Check] Verificando si debe leer mensaje prompt:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje prompt');
+ console.log(' [TTS] Llamando speakText para mensaje prompt');
           speakText(assistantMessage.content);
         } else {
-          console.log('âŒ [TTS] No se leerá el mensaje prompt', { 
+ console.log(' [TTS] No se leerá el mensaje prompt', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
@@ -1808,7 +1807,6 @@ export function AIChatAgent({
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Error desconocido' }));
           if (process.env.NODE_ENV === 'development') {
-            // console.error('Error de API:', {
             //   status: response.status,
             //   statusText: response.statusText,
             //   error: errorData
@@ -1834,7 +1832,7 @@ export function AIChatAgent({
         setNormalMessages(prev => [...prev, assistantMessage]);
 
         // ðŸŽ™ï¸ Leer el mensaje en voz alta si el modo voz está activado
-        console.log('ðŸ”Š [TTS Check] Verificando si debe leer mensaje normal:', {
+ console.log(' [TTS Check] Verificando si debe leer mensaje normal:', {
           isVoiceEnabled,
           hasContent: !!assistantMessage.content,
           contentLength: assistantMessage.content?.length || 0,
@@ -1842,10 +1840,10 @@ export function AIChatAgent({
         });
         
         if (isVoiceEnabled && assistantMessage.content) {
-          console.log('✅ [TTS] Llamando speakText para mensaje normal');
+ console.log(' [TTS] Llamando speakText para mensaje normal');
           speakText(assistantMessage.content);
         } else {
-          console.log('âŒ [TTS] No se leerá el mensaje normal', { 
+ console.log(' [TTS] No se leerá el mensaje normal', { 
             isVoiceEnabled, 
             hasContent: !!assistantMessage.content,
             reason: !isVoiceEnabled ? 'voice disabled' : 'no content'
@@ -1854,7 +1852,6 @@ export function AIChatAgent({
       }
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        // console.error('Error en el chat:', error);
       }
       if (process.env.NODE_ENV === 'development') {
         console.error('Error en el chat:', error);
@@ -2032,7 +2029,6 @@ export function AIChatAgent({
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        // console.error('âŒ Error response:', errorData);
         throw new Error('Error al obtener ayuda');
       }
 
@@ -2047,7 +2043,6 @@ export function AIChatAgent({
 
       setNormalMessages(prev => [...prev, assistantMessage]);
     } catch (error) {
-      // console.error('âŒ Error al solicitar ayuda:', error);
       const errorMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',

@@ -98,7 +98,6 @@ const authFetcher = async (url: string): Promise<User | null> => {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      // console.warn('useAuth fetcher error:', error)
     }
     return getCachedUser() // Intentar retornar cache en caso de error
   }
@@ -193,7 +192,6 @@ export function useAuth() {
       return updatedUser ?? null
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        // console.error('Error refreshing user:', error)
       }
       return null
     }

@@ -20,8 +20,8 @@ interface OnboardingChatRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: OnboardingChatRequest = await request.json();
-    
-  const { question, context, userName, pageContext } = body;
+
+    const { question, context, userName, pageContext } = body;
 
     // Validaciones
     if (!question || !question.trim()) {
@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true, response: aiData.response });
 
   } catch (error) {
-    console.error('❌ Error en onboarding-chat:', error);
+    console.error(' Error en onboarding-chat:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Error procesando la solicitud',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -82,7 +82,7 @@ function buildOnboardingPrompt(
   userQuestion: string,
   context: OnboardingChatRequest['context']
 ): string {
-  return `Eres LIA, la asistente virtual de Aprende y Aplica. Estás guiando a un nuevo usuario en su proceso de onboarding.
+  return `Eres SofLIA, la asistente virtual de Aprende y Aplica. Estás guiando a un nuevo usuario en su proceso de onboarding.
 
 ## CONTEXTO DEL ONBOARDING:
 - Paso actual: ${context.currentStep} de ${context.totalSteps}
@@ -119,14 +119,14 @@ Ahora responde a la pregunta del usuario de manera conversacional y amigable:`;
  * Llama a la API de LIA (OpenAI) con el prompt contextual
  */
 async function callLIA(
-  prompt: string, 
+  prompt: string,
   conversationHistory: Array<{ role: string; content: string }>
 ): Promise<string> {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
-    
+
     if (!apiKey) {
-      console.warn('⚠️ OPENAI_API_KEY no configurada, usando respuesta simulada');
+      console.warn(' OPENAI_API_KEY no configurada, usando respuesta simulada');
       return generateMockResponse();
     }
 
@@ -134,7 +134,7 @@ async function callLIA(
     const messages = [
       {
         role: 'system',
-        content: 'Eres LIA, la asistente virtual de Aprende y Aplica. Eres amigable, entusiasta y especializada en IA. Respondes de manera conversacional y breve porque tus respuestas se leen en voz alta.',
+        content: 'Eres SofLIA, la asistente virtual de Aprende y Aplica. Eres amigable, entusiasta y especializada en IA. Respondes de manera conversacional y breve porque tus respuestas se leen en voz alta.',
       },
       ...conversationHistory.slice(-6), // Últimas 3 interacciones (6 mensajes)
       {
@@ -165,7 +165,7 @@ async function callLIA(
     return data.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
 
   } catch (error) {
-    console.error('❌ Error llamando a OpenAI:', error);
+    console.error(' Error llamando a OpenAI:', error);
     return generateMockResponse();
   }
 }
@@ -179,6 +179,6 @@ function generateMockResponse(): string {
     '¡Me encanta que preguntes! 💡 Estoy aquí para ayudarte en todo momento. Ya sea con conceptos, código o cualquier duda que tengas sobre los cursos.',
     'Interesante pregunta. La plataforma está diseñada para que aprendas IA de manera práctica y efectiva. Tendrás acceso a talleres, comunidad y recursos constantemente actualizados.',
   ];
-  
+
   return responses[Math.floor(Math.random() * responses.length)];
 }

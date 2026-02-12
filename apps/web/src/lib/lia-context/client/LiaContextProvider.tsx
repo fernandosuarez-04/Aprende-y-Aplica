@@ -1,15 +1,15 @@
-'use client';
+﻿'use client';
 
 /**
  * LiaContextProvider
  * 
  * Provider de React que integra todos los hooks de captura de contexto
- * y proporciona información enriquecida para LIA.
+ * y proporciona información enriquecida para SofLIA.
  * 
  * Uso:
  * 1. Envolver la aplicación o sección con <LiaContextProvider>
  * 2. Usar useLiaContext() en componentes hijos para acceder al contexto
- * 3. El contexto se envía automáticamente cuando se usa el chat de LIA
+ * 3. El contexto se envía automáticamente cuando se usa el chat de SofLIA
  */
 
 import React, { createContext, useContext, useMemo, useCallback, useEffect, useState } from 'react';
@@ -70,7 +70,7 @@ export interface LiaEnrichedMetadata {
 }
 
 interface LiaContextValue {
-  /** Metadata enriquecida para enviar a LIA */
+  /** Metadata enriquecida para enviar a SofLIA */
   metadata: LiaEnrichedMetadata;
   /** Errores capturados */
   errors: CapturedError[];
@@ -103,7 +103,7 @@ const LiaContext = createContext<LiaContextValue | null>(null);
 // ============================================================================
 
 /**
- * Hook para acceder al contexto de LIA
+ * Hook para acceder al contexto de SofLIA
  * Debe usarse dentro de un LiaContextProvider
  */
 export function useLiaContext() {
@@ -258,7 +258,7 @@ export function LiaContextProvider({
   // Construir metadata para API
   const getMetadataForApi = useCallback((): LiaEnrichedMetadata => {
     const sessionDuration = Date.now() - sessionStart;
-    const errors = errorCapture.getErrorsForLia();
+    const errors = errorCapture.getErrorsForSofLIA();
     const summary = errorCapture.getErrorSummary();
 
     return {
@@ -272,8 +272,8 @@ export function LiaContextProvider({
       errorSummary: summary 
         ? `${summary.total} errores (${summary.byType.console} consola, ${summary.byType.exception} excepciones, ${summary.byType.promise} promesas)`
         : 'Sin errores',
-      activeComponents: componentDetection.getComponentsForLia(),
-      apiCalls: apiTracking.getCallsForLia(),
+      activeComponents: componentDetection.getComponentsForSofLIA(),
+      apiCalls: apiTracking.getCallsForSofLIA(),
       viewport: typeof window !== 'undefined' 
         ? { width: window.innerWidth, height: window.innerHeight }
         : { width: 0, height: 0 },

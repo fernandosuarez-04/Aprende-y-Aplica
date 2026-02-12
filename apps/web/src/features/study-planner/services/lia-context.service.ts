@@ -1,8 +1,8 @@
-/**
+﻿/**
  * LiaContextService
  * 
  * Servicio para construir y formatear el contexto completo del usuario
- * para LIA en el planificador de estudios.
+ * para SofLIA en el planificador de estudios.
  */
 
 import { UserContextService } from './user-context.service';
@@ -19,7 +19,7 @@ import type {
 } from '../types/user-context.types';
 
 /**
- * Contexto completo para LIA del planificador
+ * Contexto completo para SofLIA del planificador
  */
 export interface StudyPlannerLIAContext {
   // Información del usuario
@@ -125,7 +125,7 @@ export interface StudyPlannerLIAContext {
 
 export class LiaContextService {
   /**
-   * Construye el contexto completo para LIA del planificador
+   * Construye el contexto completo para SofLIA del planificador
    */
   static async buildStudyPlannerContext(userId: string): Promise<StudyPlannerLIAContext> {
     // Obtener contexto del usuario
@@ -233,7 +233,7 @@ export class LiaContextService {
   }
 
   /**
-   * Formatea el perfil del usuario para LIA
+   * Formatea el perfil del usuario para SofLIA
    */
   private static formatUserProfile(userContext: UserContext): StudyPlannerLIAContext['userProfile'] {
     return {
@@ -252,7 +252,7 @@ export class LiaContextService {
   }
 
   /**
-   * Formatea los cursos para LIA
+   * Formatea los cursos para SofLIA
    */
   private static async formatCourses(
     userId: string,
@@ -316,7 +316,7 @@ export class LiaContextService {
   }
 
   /**
-   * Analiza los cursos para LIA - Incluyendo análisis inteligente para sugerir duraciones de sesión
+   * Analiza los cursos para SofLIA - Incluyendo análisis inteligente para sugerir duraciones de sesión
    */
   private static async analyzeCourses(
     userId: string,
@@ -501,7 +501,7 @@ export class LiaContextService {
   }
 
   /**
-   * Formatea el contexto como string para incluir en el prompt de LIA
+   * Formatea el contexto como string para incluir en el prompt de SofLIA
    */
   static formatContextForPrompt(context: StudyPlannerLIAContext): string {
     let prompt = '';
@@ -589,7 +589,7 @@ export class LiaContextService {
           }
         }
 
-        // IMPORTANTE: Solo mostrar lecciones PENDIENTES a LIA
+        // IMPORTANTE: Solo mostrar lecciones PENDIENTES a SofLIA
         // Las lecciones completadas no deben incluirse en el plan de estudios
         if (pendingLessons > 0) {
           prompt += `  \n  📚 LECCIONES PENDIENTES - USA ESTOS DATOS EXACTOS (nombres, números y duraciones):\n`;
@@ -645,7 +645,7 @@ export class LiaContextService {
       prompt += `- 🔴 Sesión LARGA: ${context.courseAnalysis.suggestedSessionDurations.long} minutos\n`;
       prompt += `\n💡 **Razonamiento:** ${context.courseAnalysis.suggestedSessionDurations.reasoning}\n`;
 
-      prompt += `\n⚠️ INSTRUCCIÓN PARA LIA: Cuando el usuario seleccione el tipo de sesión, usa las duraciones sugeridas arriba, NO uses valores fijos genéricos como 25/45/60.\n`;
+      prompt += `\n⚠️ INSTRUCCIÓN PARA SofLIA: Cuando el usuario seleccione el tipo de sesión, usa las duraciones sugeridas arriba, NO uses valores fijos genéricos como 25/45/60.\n`;
     }
 
     // Calendario
@@ -696,7 +696,7 @@ export class LiaContextService {
   }
 
   /**
-   * Genera las instrucciones específicas para LIA según el tipo de usuario y fase
+   * Genera las instrucciones específicas para SofLIA según el tipo de usuario y fase
    */
   static generatePhaseInstructions(
     context: StudyPlannerLIAContext,
@@ -962,7 +962,7 @@ ACCIONES:
   }
 
   /**
-   * Pre-calcula las sesiones de estudio con horas exactas para evitar errores de aritmética de LIA
+   * Pre-calcula las sesiones de estudio con horas exactas para evitar errores de aritmética de SofLIA
    * Este método agrupa lecciones decimales, calcula horas de fin correctamente, y cuenta semanas
    */
   static preCalculateStudySessions(
@@ -1208,8 +1208,8 @@ ACCIONES:
   }
 
   /**
-   * Formatea las sesiones pre-calculadas para incluir en el prompt de LIA
-   * LIA solo debe COPIAR este texto, no hacer cálculos
+   * Formatea las sesiones pre-calculadas para incluir en el prompt de SofLIA
+   * SofLIA solo debe COPIAR este texto, no hacer cálculos
    */
   static formatPreCalculatedSessionsForPrompt(
     preCalculatedData: ReturnType<typeof LiaContextService.preCalculateStudySessions>
@@ -1219,7 +1219,7 @@ ACCIONES:
     }
 
     let prompt = `\n\n═══════════════════════════════════════════════════════════════════════════════\n`;
-    prompt += `📋 PLAN DE ESTUDIO PRE-CALCULADO - LIA DEBE COPIAR EXACTAMENTE ESTOS DATOS\n`;
+    prompt += `📋 PLAN DE ESTUDIO PRE-CALCULADO - SofLIA DEBE COPIAR EXACTAMENTE ESTOS DATOS\n`;
     prompt += `═══════════════════════════════════════════════════════════════════════════════\n\n`;
     prompt += `⚠️⚠️⚠️ INSTRUCCIÓN CRÍTICA: Los cálculos de hora ya están hechos. NO recalcules.\n`;
     prompt += `Copia EXACTAMENTE las horas de inicio y fin que aparecen aquí.\n\n`;

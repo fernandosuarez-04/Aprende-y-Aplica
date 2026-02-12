@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
@@ -36,7 +36,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
     cardBackground: isLightTheme ? (panelStyles?.card_background || '#FFFFFF') : '#0F1419',
   }
   
-  // Obtener estado del panel de LIA para desplazar contenido
+  // Obtener estado del panel de SofLIA para desplazar contenido
   let isLiaPanelOpen = false;
   try {
     const liaPanel = useLiaPanel();
@@ -174,7 +174,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
           onToggleCollapse={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
 
-        {/* Page Content - pt-16 para compensar el header fijo, pr para panel de LIA */}
+        {/* Page Content - pt-16 para compensar el header fijo, pr para panel de SofLIA */}
         <main 
           className="min-h-screen pt-16 transition-all duration-300 ease-in-out"
           style={{ 
@@ -186,7 +186,7 @@ export function AdminLayout({ children }: AdminLayoutProps) {
         </main>
       </div>
       
-      {/* Componentes de LIA */}
+      {/* Componentes de SofLIA */}
       <LiaSidePanel />
       <LiaFloatingButton />
     </div>

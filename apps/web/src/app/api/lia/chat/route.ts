@@ -12,7 +12,7 @@ export const maxDuration = 60;
 // ============================================
 // PROMPT DEL SISTEMA DE LIA (Limpio y Conciso)
 // ============================================
-const LIA_SYSTEM_PROMPT = 'Eres LIA (Learning Intelligence Assistant), la asistente de IA de la plataforma SOFLIA.\n\n' +
+const LIA_SYSTEM_PROMPT = 'Eres SofLIA (Learning Intelligence Assistant), la asistente de IA de la plataforma SOFLIA.\n\n' +
 '## Tu Identidad\n' +
 '- Nombre: LIA\n' +
 '- Plataforma: SOFLIA (Sistema Operativo de Formación de Inteligencia Aplicada)\n' +
@@ -282,7 +282,7 @@ async function fetchPlatformContext(userId?: string): Promise<PlatformContext> {
     }
 
   } catch (error) {
-    console.error('âš ï¸ Error fetching platform context:', error);
+ console.error(' Error fetching platform context:', error);
   }
   
   return context;
@@ -520,7 +520,7 @@ Organización personal del tiempo de aprendizaje.
 ### ðŸ¤– YO (LIA - Learning Intelligence Assistant)
 
 **Quién soy**:
-- Soy LIA, la asistente de IA de SOFLIA
+- Soy SofLIA, la asistente de IA de SOFLIA
 - Estoy aquí para ayudar con cualquier duda sobre la plataforma
 - Puedo guiar sobre cursos, navegación, funcionalidades
 
@@ -810,7 +810,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
           prompt += '\n\n' + pageContext;
         }
       } catch (error) {
-        console.warn('âš ï¸ Error obteniendo contexto de página:', error);
+ console.warn(' Error obteniendo contexto de página:', error);
       }
     }
   }
@@ -822,7 +822,7 @@ function getLIASystemPrompt(context?: PlatformContext): string {
 // API HANDLER
 // ============================================
 export async function POST(request: NextRequest) {
-  console.log('ðŸ”µ LIA Chat API - Request received');
+ console.log(' LIA Chat API - Request received');
   
   let shouldStream = true;
 
@@ -831,8 +831,8 @@ export async function POST(request: NextRequest) {
     const { messages, context: requestContext, stream = true } = body;
     shouldStream = stream;
 
-    console.log('ðŸ“¨ Messages count:', messages?.length);
-    console.log('ðŸ“¨ Stream mode:', stream);
+ console.log(' Messages count:', messages?.length);
+ console.log(' Stream mode:', stream);
 
     // Validación
     if (!messages || !Array.isArray(messages) || messages.length === 0) {
@@ -845,7 +845,7 @@ export async function POST(request: NextRequest) {
     // Verificar API Key
     const googleApiKey = process.env.GOOGLE_API_KEY;
     if (!googleApiKey) {
-      console.error('âŒ GOOGLE_API_KEY no está configurada');
+ console.error(' GOOGLE_API_KEY no está configurada');
       return NextResponse.json(
         { error: 'GOOGLE_API_KEY no está configurada' },
         { status: 500 }
@@ -853,7 +853,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Obtener contexto enriquecido de la BD
-    console.log('ðŸ” Fetching platform context...');
+ console.log(' Fetching platform context...');
     const platformContext = await fetchPlatformContext(requestContext?.userId);
     
     // Combinar con contexto de la petición
@@ -870,11 +870,11 @@ export async function POST(request: NextRequest) {
       const pathMatch = fullContext.currentPage.match(/^\/([^/]+)\/(business-panel|business-user)/);
       if (pathMatch && pathMatch[1]) {
         fullContext.organizationSlug = pathMatch[1];
-        console.log('ðŸ“ OrgSlug extraído del pathname:', fullContext.organizationSlug);
+ console.log(' OrgSlug extraído del pathname:', fullContext.organizationSlug);
       }
     }
 
-    console.log('ðŸ“Š Context loaded:', {
+ console.log(' Context loaded:', {
       userName: fullContext.userName,
       organizationSlug: fullContext.organizationSlug,
       organizationName: fullContext.organizationName,
@@ -888,7 +888,7 @@ export async function POST(request: NextRequest) {
     // ✅ SEGUNDA CARGA: Si detectamos que es usuario de business pero los cursos no se cargaron
     // (porque organizationSlug no estaba disponible durante fetchPlatformContext)
     if (fullContext.organizationSlug && requestContext?.userId && !fullContext.coursesWithContent) {
-      console.log('🔄 Cargando cursos asignados para usuario de business...');
+ console.log(' Cargando cursos asignados para usuario de business...');
       try {
         const supabase = await createClient();
         const { data: assignedCourses, error } = await supabase
@@ -898,7 +898,7 @@ export async function POST(request: NextRequest) {
           .limit(20);
         
         if (error) {
-          console.error('âš ï¸ Error cargando cursos asignados:', error);
+ console.error(' Error cargando cursos asignados:', error);
         } else if (assignedCourses && assignedCourses.length > 0) {
           fullContext.coursesWithContent = assignedCourses.map((assignment: any) => ({
             title: assignment.course?.title,
@@ -908,14 +908,14 @@ export async function POST(request: NextRequest) {
             durationMinutes: assignment.course?.duration_total_minutes,
             isAssigned: true
           }));
-          console.log('✅ Cursos asignados cargados:', fullContext.coursesWithContent.length);
+ console.log(' Cursos asignados cargados:', fullContext.coursesWithContent.length);
         } else {
           fullContext.coursesWithContent = [];
           fullContext.noCoursesAssigned = true;
-          console.log('âš ï¸ Usuario de business sin cursos asignados');
+ console.log(' Usuario de business sin cursos asignados');
         }
       } catch (err) {
-        console.error('âš ï¸ Error en segunda carga de cursos:', err);
+ console.error(' Error en segunda carga de cursos:', err);
       }
     }
 
@@ -976,7 +976,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('ðŸ“œ History length:', cleanHistory.length);
+ console.log(' History length:', cleanHistory.length);
 
     // Obtener el último mensaje del usuario
     const lastMessage = messages[messages.length - 1];
@@ -998,14 +998,14 @@ export async function POST(request: NextRequest) {
         if (personalizationSettings) {
           const personalizationPrompt = LiaPersonalizationService.buildPersonalizationPrompt(personalizationSettings);
           systemPrompt += personalizationPrompt;
-          console.log('✅ Personalización de LIA aplicada', {
+ console.log(' Personalización de LIA aplicada', {
             userId: requestContext.userId,
             baseStyle: personalizationSettings.base_style,
           });
         }
       } catch (error) {
         // No fallar si hay error cargando personalización, solo loguear
-        console.warn('âš ï¸ Error cargando personalización de LIA:', error);
+ console.warn(' Error cargando personalización de LIA:', error);
       }
     }
 
@@ -1021,7 +1021,7 @@ export async function POST(request: NextRequest) {
           systemPrompt += '\n\n---\n\n' + bugContext;
         }
       } catch (error) {
-        console.warn('âš ï¸ Error obteniendo contexto de bug:', error);
+ console.warn(' Error obteniendo contexto de bug:', error);
       }
     }
     
@@ -1037,12 +1037,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Enviar mensaje
-    console.log('🚀 Enviando mensaje a Gemini...');
+ console.log(' Enviando mensaje a Gemini...');
     const result = await chatSession.sendMessage(messageWithContext);
     const response = result.response;
     const finalContent = response.text();
 
-    console.log('✅ Respuesta recibida:', finalContent.substring(0, 100) + '...');
+ console.log(' Respuesta recibida:', finalContent.substring(0, 100) + '...');
 
     // ----------------------------------------------------------------
     // PROCESAMIENTO DE REPORTE DE BUGS (Server-Side Tool Call)
@@ -1060,7 +1060,7 @@ export async function POST(request: NextRequest) {
 
     if (bugMatch && bugMatch[1]) {
       try {
-        console.log('ðŸ› Detectado intento de reporte de bug por Lia');
+ console.log(' Detectado intento de reporte de bug por Lia');
         
         // Intentar parsear el JSON (puede tener formato pretty o minificado)
         let bugData;
@@ -1134,13 +1134,13 @@ export async function POST(request: NextRequest) {
                   buffer = Buffer.from(base64Data, 'base64');
                   extension = 'json.gz';
                   contentType = 'application/gzip';
-                  console.log('ðŸ“¦ Grabación comprimida detectada, tamaño:', buffer.length, 'bytes');
+ console.log(' Grabación comprimida detectada, tamaño:', buffer.length, 'bytes');
                 } else {
                   // Si es JSON plano, guardarlo como está
                   buffer = Buffer.from(snapshotData, 'utf-8');
                   extension = 'json';
                   contentType = 'application/json';
-                  console.log('ðŸ“‹ Grabación JSON detectada, tamaño:', buffer.length, 'bytes');
+ console.log(' Grabación JSON detectada, tamaño:', buffer.length, 'bytes');
                 }
                 
                 // Generar nombre único
@@ -1158,7 +1158,7 @@ export async function POST(request: NextRequest) {
                   });
 
                 if (uploadError) {
-                  console.error('âŒ Error subiendo grabación:', uploadError);
+ console.error(' Error subiendo grabación:', uploadError);
                 } else {
                   // Obtener URL pública
                   const { data: publicUrlData } = supabaseAdmin.storage
@@ -1166,13 +1166,13 @@ export async function POST(request: NextRequest) {
                     .getPublicUrl(uploadData.path);
                   
                   recordingUrl = publicUrlData.publicUrl;
-                  console.log('✅ Grabación subida exitosamente:', recordingUrl);
+ console.log(' Grabación subida exitosamente:', recordingUrl);
                 }
               } else {
-                console.warn('âš ï¸ Missing SUPABASE_SERVICE_ROLE_KEY, grabación no subida');
+ console.warn(' Missing SUPABASE_SERVICE_ROLE_KEY, grabación no subida');
               }
             } catch (uploadErr) {
-              console.error('âŒ Error procesando grabación:', uploadErr);
+ console.error(' Error procesando grabación:', uploadErr);
             }
           }
           
@@ -1208,11 +1208,11 @@ export async function POST(request: NextRequest) {
             .insert(reportPayload);
 
            if (matchError) {
-             console.error('âŒ Error guardando reporte de bug:', matchError);
+ console.error(' Error guardando reporte de bug:', matchError);
              // Agregar nota de error al mensaje
              clientContent += '\n\n> âš ï¸ _Nota: Hubo un problema técnico al guardar tu reporte, pero lo tengo registrado. El equipo técnico será notificado._';
           } else {
-             console.log('✅ Reporte de bug guardado exitosamente');
+ console.log(' Reporte de bug guardado exitosamente');
              bugReportSaved = true;
              
              // Mensaje diferenciado según si hay grabación o no
@@ -1230,11 +1230,11 @@ export async function POST(request: NextRequest) {
           }
         } else {
           // Usuario no autenticado
-          console.warn('âš ï¸ No se pudo guardar el bug report: usuario no autenticado');
+ console.warn(' No se pudo guardar el bug report: usuario no autenticado');
           clientContent += '\n\n> âš ï¸ _Para poder guardar tu reporte, necesitas estar conectado a tu cuenta._';
         }
       } catch (e) {
-        console.error('âŒ Error procesando JSON de bug report:', e);
+ console.error(' Error procesando JSON de bug report:', e);
         // Log del contenido que falló para debugging
         console.error('Contenido del match:', bugMatch[1]?.substring(0, 200));
       }
@@ -1251,7 +1251,7 @@ export async function POST(request: NextRequest) {
 
     if (body.conversationId) {
       if (!isValidUUID(body.conversationId)) {
-        console.warn(`âš ï¸ conversationId inválido recibido (no es UUID): "${body.conversationId}" - Skipping DB persistence`);
+ console.warn(` conversationId inválido recibido (no es UUID): "${body.conversationId}" - Skipping DB persistence`);
       }
     }
 
@@ -1291,7 +1291,7 @@ export async function POST(request: NextRequest) {
                 }, { onConflict: 'conversation_id' });
 
                 if (upsertError) {
-                  console.error('âŒ Error en upsert de conversación:', upsertError);
+ console.error(' Error en upsert de conversación:', upsertError);
                 }
 
                 // 2. Obtener el último message_sequence para esta conversación
@@ -1314,7 +1314,7 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (userMsgError) {
-                  console.error('âŒ Error guardando mensaje del usuario:', userMsgError);
+ console.error(' Error guardando mensaje del usuario:', userMsgError);
                 }
 
                 // 4. Guardar respuesta del asistente
@@ -1328,17 +1328,17 @@ export async function POST(request: NextRequest) {
                 });
 
                 if (assistantMsgError) {
-                  console.error('âŒ Error guardando mensaje del asistente:', assistantMsgError);
+ console.error(' Error guardando mensaje del asistente:', assistantMsgError);
                 }
 
                 if (!upsertError && !userMsgError && !assistantMsgError) {
-                  console.log('✅ Conversación persistida en DB:', body.conversationId);
+ console.log(' Conversación persistida en DB:', body.conversationId);
                 }
             }
           }
         }
       } catch (dbError) {
-        console.error('âŒ Error guardando historial de conversación:', dbError);
+ console.error(' Error guardando historial de conversación:', dbError);
       }
     }
 
@@ -1379,7 +1379,7 @@ export async function POST(request: NextRequest) {
     }
 
   } catch (error) {
-    console.error('âŒ LIA Chat API error:', error);
+ console.error(' LIA Chat API error:', error);
     
     let errorMessage = 'Error interno del servidor';
     if (error instanceof Error) {

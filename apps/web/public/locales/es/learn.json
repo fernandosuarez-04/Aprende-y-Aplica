@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": {
     "course": "Cargando curso...",
     "lesson": "Cargando lección...",
@@ -62,16 +62,16 @@
     "backToCourses": "Volver a Mis Cursos",
     "completeCourse": "Completar Curso"
   },
-  "lia": {
-    "title": "Lia",
+  "SofLIA": {
+    "title": "SofLIA",
     "subtitle": "Tu tutora personalizada",
     "placeholder": "Escribe tu mensaje aquí...",
     "send": "Enviar",
     "newConversation": "Nueva conversación",
     "viewHistory": "Ver historial",
     "resetConversation": "Reiniciar conversación",
-    "expand": "Expandir Lia",
-    "minimize": "Reducir tamaño de Lia",
+    "expand": "Expandir SofLIA",
+    "minimize": "Reducir tamaño de SofLIA",
     "moreOptions": "Más opciones",
     "copyMessage": "Copiar mensaje",
     "createNote": "Crear nota",
@@ -167,8 +167,8 @@
       "understand": "Entendido"
     },
     "resetConversation": {
-      "title": "¿Reiniciar conversación con Lia?",
-      "message": "¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con Lia.",
+      "title": "¿Reiniciar conversación con SofLIA?",
+      "message": "¿Quieres limpiar el historial de la conversación y empezar de nuevo? El chat se reiniciará y comenzarás una nueva conversación con SofLIA.",
       "cancel": "Cancelar",
       "confirm": "Reiniciar conversación"
     },
@@ -263,10 +263,10 @@
         "description": "Completa las actividades para poner en práctica lo aprendido. Son fundamentales para tu progreso y certificación.",
         "speech": "Completa las actividades para poner en práctica lo aprendido. Son fundamentales para tu progreso y certificación."
       },
-      "lia": {
-        "title": "LIA está aquí para ayudarte",
-        "description": "Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a LIA. Te ayudará en todo momento.",
-        "speech": "Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a LIA. Te ayudará en todo momento."
+      "SofLIA": {
+        "title": "SofLIA está aquí para ayudarte",
+        "description": "Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a SofLIA. Te ayudará en todo momento.",
+        "speech": "Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a SofLIA. Te ayudará en todo momento."
       },
       "progress": {
         "title": "Seguimiento de progreso",
@@ -275,8 +275,8 @@
       },
       "ready": {
         "title": "¡Listo para aprender!",
-        "description": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.",
-        "speech": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte."
+        "description": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, SofLIA siempre estará disponible para ayudarte.",
+        "speech": "Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, SofLIA siempre estará disponible para ayudarte."
       }
     }
   }

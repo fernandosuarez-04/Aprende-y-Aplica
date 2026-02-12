@@ -79,7 +79,7 @@ export function LoginForm() {
         // ✅ Login exitoso - navegar a la URL indicada
         // IMPORTANTE: Usar window.location.href en lugar de router.push
         // para forzar navegación completa y que las cookies del servidor se propaguen
-        console.log('🚀 [LoginForm] Redirigiendo a:', result.redirectTo);
+ console.log(' [LoginForm] Redirigiendo a:', result.redirectTo);
         window.location.href = result.redirectTo;
         // No resetear isPending - la página recargará completamente
       }
@@ -102,7 +102,7 @@ export function LoginForm() {
       }
 
       // Solo mostrar error si NO es una redirección
-      console.error('❌ Error inesperado en login:', error);
+ console.error(' Error inesperado en login:', error);
 
       // Proporcionar mensaje de error más específico
       let errorMessage = 'Error inesperado al iniciar sesión';

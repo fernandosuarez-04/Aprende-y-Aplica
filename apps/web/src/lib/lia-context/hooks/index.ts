@@ -1,11 +1,11 @@
-/**
- * Hooks de Contexto de LIA
+﻿/**
+ * Hooks de Contexto de SofLIA
  * 
  * Exportaciones de todos los hooks para captura de contexto del frontend.
  * 
  * @example
  * ```tsx
- * import { useLiaEnrichedContext, liaComponentProps } from '@/lib/lia-context/hooks';
+ * import { useLiaEnrichedContext, liaComponentProps } from '@/lib/SofLIA-context/hooks';
  * 
  * function MyComponent() {
  *   const { getEnrichedMetadata, addContextMarker, hasErrors } = useLiaEnrichedContext();

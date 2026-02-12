@@ -1517,7 +1517,6 @@ export default function CourseLearnPage() {
         setSavedNotes([]);
       }
     } catch (error) {
-      // console.error('Error loading notes:', error);
       setSavedNotes([]);
     }
   };
@@ -1859,7 +1858,6 @@ export default function CourseLearnPage() {
         }
       }
     } catch (error) {
-      // console.error('Error al guardar nota:', error);
       // En caso de error, recargar desde el servidor para asegurar consistencia
       if (currentLesson?.lesson_id && slug) {
         await loadLessonNotes(currentLesson.lesson_id, slug);
@@ -1905,7 +1903,6 @@ export default function CourseLearnPage() {
       }
       // Si tiene éxito, el estado ya fue actualizado optimistamente
     } catch (error) {
-      // console.error('Error al eliminar nota:', error);
       // En caso de error, recargar desde el servidor para revertir el cambio optimista
       if (currentLesson?.lesson_id && slug) {
         await loadLessonNotes(currentLesson.lesson_id, slug);
@@ -2196,7 +2193,6 @@ export default function CourseLearnPage() {
         setCurrentLesson(selectedLesson);
       }
     } catch (error) {
-      // console.error('Error loading modules:', error);
     }
   };
 
@@ -2708,7 +2704,6 @@ export default function CourseLearnPage() {
             );
           }
 
-          // console.error('Error del servidor:', responseData?.error || responseData);
           return false;
         }
 
@@ -2764,10 +2759,8 @@ export default function CourseLearnPage() {
 
         // Para otros errores, solo loguear si hay un mensaje de error claro
         if (responseData?.error) {
-          // console.warn('Advertencia al guardar progreso en BD:', responseData.error);
         } else if (response.status >= 500) {
           // Solo loguear errores del servidor (500+), no errores del cliente
-          // console.warn('Error del servidor al guardar progreso - Status:', response.status);
         }
         // Retornar true porque el estado local se actualizó y los datos pueden haberse guardado
         return true;
@@ -3171,7 +3164,7 @@ export default function CourseLearnPage() {
               );
             }
           } catch (error) {
-            console.error("❌ Error enviando mensaje proactivo a LIA:", error);
+ console.error(" Error enviando mensaje proactivo a LIA:", error);
           }
         }}
       >
@@ -5279,7 +5272,6 @@ function TranscriptContent({
           setTranscriptContent(null);
         }
       } catch (error) {
-        // console.error('Error loading transcript:', error);
         setTranscriptContent(null);
       } finally {
         setLoading(false);
@@ -5324,7 +5316,6 @@ function TranscriptContent({
       setIsCopied(true);
       setTimeout(() => setIsCopied(false), 2000); // Reset después de 2 segundos
     } catch (error) {
-      // console.error('Error al copiar al portapapeles:', error);
       alert("Error al copiar al portapapeles");
     }
   };
@@ -5344,9 +5335,6 @@ function TranscriptContent({
         source_type: "manual", // Usar valor válido según la restricción de la BD
       };
 
-      // console.log('=== DEBUG TRANSCRIPCIÓN ===');
-      // console.log('Enviando payload de nota:', notePayload);
-      // console.log('URL de la API:', `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`);
 
       const response = await fetch(
         `/api/courses/${slug}/lessons/${lesson.lesson_id}/notes`,
@@ -5360,14 +5348,11 @@ function TranscriptContent({
         }
       );
 
-      // console.log('Respuesta del servidor:', response.status, response.statusText);
-      // console.log('Headers de respuesta:', Object.fromEntries(response.headers.entries()));
 
       if (!response.ok) {
         let errorData;
         try {
           const responseText = await response.text();
-          // console.log('Respuesta del servidor (texto):', responseText);
 
           if (responseText) {
             errorData = JSON.parse(responseText);
@@ -5375,11 +5360,9 @@ function TranscriptContent({
             errorData = { error: "Respuesta vacía del servidor" };
           }
         } catch (parseError) {
-          // console.error('Error al parsear respuesta JSON:', parseError);
           errorData = { error: "Error al procesar respuesta del servidor" };
         }
 
-        // console.error('Error detallado del servidor:', errorData);
         alert(
           `Error al guardar la transcripción en notas:\n\n${errorData.error || "Error desconocido"}\n\nDetalles: ${errorData.message || "Sin detalles adicionales"}\n\nCódigo de estado: ${response.status}`
         );
@@ -5387,8 +5370,6 @@ function TranscriptContent({
       }
 
       const newNote = await response.json();
-      // console.log('Nota creada exitosamente:', newNote);
-      // console.log('=== FIN DEBUG ===');
 
       // ⚡ OPTIMIZACIÓN: Actualizar estado local inmediatamente
       if (lesson?.lesson_id) {
@@ -5399,8 +5380,6 @@ function TranscriptContent({
       // Mostrar mensaje de éxito
       alert("✅ Transcripción guardada exitosamente en notas");
     } catch (error) {
-      // console.error('Error al guardar transcripción en notas:', error);
-      // console.log('=== FIN DEBUG (ERROR) ===');
       alert(
         `❌ Error al guardar la transcripción en notas:\n\n${error instanceof Error ? error.message : "Error desconocido"}\n\nRevisa la consola para más detalles.`
       );
@@ -5650,7 +5629,6 @@ function SummaryContent({ lesson, slug }: { lesson: Lesson; slug: string }) {
           setSummaryContent(null);
         }
       } catch (error) {
-        // console.error('Error loading summary:', error);
         setSummaryContent(null);
       } finally {
         setLoading(false);
@@ -6425,7 +6403,6 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
       promptsList = [String(prompts)];
     }
   } catch (e) {
-    // console.warn('Error parsing prompts:', e);
     promptsList = [String(prompts)];
   }
 
@@ -6448,7 +6425,6 @@ function PromptsRenderer({ prompts }: { prompts: string | any }) {
                   })
                   .catch(() => {
                     // Fallback: mostrar el prompt
-                    // console.log('Prompt:', cleanPrompt);
                   });
               }}
               className="w-full text-left px-4 py-3 bg-white dark:bg-[#1E2329] hover:bg-[#00D4B3]/10 dark:hover:bg-[#00D4B3]/20 border border-[#00D4B3]/30 dark:border-[#00D4B3]/40 rounded-lg transition-all hover:border-[#00D4B3] dark:hover:border-[#00D4B3]/60 hover:shadow-lg hover:shadow-[#00D4B3]/20 group"
@@ -7316,7 +7292,6 @@ function ActivitiesContent({
           setQuizStatus(null);
         }
       } catch (error) {
-        // console.error('Error loading activities and materials:', error);
         setActivities([]);
         setMaterials([]);
         setQuizStatus(null);
@@ -7783,7 +7758,6 @@ function ActivitiesContent({
                                 try {
                                   quizData = JSON.parse(quizData);
                                 } catch (e) {
-                                  // console.warn('⚠️ Quiz content is not valid JSON:', e);
                                   return (
                                     <div className="prose dark:prose-invert max-w-none">
                                       <p className="text-yellow-600 dark:text-yellow-400 mb-2">
@@ -7883,7 +7857,6 @@ function ActivitiesContent({
                                 </div>
                               );
                             } catch (e) {
-                              // console.error('❌ Error processing quiz:', e);
                               return (
                                 <div className="prose prose-slate dark:prose-invert max-w-none">
                                   <p className="text-red-600 dark:text-red-400 mb-2">
@@ -8391,7 +8364,6 @@ function QuestionsContent({
         setHasMore(false);
       }
     } catch (error) {
-      // console.error('Error loading questions:', error);
       setQuestions([]);
       setHasMore(false);
     } finally {
@@ -8639,7 +8611,6 @@ function QuestionsContent({
         setHasMore(false);
       }
     } catch (error) {
-      // console.error('Error loading more questions:', error);
       setHasMore(false);
     } finally {
       setLoadingMore(false);
@@ -8805,11 +8776,9 @@ function QuestionsContent({
             }
           }
         } catch (syncError) {
-          // console.error('Error syncing reaction state:', syncError);
         }
       }
     } catch (error) {
-      // console.error('Error handling reaction:', error);
       // Revertir en caso de error
       setReactionCounts((prev) => ({ ...prev, [questionId]: currentCount }));
       setUserReactions((prev) => {
@@ -9266,7 +9235,6 @@ function QuestionDetail({
           setResponseReactions(reactionsMap);
         }
       } catch (error) {
-        // console.error('Error loading question data:', error);
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -9597,7 +9565,6 @@ function QuestionDetail({
         }
       }
     } catch (error) {
-      // console.error('Error handling response reaction:', error);
       // Revertir en caso de error
       setResponseReactionCounts((prev) => ({
         ...prev,
@@ -9636,7 +9603,6 @@ function QuestionDetail({
         setNewResponse("");
       }
     } catch (error) {
-      // console.error('Error submitting response:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -9672,7 +9638,6 @@ function QuestionDetail({
         setReplyingTo(null);
       }
     } catch (error) {
-      // console.error('Error submitting reply:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -9725,7 +9690,6 @@ function QuestionDetail({
         setReplyingToReply(null);
       }
     } catch (error) {
-      // console.error('Error submitting reply to reply:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -10007,7 +9971,6 @@ function CreateQuestionForm({
         alert(`Error: ${errorData.error}`);
       }
     } catch (error) {
-      // console.error('Error creating question:', error);
       alert("Error al crear la pregunta");
     } finally {
       setIsSubmitting(false);

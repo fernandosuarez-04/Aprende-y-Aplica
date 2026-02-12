@@ -25,7 +25,7 @@ export function AuthSecurityGuard({ children }: { children: React.ReactNode }) {
             // Limpiar auth-storage persistido (puede tener datos de otro usuario)
             const authStorage = localStorage.getItem('auth-storage')
             if (authStorage) {
-                console.warn('🔒 Security: Limpiando auth-storage residual')
+ console.warn(' Security: Limpiando auth-storage residual')
                 localStorage.removeItem('auth-storage')
             }
 
@@ -33,7 +33,7 @@ export function AuthSecurityGuard({ children }: { children: React.ReactNode }) {
             const accessToken = localStorage.getItem('accessToken')
             const refreshToken = localStorage.getItem('refreshToken')
             if (accessToken || refreshToken) {
-                console.warn('🔒 Security: Limpiando tokens residuales del localStorage')
+ console.warn(' Security: Limpiando tokens residuales del localStorage')
                 localStorage.removeItem('accessToken')
                 localStorage.removeItem('refreshToken')
             }
@@ -46,7 +46,7 @@ export function AuthSecurityGuard({ children }: { children: React.ReactNode }) {
 
             // Si hay un cambio de usuario (incluyendo logout)
             if (previousUserId !== null && currentUserId !== previousUserId) {
-                console.log('🔄 User changed, clearing auth storage')
+ console.log(' User changed, clearing auth storage')
 
                 // Limpiar todo el localStorage relacionado con auth
                 localStorage.removeItem('auth-storage')

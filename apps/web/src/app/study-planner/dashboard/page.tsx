@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -25,21 +25,21 @@ import { useRouter } from 'next/navigation';
 import { StudyPlannerCalendar } from '@/features/study-planner/components/StudyPlannerCalendar';
 import { ToastNotification } from '@/core/components/ToastNotification';
 import { redirectToDashboard } from '@/features/auth/actions/dashboard-redirect';
-import { useStudyPlannerDashboardLIA, type DashboardMessage } from '@/features/study-planner/hooks/useStudyPlannerDashboardLIA';
+import { useStudyPlannerDashboardSofLIA, type DashboardMessage } from '@/features/study-planner/hooks/useStudyPlannerDashboardSofLIA';
 import { useStudyPlannerDashboardTour } from '@/features/study-planner/hooks/useStudyPlannerDashboardTour';
 import Joyride from 'react-joyride';
 
 export default function StudyPlannerDashboardPage() {
   const router = useRouter();
 
-  // Hook para el chat con LIA
+  // Hook para el chat con SofLIA
   const {
     messages,
     isSending,
     error,
     sendMessage,
     clearError,
-  } = useStudyPlannerDashboardLIA();
+  } = useStudyPlannerDashboardSofLIA();
 
   // Hook del Tour
   const { restartTour, joyrideProps } = useStudyPlannerDashboardTour();
@@ -49,9 +49,9 @@ export default function StudyPlannerDashboardPage() {
     setIsMounted(true);
   }, []);
 
-  // Estado para el panel de LIA (derecha) - abierto por defecto
+  // Estado para el panel de SofLIA (derecha) - abierto por defecto
   const [isLiaPanelOpen, setIsLiaPanelOpen] = useState(true);
-  const [isLiaCollapsed, setIsLiaCollapsed] = useState(false);
+  const [isSofLIACollapsed, setIsSofLIACollapsed] = useState(false);
   const liaPanelRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -197,7 +197,7 @@ export default function StudyPlannerDashboardPage() {
             authUrl = url.toString();
 
           } catch (e) {
-            console.error('❌ Error modificando la URL:', e);
+ console.error(' Error modificando la URL:', e);
             // Si falla, intentar construir la URL manualmente
             const separator = authUrl.includes('?') ? '&' : '?';
             const stateData = {
@@ -494,8 +494,8 @@ export default function StudyPlannerDashboardPage() {
         {!isUser && (
           <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden mr-2">
             <Image
-              src="/lia-avatar.png"
-              alt="LIA"
+              src="/SofLIA-avatar.png"
+              alt="SofLIA"
               width={32}
               height={32}
               className="object-cover"
@@ -582,7 +582,7 @@ export default function StudyPlannerDashboardPage() {
       <div 
         id="dashboard-calendar-container"
         className={`flex-1 flex flex-col transition-all duration-300 ease-in-out ${
-          isLiaPanelOpen && !isLiaCollapsed ? 'mr-[520px]' : ''
+          isLiaPanelOpen && !isSofLIACollapsed ? 'mr-[520px]' : ''
         }`}
       >
         {/* Barra superior con iconos de acción */}
@@ -952,11 +952,11 @@ export default function StudyPlannerDashboardPage() {
         </div>
       </div>
 
-      {/* Panel Derecho - Chat con LIA (Diseño Premium) */}
+      {/* Panel Derecho - Chat con SofLIA (Diseño Premium) */}
       <AnimatePresence>
-        {isLiaPanelOpen && !isLiaCollapsed && (
+        {isLiaPanelOpen && !isSofLIACollapsed && (
           <motion.aside
-            id="dashboard-lia-panel"
+            id="dashboard-SofLIA-panel"
             ref={liaPanelRef}
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
@@ -969,11 +969,11 @@ export default function StudyPlannerDashboardPage() {
               className="flex items-center justify-between px-6 py-5 border-b border-gray-200 dark:border-[#1e2a35] bg-white dark:bg-[#0a0f14]"
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                {/* Avatar de LIA con indicador online */}
+                {/* Avatar de SofLIA con indicador online */}
                 <div style={{ position: 'relative' }}>
                   <Image
-                    src="/lia-avatar.png"
-                    alt="LIA"
+                    src="/SofLIA-avatar.png"
+                    alt="SofLIA"
                     width={40}
                     height={40}
                     style={{
@@ -998,7 +998,7 @@ export default function StudyPlannerDashboardPage() {
                 
                 <div>
                   <h2 className="text-gray-900 dark:text-white text-base font-semibold m-0 leading-[1.2]">
-                    LIA
+                    SofLIA
                   </h2>
                   <p className="text-[#00D4B3] text-xs font-medium m-0">
                     Asistente de tu plan
@@ -1021,7 +1021,7 @@ export default function StudyPlannerDashboardPage() {
                 </button>
 
                 <button
-                  onClick={() => setIsLiaCollapsed(true)}
+                  onClick={() => setIsSofLIACollapsed(true)}
                   className="w-8 h-8 rounded-lg bg-transparent border-none flex items-center justify-center transition-colors cursor-pointer hover:bg-gray-100 dark:hover:bg-[#1e2a35]"
                 >
                   <X className="w-[18px] h-[18px] text-gray-500 dark:text-[#6b7280]" />
@@ -1060,8 +1060,8 @@ export default function StudyPlannerDashboardPage() {
                     }} />
                     
                     <Image
-                      src="/lia-avatar.png"
-                      alt="LIA"
+                      src="/SofLIA-avatar.png"
+                      alt="SofLIA"
                       width={80}
                       height={80}
                       style={{
@@ -1081,7 +1081,7 @@ export default function StudyPlannerDashboardPage() {
                     transition={{ delay: 0.2, duration: 0.5 }}
                   >
                     <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">
-                      LIA
+                      SofLIA
                     </h3>
                     <p className="text-gray-500 dark:text-[#6b7280] text-sm leading-relaxed max-w-[280px] mx-auto">
                       Puedo ayudarte a reprogramar sesiones, ajustar tu plan o resolver conflictos de horario.
@@ -1099,8 +1099,8 @@ export default function StudyPlannerDashboardPage() {
                       {msg.role !== 'user' && (
                         <div className="mr-2 flex-shrink-0">
                           <Image
-                            src="/lia-avatar.png"
-                            alt="LIA"
+                            src="/SofLIA-avatar.png"
+                            alt="SofLIA"
                             width={32}
                             height={32}
                             className="rounded-full object-cover"
@@ -1156,8 +1156,8 @@ export default function StudyPlannerDashboardPage() {
                 <div className="flex justify-start">
                   <div className="mr-2 flex-shrink-0">
                     <Image
-                      src="/lia-avatar.png"
-                      alt="LIA"
+                      src="/SofLIA-avatar.png"
+                      alt="SofLIA"
                       width={32}
                       height={32}
                       className="rounded-full object-cover"
@@ -1166,9 +1166,9 @@ export default function StudyPlannerDashboardPage() {
                   <div
                     className="px-4 py-3 rounded-[16px_16px_16px_4px] bg-gray-100 dark:bg-[#1e2a35] flex gap-1.5 items-center"
                   >
-                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite]" />
-                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite_0.2s]" />
-                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[liaPulse_1s_infinite_0.4s]" />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[SofLIAPulse_1s_infinite]" />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[SofLIAPulse_1s_infinite_0.2s]" />
+                    <div className="w-2 h-2 rounded-full bg-[#00D4B3] animate-[SofLIAPulse_1s_infinite_0.4s]" />
                   </div>
                 </div>
               )}
@@ -1201,7 +1201,7 @@ export default function StudyPlannerDashboardPage() {
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Escribe un mensaje a LIA..."
+                  placeholder="Escribe un mensaje a SofLIA..."
                   className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm placeholder:text-gray-400"
                 />
                 
@@ -1225,7 +1225,7 @@ export default function StudyPlannerDashboardPage() {
             </div>
             
             <style>{`
-              @keyframes liaPulse {
+              @keyframes SofLIAPulse {
                 0%, 100% { opacity: 0.4; transform: scale(1); }
                 50% { opacity: 1; transform: scale(1.2); }
               }
@@ -1238,9 +1238,9 @@ export default function StudyPlannerDashboardPage() {
         )}
       </AnimatePresence>
 
-      {/* Burbuja flotante de LIA */}
+      {/* Burbuja flotante de SofLIA */}
       <AnimatePresence>
-        {(isLiaCollapsed || !isLiaPanelOpen) && (
+        {(isSofLIACollapsed || !isLiaPanelOpen) && (
           <motion.button
             initial={{ scale: 0, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -1248,15 +1248,15 @@ export default function StudyPlannerDashboardPage() {
             transition={{ type: 'spring', damping: 20, stiffness: 300 }}
             onClick={() => {
               setIsLiaPanelOpen(true);
-              setIsLiaCollapsed(false);
+              setIsSofLIACollapsed(false);
             }}
             className="fixed right-4 bottom-4 z-50 w-16 h-16 rounded-full shadow-2xl hover:shadow-[#0A2540]/50 dark:hover:shadow-[#00D4B3]/50 flex items-center justify-center transition-all hover:scale-110 active:scale-95 group overflow-hidden ring-4 ring-[#0A2540]/20 dark:ring-[#00D4B3]/30"
-            title="Abrir LIA Coach"
+            title="Abrir SofLIA Coach"
           >
             <div className="relative w-full h-full">
               <Image
-                src="/lia-avatar.png"
-                alt="LIA"
+                src="/SofLIA-avatar.png"
+                alt="SofLIA"
                 fill
                 className="object-cover group-hover:scale-110 transition-transform"
                 sizes="64px"

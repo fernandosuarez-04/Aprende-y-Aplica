@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
@@ -51,7 +51,7 @@ export function CourseAnalyticsWidget({ period }: CourseAnalyticsWidgetProps) {
     setIsLoading(true);
     try {
         const timestamp = Date.now();
-        const response = await fetch(`/api/admin/lia-analytics/courses?period=${period}&_t=${timestamp}`, {
+        const response = await fetch(`/api/admin/SofLIA-analytics/courses?period=${period}&_t=${timestamp}`, {
             cache: 'no-store'
         });
         const result = await response.json();
@@ -123,7 +123,7 @@ export function CourseAnalyticsWidget({ period }: CourseAnalyticsWidgetProps) {
             Rendimiento por Curso
           </h3>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            Analiza el consumo y engagement de LIA en cada curso
+            Analiza el consumo y engagement de SofLIA en cada curso
           </p>
         </div>
         

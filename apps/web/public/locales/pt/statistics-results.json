@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": "Analisando seus resultados...",
   "error": {
     "title": "Erro",
@@ -36,7 +36,7 @@
   },
   "radar": {
     "title": "Radar de Competências em IA",
-    "description": "Visualização das suas fortalezas por área funcional baseada no seu questionário. Cada dimensão é avaliada em uma escala de 0 a 100 pontos.",
+    "description": "Visualização das suas fortalezas por área funcional baseada no seu questionário. Cada dimensão é avaSofLIAda em uma escala de 0 a 100 pontos.",
     "difficultyLevel": "Nível de Dificuldade:",
     "difficultyInfo": "Seus scores estão normalizados de acordo com seu nível de dificuldade. O máximo possível para seu nível é {{max}} pontos.",
     "difficultyAdvance": "À medida que avançar no seu conhecimento de IA, poderá alcançar níveis mais altos.",
@@ -121,7 +121,7 @@
     "methodology": {
       "title": "Fonte e Metodologia",
       "aipiTitle": "Metodologia AIPI",
-      "aipiDescription": "O Índice de Adoção e Implementação de IA (AIPI) avalia o nível de adoção de inteligência artificial em países hispanófonos baseando-se em métricas de implementação empresarial, uso pessoal, investimento em tecnologia e políticas públicas.",
+      "aipiDescription": "O Índice de Adoção e Implementação de IA (AIPI) avaSofLIA o nível de adoção de inteligência artificial em países hispanófonos baseando-se em métricas de implementação empresarial, uso pessoal, investimento em tecnologia e políticas públicas.",
       "sourcesTitle": "Fontes de Dados",
       "sourcesDescription": "• Estudos de adoção empresarial (2023-2024)\n• Pesquisas de uso pessoal de IA\n• Investimento em tecnologia por país\n• Políticas públicas de digitalização\n• Índices de inovação tecnológica",
       "updateTitle": "Atualização",

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * useActiveComponents
@@ -7,12 +7,12 @@
  * Usa data-attributes para identificar componentes importantes.
  * 
  * Uso:
- * 1. Agregar data-lia-component="ComponentName" a componentes importantes
- * 2. Opcionalmente agregar data-lia-props="JSON" para incluir props
+ * 1. Agregar data-SofLIA-component="ComponentName" a componentes importantes
+ * 2. Opcionalmente agregar data-SofLIA-props="JSON" para incluir props
  * 3. El hook detectará automáticamente estos componentes
  * 
  * Ejemplo:
- * <div data-lia-component="BusinessAssignCourseModal" data-lia-props='{"courseId":"123"}'>
+ * <div data-SofLIA-component="BusinessAssignCourseModal" data-SofLIA-props='{"courseId":"123"}'>
  *   ...
  * </div>
  */
@@ -35,7 +35,7 @@ export interface ActiveComponent {
 }
 
 interface UseActiveComponentsOptions {
-  /** Selector base para buscar componentes (default: [data-lia-component]) */
+  /** Selector base para buscar componentes (default: [data-SofLIA-component]) */
   selector?: string;
   /** Si debe observar cambios en el DOM */
   observe?: boolean;
@@ -46,7 +46,7 @@ interface UseActiveComponentsOptions {
 }
 
 const DEFAULT_OPTIONS: UseActiveComponentsOptions = {
-  selector: '[data-lia-component]',
+  selector: '[data-SofLIA-component]',
   observe: true,
   pollInterval: 2000,
   detectVisibility: true,
@@ -67,16 +67,16 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
   const scanComponents = useCallback(() => {
     if (typeof document === 'undefined') return;
 
-    const elements = document.querySelectorAll(config.selector || '[data-lia-component]');
+    const elements = document.querySelectorAll(config.selector || '[data-SofLIA-component]');
     const foundComponents: ActiveComponent[] = [];
 
     elements.forEach((element) => {
-      const name = element.getAttribute('data-lia-component');
+      const name = element.getAttribute('data-SofLIA-component');
       if (!name) return;
 
       // Parsear props si existen
       let props: Record<string, unknown> | undefined;
-      const propsAttr = element.getAttribute('data-lia-props');
+      const propsAttr = element.getAttribute('data-SofLIA-props');
       if (propsAttr) {
         try {
           props = JSON.parse(propsAttr);
@@ -86,7 +86,7 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
       }
 
       // Obtener estado si existe
-      const state = element.getAttribute('data-lia-state') || undefined;
+      const state = element.getAttribute('data-SofLIA-state') || undefined;
 
       // Detectar visibilidad
       let isVisible = true;
@@ -103,7 +103,7 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
       // Generar selector único
       const id = element.id ? `#${element.id}` : '';
       const classes = element.className ? `.${element.className.split(' ').filter(c => c).join('.')}` : '';
-      const selector = id || classes || `[data-lia-component="${name}"]`;
+      const selector = id || classes || `[data-SofLIA-component="${name}"]`;
 
       foundComponents.push({
         name,
@@ -133,9 +133,9 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
   }, [components]);
 
   /**
-   * Obtiene componentes en formato para LIA
+   * Obtiene componentes en formato para SofLIA
    */
-  const getComponentsForLia = useCallback(() => {
+  const getComponentsForSofLIA = useCallback(() => {
     return components.map(c => ({
       name: c.name,
       selector: c.selector,
@@ -172,9 +172,9 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
       observerRef.current = new MutationObserver((mutations) => {
         // Solo re-escanear si hay cambios relevantes
         const hasRelevantChanges = mutations.some(mutation => {
-          // Cambios en atributos de componentes LIA
+          // Cambios en atributos de componentes SofLIA
           if (mutation.type === 'attributes' && 
-              (mutation.target as Element).hasAttribute?.('data-lia-component')) {
+              (mutation.target as Element).hasAttribute?.('data-SofLIA-component')) {
             return true;
           }
           // Nodos agregados o removidos
@@ -193,7 +193,7 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
         childList: true,
         subtree: true,
         attributes: true,
-        attributeFilter: ['data-lia-component', 'data-lia-props', 'data-lia-state'],
+        attributeFilter: ['data-SofLIA-component', 'data-SofLIA-props', 'data-SofLIA-state'],
       });
     } else if (config.pollInterval) {
       // Usar polling si observe está deshabilitado
@@ -238,8 +238,8 @@ export function useActiveComponents(options: UseActiveComponentsOptions = {}) {
     getComponentNames,
     /** Obtiene solo componentes visibles */
     getVisibleComponents,
-    /** Obtiene componentes en formato para LIA */
-    getComponentsForLia,
+    /** Obtiene componentes en formato para SofLIA */
+    getComponentsForSofLIA,
     /** Busca un componente por nombre */
     findComponent,
     /** Verifica si un componente existe */
@@ -254,7 +254,7 @@ export default useActiveComponents;
 // ============================================================================
 
 /**
- * Props helper para agregar data-attributes de LIA a un componente
+ * Props helper para agregar data-attributes de SofLIA a un componente
  * 
  * @example
  * <div {...liaComponentProps('MyModal', { isOpen: true })}>
@@ -265,26 +265,26 @@ export function liaComponentProps(
   state?: string
 ) {
   const attrs: Record<string, string> = {
-    'data-lia-component': name,
+    'data-SofLIA-component': name,
   };
 
   if (props) {
     try {
-      attrs['data-lia-props'] = JSON.stringify(props);
+      attrs['data-SofLIA-props'] = JSON.stringify(props);
     } catch {
       // Ignorar si no se puede serializar
     }
   }
 
   if (state) {
-    attrs['data-lia-state'] = state;
+    attrs['data-SofLIA-state'] = state;
   }
 
   return attrs;
 }
 
 /**
- * HOC para envolver un componente con data-attributes de LIA
+ * HOC para envolver un componente con data-attributes de SofLIA
  */
 export function withLiaComponent<P extends object>(
   Component: React.ComponentType<P>,
@@ -292,7 +292,7 @@ export function withLiaComponent<P extends object>(
 ) {
   const WrappedComponent = (props: P) => {
     return (
-      <div data-lia-component={componentName}>
+      <div data-SofLIA-component={componentName}>
         <Component {...props} />
       </div>
     );

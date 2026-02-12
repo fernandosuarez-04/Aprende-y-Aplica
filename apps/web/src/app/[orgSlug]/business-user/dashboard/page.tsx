@@ -66,6 +66,7 @@ interface Organization {
   slug: string
   logo_url?: string | null
   favicon_url?: string | null
+  show_navbar_name?: boolean
 }
 
 type OrgRole = 'owner' | 'admin' | 'member' | null

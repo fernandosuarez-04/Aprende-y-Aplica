@@ -15,7 +15,6 @@ export class FavoritesService {
 
       if (error) {
         if (process.env.NODE_ENV === 'development') {
-          // console.error('Error fetching user favorites:', error)
         }
         throw new Error(`Error al obtener favoritos: ${error.message}`)
       }
@@ -23,7 +22,6 @@ export class FavoritesService {
       return data?.map(favorite => favorite.course_id) || []
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
-        // console.error('Error in FavoritesService.getUserFavorites:', error)
       }
 
       // Si es un error de configuración de Supabase, devolver array vacío

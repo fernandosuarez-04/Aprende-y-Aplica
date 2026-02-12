@@ -1,8 +1,8 @@
-/**
+﻿/**
  * 🔍 useDifficultyDetection Hook
  * 
  * Hook de React que monitorea continuamente la sesión rrweb del usuario
- * para detectar patrones de dificultad y disparar intervenciones proactivas de LIA.
+ * para detectar patrones de dificultad y disparar intervenciones proactivas de SofLIA.
  * 
  * Uso:
  * ```tsx
@@ -141,7 +141,7 @@ export function useDifficultyDetection(
         }
       }
     } catch (error) {
-      console.error('❌ Error al analizar sesión:', error);
+ console.error(' Error al analizar sesión:', error);
     }
   }, [enabled, onDifficultyDetected]);
 

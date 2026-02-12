@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "dashboard": "Dashboard",
     "users": "Users",
@@ -256,11 +256,11 @@
         },
         "platformActivity": {
           "title": "Platform Activity",
-          "liaQueries": "LIA Queries",
+          "SofLIAQueries": "SofLIA Queries",
           "messages": "messages",
           "quizzesPassed": "Quizzes Passed",
           "average": "average",
-          "liaActivities": "LIA Activities",
+          "liaActivities": "SofLIA Activities",
           "total": "total"
         },
         "generalProgress": {
@@ -279,7 +279,7 @@
           "notStarted": "Not started",
           "progress": "Course progress",
           "time": "Time",
-          "lia": "LIA",
+          "SofLIA": "SofLIA",
           "quiz": "Quiz",
           "notes": "Notas"
         },
@@ -503,7 +503,7 @@
       "assign": "Assign Course",
       "assigning": "Assigning...",
       "cancel": "Cancel",
-      "suggestDate": "Suggest with LIA",
+      "suggestDate": "Suggest with SofLIA",
       "suggesting": "Suggesting..."
     },
     "errors": {
@@ -526,8 +526,8 @@
     },
     "titleTeam": "Assign Course to Team"
   },
-  "liaSuggestion": {
-    "title": "LIA Suggestions",
+  "SofLIASuggestion": {
+    "title": "SofLIA Suggestions",
     "error": "Error fetching suggestions",
     "steps": {
       "approach": {

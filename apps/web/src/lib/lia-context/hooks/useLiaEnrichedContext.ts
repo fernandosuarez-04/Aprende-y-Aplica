@@ -1,12 +1,12 @@
-'use client';
+﻿'use client';
 
 /**
  * useLiaEnrichedContext
  * 
- * Hook que combina todos los hooks de contexto de LIA y proporciona
+ * Hook que combina todos los hooks de contexto de SofLIA y proporciona
  * un método para obtener metadata enriquecida lista para enviar al API.
  * 
- * Este hook está diseñado para usarse con useLiaGeneralChat o similar,
+ * Este hook está diseñado para usarse con useSofLIAGeneralChat o similar,
  * enriqueciendo la metadata que se envía al servidor.
  * 
  * @example
@@ -21,7 +21,7 @@
  *     // Obtener metadata para enviar
  *     const metadata = getEnrichedMetadata();
  *     
- *     // Enviar a LIA con metadata
+ *     // Enviar a SofLIA con metadata
  *     await sendToLia(message, metadata);
  *   };
  * }
@@ -217,11 +217,11 @@ export function useLiaEnrichedContext(options: UseLiaEnrichedContextOptions = {}
   }, [errorCapture, apiTracking, clearContextMarkers]);
 
   /**
-   * Obtiene metadata enriquecida para enviar a LIA
+   * Obtiene metadata enriquecida para enviar a SofLIA
    */
   const getEnrichedMetadata = useCallback((): LiaEnrichedContextMetadata => {
     const sessionDuration = Date.now() - sessionStart;
-    const errors = errorCapture.getErrorsForLia();
+    const errors = errorCapture.getErrorsForSofLIA();
     const summary = errorCapture.getErrorSummary();
 
     return {
@@ -235,8 +235,8 @@ export function useLiaEnrichedContext(options: UseLiaEnrichedContextOptions = {}
       errorSummary: summary 
         ? `${summary.total} errores (${summary.byType.console} consola, ${summary.byType.exception} excepciones, ${summary.byType.promise} promesas)`
         : 'Sin errores',
-      activeComponents: componentDetection.getComponentsForLia(),
-      apiCalls: apiTracking.getCallsForLia(),
+      activeComponents: componentDetection.getComponentsForSofLIA(),
+      apiCalls: apiTracking.getCallsForSofLIA(),
       viewport: typeof window !== 'undefined' 
         ? { width: window.innerWidth, height: window.innerHeight }
         : { width: 0, height: 0 },

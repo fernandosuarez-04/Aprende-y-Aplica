@@ -1,7 +1,7 @@
-/**
+﻿/**
  * PlatformContextProvider
  * 
- * Provee contexto general sobre la plataforma SOFLIA a LIA.
+ * Provee contexto general sobre la plataforma SOFLIA a SofLIA.
  * Incluye información de funcionalidades, módulos activos y capacidades.
  */
 
@@ -37,8 +37,8 @@ const PLATFORM_MODULES = {
     description: 'Catálogo de herramientas y aplicaciones de IA',
     features: ['Apps de IA', 'Prompts', 'Categorías', 'Favoritos']
   },
-  lia: {
-    name: 'LIA - Asistente de IA',
+  SofLIA: {
+    name: 'SofLIA - Asistente de IA',
     description: 'Asistente inteligente integrado en toda la plataforma',
     features: ['Chat contextual', 'Ayuda en cursos', 'Planificación de estudio', 'Reporte de bugs']
   },
@@ -129,7 +129,7 @@ export class PlatformContextProvider extends BaseContextProvider {
       }
     }
 
-    sections.push('\n### Notas para LIA');
+    sections.push('\n### Notas para SofLIA');
     sections.push('- Responder en español por defecto');
     sections.push('- Ser amigable pero profesional');
     sections.push('- Cuando no sepas algo, sugerir contactar soporte');
@@ -143,47 +143,47 @@ export class PlatformContextProvider extends BaseContextProvider {
   private getRelevantModules(currentPage?: string): string[] {
     if (!currentPage) {
       // Si no hay página, devolver los más importantes
-      return ['courses', 'lia', 'studyPlanner', 'communities'];
+      return ['courses', 'SofLIA', 'studyPlanner', 'communities'];
     }
 
     const page = currentPage.toLowerCase();
 
     // Mapear página a módulos relevantes
     if (page.includes('course') || page.includes('learn')) {
-      return ['courses', 'lia', 'certificates'];
+      return ['courses', 'SofLIA', 'certificates'];
     }
     if (page.includes('study-planner')) {
-      return ['studyPlanner', 'lia', 'courses'];
+      return ['studyPlanner', 'SofLIA', 'courses'];
     }
     if (page.includes('communit')) {
-      return ['communities', 'lia'];
+      return ['communities', 'SofLIA'];
     }
     if (page.includes('business-panel')) {
-      return ['businessPanel', 'courses', 'lia'];
+      return ['businessPanel', 'courses', 'SofLIA'];
     }
     if (page.includes('business-user')) {
-      return ['courses', 'lia', 'certificates'];
+      return ['courses', 'SofLIA', 'certificates'];
     }
     if (page.includes('apps-directory') || page.includes('prompt-directory')) {
-      return ['aiDirectory', 'lia'];
+      return ['aiDirectory', 'SofLIA'];
     }
     if (page.includes('workshop')) {
-      return ['workshops', 'lia'];
+      return ['workshops', 'SofLIA'];
     }
     if (page.includes('news')) {
-      return ['news', 'lia'];
+      return ['news', 'SofLIA'];
     }
     if (page.includes('reel')) {
-      return ['reels', 'lia'];
+      return ['reels', 'SofLIA'];
     }
     if (page.includes('admin')) {
-      return ['businessPanel', 'lia', 'courses', 'communities'];
+      return ['businessPanel', 'SofLIA', 'courses', 'communities'];
     }
     if (page.includes('instructor')) {
-      return ['courses', 'lia', 'workshops'];
+      return ['courses', 'SofLIA', 'workshops'];
     }
 
     // Default
-    return ['courses', 'lia', 'studyPlanner', 'communities'];
+    return ['courses', 'SofLIA', 'studyPlanner', 'communities'];
   }
 }

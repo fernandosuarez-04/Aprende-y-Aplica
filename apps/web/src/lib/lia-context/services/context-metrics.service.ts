@@ -1,7 +1,7 @@
-/**
+﻿/**
  * ContextMetricsService
  * 
- * Servicio para registrar y analizar métricas sobre el uso del contexto de LIA.
+ * Servicio para registrar y analizar métricas sobre el uso del contexto de SofLIA.
  * Permite entender qué contexto es más útil y optimizar el sistema.
  */
 

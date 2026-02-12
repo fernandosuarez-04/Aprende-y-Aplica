@@ -1,9 +1,9 @@
-/**
+﻿/**
  * CourseContextProvider
  * 
  * Provider de contexto especializado para páginas de cursos.
  * Proporciona información sobre el curso actual, lección, progreso
- * y contexto de aprendizaje para LIA.
+ * y contexto de aprendizaje para SofLIA.
  */
 
 import { BaseContextProvider } from '../base/BaseContextProvider';
@@ -132,8 +132,8 @@ export class CourseContextProvider extends BaseContextProvider {
       sections.push(`**Progreso:** ${context.progress}%`);
     }
 
-    // Agregar instrucciones para LIA
-    sections.push('\n### Instrucciones para LIA en contexto de curso:');
+    // Agregar instrucciones para SofLIA
+    sections.push('\n### Instrucciones para SofLIA en contexto de curso:');
     sections.push('- El usuario está en una página de aprendizaje');
     sections.push('- Responde preguntas relacionadas con el contenido del curso');
     sections.push('- Si hay transcripción disponible, úsala para dar respuestas precisas');

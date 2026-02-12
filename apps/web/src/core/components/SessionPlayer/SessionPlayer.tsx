@@ -38,7 +38,7 @@ export function SessionPlayer({
   useEffect(() => {
 
     if (!session.events.length) {
-      console.warn('⚠️ SessionPlayer: No hay eventos para reproducir')
+      console.warn('[WARN] SessionPlayer: No hay eventos para reproducir')
       setError('No hay eventos para reproducir');
       setIsLoading(false);
       return;
@@ -53,7 +53,7 @@ export function SessionPlayer({
       
       if (!containerRef.current) {
         if (attemptCount >= maxAttempts) {
-          console.error('❌ Timeout: Contenedor no disponible después de', maxAttempts, 'intentos');
+          console.error('[ERROR] Timeout: Contenedor no disponible después de', maxAttempts, 'intentos');
           setError('Error: No se pudo cargar el reproductor (timeout)');
           setIsLoading(false);
           return;
@@ -82,7 +82,7 @@ export function SessionPlayer({
         // Verificar que tenemos snapshot inicial (tipo 2)
         const hasSnapshot = session.events.some((e: any) => e.type === 2);
         if (!hasSnapshot) {
-          console.warn('⚠️ No se encontró snapshot inicial en los eventos');
+          console.warn('[WARN] No se encontro snapshot inicial en los eventos');
         }
 
         // Limpiar player anterior si existe
@@ -93,7 +93,7 @@ export function SessionPlayer({
               playerRef.current.destroy();
             }
           } catch (cleanupError) {
-            console.warn('⚠️ Error al limpiar player anterior:', cleanupError);
+            console.warn('[WARN] Error al limpiar player anterior:', cleanupError);
           }
           container.innerHTML = '';
         }
@@ -120,7 +120,7 @@ export function SessionPlayer({
         setIsLoading(false);
         setError(null);
       } catch (err) {
-        console.error('❌ Error inicializando player:', err);
+        console.error('[ERROR] Error inicializando player:', err);
         console.error('   Stack:', (err as Error).stack);
         setError('Error al cargar la reproducción: ' + ((err as Error).message || 'Error desconocido'));
         setIsLoading(false);

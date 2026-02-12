@@ -273,7 +273,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SavePlanR
     // Si hay sesiones inválidas, retornar error con detalles
     if (invalidSessions.length > 0) {
       const errorDetails = invalidSessions.map(s => `Sesión ${s.index}: ${s.reason}`).join('; ');
-      console.error('❌ Sesiones inválidas detectadas:', invalidSessions);
+ console.error(' Sesiones inválidas detectadas:', invalidSessions);
       return NextResponse.json(
         { 
           success: false, 

@@ -80,11 +80,9 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
             const existingIds = new Set(prev.map(p => p.id))
             const uniqueNewPosts = newPosts.filter((post: T) => !existingIds.has(post.id))
             
-            // console.log(`📥 Infinite Scroll: Loaded ${newPosts.length} posts, ${uniqueNewPosts.length} unique, ${newPosts.length - uniqueNewPosts.length} duplicates filtered`)
             
             // Si no hay posts nuevos únicos, no hay más por cargar
             if (uniqueNewPosts.length === 0) {
-              // console.log('✅ Infinite Scroll: No more unique posts, stopping pagination')
               setHasMore(false)
               return prev
             }
@@ -95,7 +93,6 @@ export function InfinitePostsFeed<T extends GenericPost = GenericPost>({
         }
       }
     } catch (error) {
-      // console.error('Error loading posts:', error)
     } finally {
       setLoading(false)
     }

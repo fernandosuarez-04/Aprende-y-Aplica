@@ -32,14 +32,14 @@ export async function GET(request: NextRequest) {
       .single();
 
     if (orgError || !organization) {
-      console.error('❌ [API] Error obteniendo organización:', orgError);
+ console.error(' [API] Error obteniendo organización:', orgError);
       return NextResponse.json(
         { success: false, error: 'Error al obtener estilos' },
         { status: 500 }
       );
     }
 
-    console.log('📥 [API] Organización obtenida:', {
+ console.log(' [API] Organización obtenida:', {
       hasPanel: !!organization.panel_styles,
       hasUserDashboard: !!organization.user_dashboard_styles,
       hasLogin: !!organization.login_styles,
@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     let loginStyles = organization.login_styles;
 
     if (organization.selected_theme && (!panelStyles || !userDashboardStyles || !loginStyles)) {
-      console.log('🎨 [API] Aplicando tema preset:', organization.selected_theme);
+ console.log(' [API] Aplicando tema preset:', organization.selected_theme);
       const theme = getThemeById(organization.selected_theme);
       if (theme) {
         panelStyles = panelStyles || theme.panel;
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    console.error('❌ [API] Error en GET /api/business/settings/styles:', error);
+ console.error(' [API] Error en GET /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al obtener estilos' },
       { status: 500 }
@@ -193,7 +193,6 @@ export async function PUT(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    // console.error('Error en PUT /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al actualizar estilos' },
       { status: 500 }
@@ -292,7 +291,6 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error: any) {
-    // console.error('Error en POST /api/business/settings/styles:', error);
     return NextResponse.json(
       { success: false, error: 'Error al aplicar tema' },
       { status: 500 }

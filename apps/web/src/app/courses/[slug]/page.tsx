@@ -143,7 +143,6 @@ export default function CourseDetailPage() {
                 setInstructorData(instructorData);
               }
             } catch (err) {
-              // console.error('Error loading instructor:', err);
             }
           })();
         }
@@ -214,12 +213,10 @@ export default function CourseDetailPage() {
           }
         } catch (checkError) {
           // Si falla la verificación, mantener el estado optimista
-          // console.error('Error verificando compra:', checkError);
         }
       }, 500); // Esperar 500ms para que la transacción se complete
       
     } catch (error) {
-      // console.error('Error purchasing course:', error);
       // Mostrar error con el modal de error
       setErrorMessage(error instanceof Error ? error.message : 'Error al adquirir el curso');
       setShowErrorModal(true);
@@ -930,7 +927,6 @@ export default function CourseDetailPage() {
             }
           } catch (checkError) {
             // Si falla, mantener el estado actual
-            // console.error('Error verificando compra:', checkError);
           }
         }}
         title={successMessage}

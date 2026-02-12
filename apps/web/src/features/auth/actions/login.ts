@@ -46,7 +46,7 @@ export async function loginAction(formData: FormData) {
       return { error: 'Credenciales inválidas' }
     }
 
-    console.log('👤 [loginAction] Usuario encontrado:', {
+ console.log(' [loginAction] Usuario encontrado:', {
       id: user.id,
       username: user.username,
       email: user.email,
@@ -187,7 +187,7 @@ export async function loginAction(formData: FormData) {
         headersList.get('x-real-ip') ||
         'unknown'
 
-      console.log('ðŸ“‹ [loginAction] Contexto obtenido:', {
+ console.log(' [loginAction] Contexto obtenido:', {
         hasHeaders: !!headersList,
         userAgent: userAgent.substring(0, 50),
         ip
@@ -275,7 +275,7 @@ export async function loginAction(formData: FormData) {
 
     } catch (sessionError) {
       // Log del error para debugging
-      console.error('âŒ [loginAction] Error crítico creando sesión:', {
+ console.error(' [loginAction] Error crítico creando sesión:', {
         error: sessionError,
         message: (sessionError as any)?.message,
         stack: (sessionError as any)?.stack
@@ -298,7 +298,7 @@ export async function loginAction(formData: FormData) {
         .eq('id', user.id)
       
       if (updateLoginError) {
-        console.warn('âš ï¸ No se pudo actualizar last_login_at:', updateLoginError)
+ console.warn(' No se pudo actualizar last_login_at:', updateLoginError)
       }
     } catch (loginUpdateError) {
       // No fallar el login si falla la actualización del timestamp
@@ -312,7 +312,7 @@ export async function loginAction(formData: FormData) {
     // - Usuario (o cualquier otro) â†’ /dashboard (Tour SOFLIA + Planes)
 
     const normalizedRole = user.cargo_rol?.toLowerCase().trim();
-    console.log('ðŸŽ¯ [loginAction] Determinando redirección según cargo_rol:', {
+ console.log(' [loginAction] Determinando redirección según cargo_rol:', {
       cargo_rol: user.cargo_rol,
       normalizedRole
     });
@@ -336,7 +336,7 @@ export async function loginAction(formData: FormData) {
         .order('joined_at', { ascending: true })
 
       if (orgError || !userOrgs || userOrgs.length === 0) {
-        console.log('âš ï¸ [loginAction] Usuario Business sin organización activa:', {
+ console.log(' [loginAction] Usuario Business sin organización activa:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           error: orgError?.message
@@ -344,7 +344,7 @@ export async function loginAction(formData: FormData) {
         redirectTo = '/dashboard'; // Sin organización, ir al dashboard normal
       } else if (userOrgs.length > 1) {
         // Usuario pertenece a MÚLTIPLES organizaciones - mostrar selector
-        console.log('ðŸ¢ [loginAction] Usuario Business con múltiples organizaciones:', {
+ console.log(' [loginAction] Usuario Business con múltiples organizaciones:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationCount: userOrgs.length
@@ -355,7 +355,7 @@ export async function loginAction(formData: FormData) {
         const userOrg = userOrgs[0]
         const orgSlug = (userOrg.organizations as any)?.slug
 
-        console.log('✅ [loginAction] Usuario Business con organización única:', {
+ console.log(' [loginAction] Usuario Business con organización única:', {
           userId: user.id,
           cargo_rol: normalizedRole,
           organizationId: userOrg.organization_id,
@@ -372,7 +372,7 @@ export async function loginAction(formData: FormData) {
       }
     }
 
-    console.log('🚀 [loginAction] Redirigiendo a:', redirectTo);
+ console.log(' [loginAction] Redirigiendo a:', redirectTo);
 
     // Devolver success con la URL de redirección
     return { success: true, redirectTo }

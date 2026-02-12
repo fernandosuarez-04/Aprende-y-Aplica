@@ -128,7 +128,7 @@ export async function loadRrweb(): Promise<RrwebModule | null> {
       
       // Verificar que el módulo tiene la función record
       if (!module || typeof module.record !== 'function') {
-        console.error('❌ [rrweb-loader] rrweb module structure:', {
+ console.error(' [rrweb-loader] rrweb module structure:', {
           hasModule: !!importedModule,
           hasDefault: !!importedModule?.default,
           hasRecord: typeof importedModule?.record,
@@ -144,7 +144,7 @@ export async function loadRrweb(): Promise<RrwebModule | null> {
 
       return module;
     } catch (error) {
-      console.error('❌ [rrweb-loader] Error cargando rrweb:', error);
+ console.error(' [rrweb-loader] Error cargando rrweb:', error);
       isRrwebLoading = false;
       rrwebLoadPromise = null;
       rrwebModule = null;
@@ -180,9 +180,9 @@ async function loadRrwebPlayerStyles(): Promise<void> {
       }
     `;
     document.head.appendChild(styleElement);
-    console.log('✅ Estilos de rrweb-player cargados');
+ console.log(' Estilos de rrweb-player cargados');
   } catch (error) {
-    console.warn('⚠️ Error cargando estilos de rrweb-player:', error);
+ console.warn(' Error cargando estilos de rrweb-player:', error);
   }
 }
 
@@ -231,7 +231,7 @@ export async function loadRrwebPlayer(): Promise<any | null> {
       }
       
       if (!module) {
-        console.error('❌ [rrweb-loader] rrweb-player module structure:', {
+ console.error(' [rrweb-loader] rrweb-player module structure:', {
           hasModule: !!importedModule,
           hasDefault: !!importedModule?.default,
           moduleKeys: importedModule ? Object.keys(importedModule) : [],
@@ -244,7 +244,7 @@ export async function loadRrwebPlayer(): Promise<any | null> {
 
       return module;
     } catch (error) {
-      console.error('❌ [rrweb-loader] Error cargando rrweb-player:', error);
+ console.error(' [rrweb-loader] Error cargando rrweb-player:', error);
       isRrwebPlayerLoading = false;
       rrwebPlayerLoadPromise = null;
       rrwebPlayerModule = null;

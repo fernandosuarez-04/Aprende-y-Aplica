@@ -1,21 +1,21 @@
-/**
- * LIA Component Utilities
+﻿/**
+ * SofLIA Component Utilities
  * 
- * Utilidades para marcar componentes con data-attributes que LIA puede detectar.
- * Esto permite a LIA entender qué componentes están activos en la página
+ * Utilidades para marcar componentes con data-attributes que SofLIA puede detectar.
+ * Esto permite a SofLIA entender qué componentes están activos en la página
  * cuando un usuario reporta un problema.
  */
 
 /**
- * Atributos de data para componentes de LIA
+ * Atributos de data para componentes de SofLIA
  */
 export const LIA_DATA_ATTRIBUTES = {
-  COMPONENT: 'data-lia-component',
-  PROPS: 'data-lia-props',
-  STATE: 'data-lia-state',
-  FEATURE: 'data-lia-feature',
-  ACTION: 'data-lia-action',
-  ERROR_BOUNDARY: 'data-lia-error-boundary'
+  COMPONENT: 'data-SofLIA-component',
+  PROPS: 'data-SofLIA-props',
+  STATE: 'data-SofLIA-state',
+  FEATURE: 'data-SofLIA-feature',
+  ACTION: 'data-SofLIA-action',
+  ERROR_BOUNDARY: 'data-SofLIA-error-boundary'
 } as const;
 
 /**
@@ -37,7 +37,7 @@ interface LiaComponentOptions {
 }
 
 /**
- * Genera props para marcar un elemento como componente detectable por LIA
+ * Genera props para marcar un elemento como componente detectable por SofLIA
  * 
  * @example
  * // En un componente React:
@@ -90,9 +90,9 @@ export function liaComponent(options: LiaComponentOptions): Record<string, strin
  * Versión simplificada para casos básicos
  * 
  * @example
- * <button {...liaMarker('SubmitButton')}>Enviar</button>
+ * <button {...SofLIAMarker('SubmitButton')}>Enviar</button>
  */
-export function liaMarker(name: string, state?: string): Record<string, string | undefined> {
+export function SofLIAMarker(name: string, state?: string): Record<string, string | undefined> {
   return {
     [LIA_DATA_ATTRIBUTES.COMPONENT]: name,
     [LIA_DATA_ATTRIBUTES.STATE]: state
@@ -103,9 +103,9 @@ export function liaMarker(name: string, state?: string): Record<string, string |
  * Marca un modal/overlay
  * 
  * @example
- * <Dialog {...liaModal('ConfirmDeleteModal', isOpen)}>...</Dialog>
+ * <Dialog {...SofLIAModal('ConfirmDeleteModal', isOpen)}>...</Dialog>
  */
-export function liaModal(name: string, isOpen: boolean): Record<string, string> {
+export function SofLIAModal(name: string, isOpen: boolean): Record<string, string> {
   return {
     [LIA_DATA_ATTRIBUTES.COMPONENT]: name,
     [LIA_DATA_ATTRIBUTES.STATE]: isOpen ? 'open' : 'closed',
@@ -117,9 +117,9 @@ export function liaModal(name: string, isOpen: boolean): Record<string, string> 
  * Marca un formulario
  * 
  * @example
- * <form {...liaForm('LoginForm', { step: 1, hasErrors })}>...</form>
+ * <form {...SofLIAForm('LoginForm', { step: 1, hasErrors })}>...</form>
  */
-export function liaForm(
+export function SofLIAForm(
   name: string, 
   state?: { step?: number; hasErrors?: boolean; isSubmitting?: boolean }
 ): Record<string, string> {
@@ -143,9 +143,9 @@ export function liaForm(
  * Marca una tabla/lista de datos
  * 
  * @example
- * <table {...liaDataTable('UsersTable', { itemCount: users.length, page: 1 })}>...</table>
+ * <table {...SofLIADataTable('UsersTable', { itemCount: users.length, page: 1 })}>...</table>
  */
-export function liaDataTable(
+export function SofLIADataTable(
   name: string,
   state?: { itemCount?: number; page?: number; isLoading?: boolean; hasFilters?: boolean }
 ): Record<string, string> {
@@ -170,9 +170,9 @@ export function liaDataTable(
  * Marca un error boundary
  * 
  * @example
- * <ErrorBoundary {...liaErrorBoundary('CourseViewerBoundary')}>...</ErrorBoundary>
+ * <ErrorBoundary {...SofLIAErrorBoundary('CourseViewerBoundary')}>...</ErrorBoundary>
  */
-export function liaErrorBoundary(name: string): Record<string, string> {
+export function SofLIAErrorBoundary(name: string): Record<string, string> {
   return {
     [LIA_DATA_ATTRIBUTES.COMPONENT]: name,
     [LIA_DATA_ATTRIBUTES.ERROR_BOUNDARY]: 'true'
@@ -218,9 +218,9 @@ function sanitizeProps(props: Record<string, unknown>): Record<string, unknown> 
 }
 
 /**
- * Obtiene información de un elemento marcado con LIA attributes
+ * Obtiene información de un elemento marcado con SofLIA attributes
  */
-export function parseLiaElement(element: Element): {
+export function parseSofLIAElement(element: Element): {
   name: string;
   props?: Record<string, unknown>;
   state?: string;
@@ -231,7 +231,7 @@ export function parseLiaElement(element: Element): {
   const name = element.getAttribute(LIA_DATA_ATTRIBUTES.COMPONENT);
   if (!name) return null;
 
-  const result: ReturnType<typeof parseLiaElement> = { name };
+  const result: ReturnType<typeof parseSofLIAElement> = { name };
 
   const propsStr = element.getAttribute(LIA_DATA_ATTRIBUTES.PROPS);
   if (propsStr) {
@@ -260,14 +260,14 @@ export function parseLiaElement(element: Element): {
 /**
  * Encuentra todos los componentes marcados en el DOM actual
  */
-export function findAllLiaComponents(): Array<ReturnType<typeof parseLiaElement>> {
+export function findAllLiaComponents(): Array<ReturnType<typeof parseSofLIAElement>> {
   if (typeof document === 'undefined') return [];
 
   const elements = document.querySelectorAll(`[${LIA_DATA_ATTRIBUTES.COMPONENT}]`);
-  const components: Array<ReturnType<typeof parseLiaElement>> = [];
+  const components: Array<ReturnType<typeof parseSofLIAElement>> = [];
 
   elements.forEach(el => {
-    const parsed = parseLiaElement(el);
+    const parsed = parseSofLIAElement(el);
     if (parsed) {
       components.push(parsed);
     }
@@ -279,11 +279,11 @@ export function findAllLiaComponents(): Array<ReturnType<typeof parseLiaElement>
 /**
  * Encuentra componentes visibles en el viewport
  */
-export function findVisibleLiaComponents(): Array<ReturnType<typeof parseLiaElement>> {
+export function findVisibleLiaComponents(): Array<ReturnType<typeof parseSofLIAElement>> {
   if (typeof document === 'undefined' || typeof window === 'undefined') return [];
 
   const elements = document.querySelectorAll(`[${LIA_DATA_ATTRIBUTES.COMPONENT}]`);
-  const visible: Array<ReturnType<typeof parseLiaElement>> = [];
+  const visible: Array<ReturnType<typeof parseSofLIAElement>> = [];
 
   elements.forEach(el => {
     const rect = el.getBoundingClientRect();
@@ -295,7 +295,7 @@ export function findVisibleLiaComponents(): Array<ReturnType<typeof parseLiaElem
     );
 
     if (isVisible) {
-      const parsed = parseLiaElement(el);
+      const parsed = parseSofLIAElement(el);
       if (parsed) {
         visible.push(parsed);
       }

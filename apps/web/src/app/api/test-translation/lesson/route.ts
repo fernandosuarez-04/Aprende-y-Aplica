@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('[TEST-LESSON-TRANSLATION] ❌ Error en prueba:', error)
+ console.error('[TEST-LESSON-TRANSLATION] Error en prueba:', error)
     return NextResponse.json(
       {
         success: false,

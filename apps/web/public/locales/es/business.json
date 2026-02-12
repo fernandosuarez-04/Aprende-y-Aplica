@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "dashboard": "Dashboard",
     "users": "Usuarios",
@@ -256,11 +256,11 @@
         },
         "platformActivity": {
           "title": "Actividad en la Plataforma",
-          "liaQueries": "Consultas LIA",
+          "SofLIAQueries": "Consultas SofLIA",
           "messages": "mensajes",
           "quizzesPassed": "Quiz Aprobados",
           "average": "promedio",
-          "liaActivities": "Actividades LIA",
+          "liaActivities": "Actividades SofLIA",
           "total": "total"
         },
         "generalProgress": {
@@ -279,7 +279,7 @@
           "notStarted": "Sin iniciar",
           "progress": "Progreso del curso",
           "time": "Tiempo",
-          "lia": "LIA",
+          "SofLIA": "SofLIA",
           "quiz": "Quiz",
           "notes": "Notas"
         },
@@ -492,7 +492,7 @@
       "assign": "Asignar Curso",
       "assigning": "Asignando...",
       "cancel": "Cancelar",
-      "suggestDate": "Sugerir con LIA",
+      "suggestDate": "Sugerir con SofLIA",
       "suggesting": "Sugiriendo...",
       "confirmAssign": "Confirmar Asignación"
     },
@@ -527,8 +527,8 @@
     },
     "titleTeam": "Asignar Curso a Equipo"
   },
-  "liaSuggestion": {
-    "title": "Sugerencias de LIA",
+  "SofLIASuggestion": {
+    "title": "Sugerencias de SofLIA",
     "error": "Error al obtener sugerencias",
     "steps": {
       "approach": {

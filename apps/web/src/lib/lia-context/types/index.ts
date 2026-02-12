@@ -1,8 +1,8 @@
-/**
- * Tipos para el Sistema de Contexto Dinámico de LIA
+﻿/**
+ * Tipos para el Sistema de Contexto Dinámico de SofLIA
  * 
  * Este módulo define las interfaces y tipos utilizados por el sistema
- * de contexto dinámico para proporcionar información relevante a LIA.
+ * de contexto dinámico para proporcionar información relevante a SofLIA.
  */
 
 // ============================================================================

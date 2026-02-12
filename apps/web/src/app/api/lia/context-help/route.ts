@@ -1,6 +1,6 @@
-/**
- * API Route: LIA Context Help
- * Endpoint para que LIA reciba y analice contexto de sesión rrweb
+﻿/**
+ * API Route: SofLIA Context Help
+ * Endpoint para que SofLIA reciba y analice contexto de sesión rrweb
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -19,13 +19,13 @@ interface ContextHelpRequest {
 export async function POST(request: NextRequest) {
   try {
     const body: ContextHelpRequest = await request.json();
-    
-    const { 
-      question, 
-      sessionEvents, 
-      workshopId, 
+
+    const {
+      question,
+      sessionEvents,
+      workshopId,
       activityId,
-      analysisWindow = 120000 
+      analysisWindow = 120000
     } = body;
 
     // Validaciones
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     const context = sessionAnalyzer.analyzeSession(sessionEvents, analysisWindow);
     const contextSummary = sessionAnalyzer.generateContextSummary(context);
 
-    // 2. Construir prompt contextual para LIA
+    // 2. Construir prompt contextual para SofLIA
     const contextualPrompt = buildContextualPrompt(
       question,
       contextSummary,
@@ -56,15 +56,15 @@ export async function POST(request: NextRequest) {
       { workshopId, activityId }
     );
 
-    // 3. Llamar a LIA (OpenAI)
-    const liaResponse = await callLIA(contextualPrompt);
+    // 3. Llamar a SofLIA (OpenAI)
+    const SofLIAResponse = await callSofLIA(contextualPrompt);
 
     // 4. Guardar la intervención (opcional, para analytics)
-    // await saveIntervention({ question, context, response: liaResponse });
+    // await saveIntervention({ question, context, response: SofLIAResponse });
 
     return NextResponse.json({
       success: true,
-      response: liaResponse,
+      response: SofLIAResponse,
       context: {
         summary: contextSummary,
         difficultyScore: context.difficultyScore,
@@ -74,9 +74,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error en context-help:', error);
+    console.error(' Error en context-help:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Error procesando la solicitud',
         details: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -86,7 +86,7 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * Construye un prompt enriquecido con contexto para LIA
+ * Construye un prompt enriquecido con contexto para SofLIA
  */
 function buildContextualPrompt(
   userQuestion: string,
@@ -94,7 +94,7 @@ function buildContextualPrompt(
   context: any,
   metadata: { workshopId?: string; activityId?: string }
 ): string {
-  let prompt = `Eres LIA, la asistente virtual de Aprende y Aplica. Un usuario está trabajando en un taller y necesita tu ayuda.
+  let prompt = `Eres SofLIA, la asistente virtual de Aprende y Aplica. Un usuario está trabajando en un taller y necesita tu ayuda.
 
 ## PREGUNTA DEL USUARIO:
 "${userQuestion}"
@@ -148,20 +148,20 @@ Responde de forma conversacional y útil:`;
 }
 
 /**
- * Llama a la API de LIA (OpenAI) con el prompt contextual
+ * Llama a la API de SofLIA (OpenAI) con el prompt contextual
  */
-async function callLIA(prompt: string): Promise<string> {
+async function callSofLIA(prompt: string): Promise<string> {
   try {
     const apiKey = process.env.OPENAI_API_KEY;
-    
+
     if (!apiKey) {
-      console.warn('⚠️ OPENAI_API_KEY no configurada, usando respuesta simulada');
+      console.warn(' OPENAI_API_KEY no configurada, usando respuesta simulada');
       return generateMockResponse(prompt);
     }
 
     const startTime = Date.now();
     const model = 'gpt-4-turbo-preview';
-    
+
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -173,7 +173,7 @@ async function callLIA(prompt: string): Promise<string> {
         messages: [
           {
             role: 'system',
-            content: 'Eres LIA, la asistente virtual experta en IA de Aprende y Aplica. Eres empática, clara y siempre proporcionas ayuda práctica basada en el contexto específico del usuario.',
+            content: 'Eres SofLIA, la asistente virtual experta en IA de Aprende y Aplica. Eres empática, clara y siempre proporcionas ayuda práctica basada en el contexto específico del usuario.',
           },
           {
             role: 'user',
@@ -191,23 +191,23 @@ async function callLIA(prompt: string): Promise<string> {
 
     const data = await response.json();
     const responseTime = Date.now() - startTime;
-    
+
     // ✅ Registrar uso de OpenAI
     if (data.usage) {
       await trackOpenAICall(calculateOpenAIMetadata(
         data.usage,
         model,
-        'lia-context-help',
+        'SofLIA-context-help',
         undefined, // No tenemos userId en este contexto
         responseTime
       ));
     }
-    
+
     return data.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
 
   } catch (error) {
-    console.error('❌ Error llamando a OpenAI:', error);
-    
+    console.error(' Error llamando a OpenAI:', error);
+
     // Fallback a respuesta simulada
     return generateMockResponse(prompt);
   }
@@ -240,5 +240,5 @@ He analizado tu sesión y veo que estás trabajando en esta actividad. Basándom
 ¿Te gustaría que te explique algún concepto específico con más detalle? 🤓
 
 ---
-_Nota: Esta es una respuesta simulada para desarrollo. En producción, LIA usará IA real para respuestas más personalizadas._`;
+_Nota: Esta es una respuesta simulada para desarrollo. En producción, SofLIA usará IA real para respuestas más personalizadas._`;
 }

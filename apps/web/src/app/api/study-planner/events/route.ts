@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
       if (error.code === 'PGRST205' || 
           error.message?.includes('Could not find the table') ||
           error.message?.includes('schema cache')) {
-        console.warn('⚠️ Tabla user_calendar_events no disponible en PostgREST. Retornando array vacío. Esto es normal después de crear la tabla - espera 1-2 minutos.');
+ console.warn(' Tabla user_calendar_events no disponible en PostgREST. Retornando array vacío. Esto es normal después de crear la tabla - espera 1-2 minutos.');
         
         // Retornar array vacío en lugar de error para que la app siga funcionando
         return NextResponse.json({
@@ -265,7 +265,7 @@ async function cleanupOrphanedPlanEvents(supabase: any, userId: string): Promise
 
     // Eliminar eventos huérfanos
     if (orphanedEventIds.length > 0) {
-      console.log(`🗑️ [Cleanup] Eliminando ${orphanedEventIds.length} eventos huérfanos de planes eliminados`);
+ console.log(` [Cleanup] Eliminando ${orphanedEventIds.length} eventos huérfanos de planes eliminados`);
       
       const { error: deleteError } = await supabase
         .from('user_calendar_events')
@@ -274,13 +274,13 @@ async function cleanupOrphanedPlanEvents(supabase: any, userId: string): Promise
         .eq('user_id', userId);
 
       if (deleteError) {
-        console.error('❌ [Cleanup] Error eliminando eventos huérfanos:', deleteError);
+ console.error(' [Cleanup] Error eliminando eventos huérfanos:', deleteError);
       } else {
-        console.log(`✅ [Cleanup] ${orphanedEventIds.length} eventos huérfanos eliminados exitosamente`);
+ console.log(` [Cleanup] ${orphanedEventIds.length} eventos huérfanos eliminados exitosamente`);
       }
     }
   } catch (error) {
-    console.error('❌ [Cleanup] Error en cleanupOrphanedPlanEvents:', error);
+ console.error(' [Cleanup] Error en cleanupOrphanedPlanEvents:', error);
     // No lanzar error para que la carga de eventos continúe
   }
 }

@@ -22,7 +22,7 @@ export async function GET(
     const user = await SessionService.getCurrentUser()
 
     if (!user) {
-      console.error('❌ User not authenticated')
+ console.error(' User not authenticated')
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -42,7 +42,7 @@ export async function GET(
       .single()
 
     if (communityError || !community) {
-      console.error('❌ Error fetching community:', communityError)
+ console.error(' Error fetching community:', communityError)
       return NextResponse.json(
         { error: 'Comunidad no encontrada' },
         { status: 404 }
@@ -53,7 +53,7 @@ export async function GET(
     const canModerate = await canModerateCommunity(user.id, community.id)
 
     if (!canModerate) {
-      console.error('❌ User does not have moderation permissions')
+ console.error(' User does not have moderation permissions')
       return NextResponse.json(
         { error: 'No tienes permisos para moderar esta comunidad' },
         { status: 403 }
@@ -64,7 +64,7 @@ export async function GET(
     // La validación de permisos ya se hizo arriba con canModerateCommunity
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseServiceKey) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY no está configurada')
+ console.error(' SUPABASE_SERVICE_ROLE_KEY no está configurada')
       return NextResponse.json(
         { 
           error: 'Error de configuración del servidor',
@@ -93,7 +93,7 @@ export async function GET(
       .select('id, community_id, post_id, status')
       .eq('community_id', community.id)
 
-    console.log('📊 All reports for community (debug):', {
+ console.log(' All reports for community (debug):', {
       count: allReports?.length || 0,
       reports: allReports,
       error: allReportsError
@@ -117,7 +117,7 @@ export async function GET(
     const { data: reports, error: reportsError } = await query
 
     if (reportsError) {
-      console.error('❌ Error fetching reports:', {
+ console.error(' Error fetching reports:', {
         error: reportsError,
         message: reportsError.message,
         code: reportsError.code,
@@ -212,10 +212,10 @@ export async function GET(
     const { count, error: countError } = await countQuery
 
     if (countError) {
-      console.error('❌ Error counting reports:', countError)
+ console.error(' Error counting reports:', countError)
     }
 
-    console.log('✅ Returning reports:', {
+ console.log(' Returning reports:', {
       count: enrichedReports?.length || 0,
       total: count || 0,
       hasMore: (count || 0) > offset + limit

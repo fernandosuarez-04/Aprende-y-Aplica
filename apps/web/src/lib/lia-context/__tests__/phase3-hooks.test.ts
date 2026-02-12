@@ -1,16 +1,16 @@
-/**
- * Tests para los Hooks de Frontend de LIA - Fase 3
+﻿/**
+ * Tests para los Hooks de Frontend de SofLIA - Fase 3
  * 
  * Estos tests verifican la estructura y tipos de los hooks.
  * Los tests funcionales completos requieren un entorno de React.
  * 
- * Para ejecutar: npx tsx apps/web/src/lib/lia-context/__tests__/phase3-hooks.test.ts
+ * Para ejecutar: npx tsx apps/web/src/lib/SofLIA-context/__tests__/phase3-hooks.test.ts
  */
 
 // Verificamos que los módulos se pueden importar correctamente
 // y que las interfaces están bien definidas
 
-console.log('\n🧪 === TESTS DE HOOKS FRONTEND DE LIA (FASE 3) ===\n');
+console.log('\n🧪 === TESTS DE HOOKS FRONTEND DE SofLIA (FASE 3) ===\n');
 
 let passed = 0;
 let failed = 0;
@@ -101,9 +101,9 @@ test('liaComponentProps genera atributos correctos', async () => {
     const props = liaComponentProps('TestComponent', { foo: 'bar' }, 'open');
     
     return (
-      props['data-lia-component'] === 'TestComponent' &&
-      props['data-lia-props'] === '{"foo":"bar"}' &&
-      props['data-lia-state'] === 'open'
+      props['data-SofLIA-component'] === 'TestComponent' &&
+      props['data-SofLIA-props'] === '{"foo":"bar"}' &&
+      props['data-SofLIA-state'] === 'open'
     );
   } catch {
     return false;
@@ -116,9 +116,9 @@ test('liaComponentProps funciona sin props opcionales', async () => {
     const props = liaComponentProps('SimpleComponent');
     
     return (
-      props['data-lia-component'] === 'SimpleComponent' &&
-      !props['data-lia-props'] &&
-      !props['data-lia-state']
+      props['data-SofLIA-component'] === 'SimpleComponent' &&
+      !props['data-SofLIA-props'] &&
+      !props['data-SofLIA-state']
     );
   } catch {
     return false;
@@ -241,7 +241,7 @@ setTimeout(() => {
   // ============================================================================
 
   console.log('📁 === ESTRUCTURA DE ARCHIVOS FASE 3 ===\n');
-  console.log('apps/web/src/lib/lia-context/');
+  console.log('apps/web/src/lib/SofLIA-context/');
   console.log('├── hooks/');
   console.log('│   ├── index.ts                    # Exportaciones de hooks');
   console.log('│   ├── useErrorCapture.ts          # Captura errores de consola');
@@ -263,7 +263,7 @@ setTimeout(() => {
   console.log('📖 === EJEMPLO DE USO ===\n');
   console.log(`
 // 1. Envolver la app con el provider (opcional, pero recomendado)
-import { LiaContextProvider } from '@/lib/lia-context/client';
+import { LiaContextProvider } from '@/lib/SofLIA-context/client';
 
 function App() {
   return (
@@ -274,7 +274,7 @@ function App() {
 }
 
 // 2. Usar el hook en componentes
-import { useLiaEnrichedContext, liaComponentProps } from '@/lib/lia-context/hooks';
+import { useLiaEnrichedContext, liaComponentProps } from '@/lib/SofLIA-context/hooks';
 
 function MyModal() {
   const { 
@@ -287,7 +287,7 @@ function MyModal() {
     // Agregar marcador de contexto
     addContextMarker('Usuario hizo clic en Guardar');
     
-    // Obtener metadata para enviar a LIA
+    // Obtener metadata para enviar a SofLIA
     const metadata = getEnrichedMetadata();
     console.log('Metadata:', metadata);
   };

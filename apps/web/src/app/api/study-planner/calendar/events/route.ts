@@ -69,7 +69,7 @@ export async function GET(request: NextRequest) {
       try {
         tokenExpiry = new Date(integration.expires_at);
       } catch (e) {
-        console.warn('⚠️ [Calendar Events API] Error parseando expires_at:', e);
+ console.warn(' [Calendar Events API] Error parseando expires_at:', e);
         tokenExpiry = null;
       }
     }
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
-        console.error('❌ [Calendar Events API] No hay refresh_token disponible');
+ console.error(' [Calendar Events API] No hay refresh_token disponible');
         return NextResponse.json({
           error: 'Token expirado y no hay refresh token disponible. Por favor, reconecta tu calendario.',
           events: [],
@@ -92,7 +92,7 @@ export async function GET(request: NextRequest) {
       // Refrescar token
       const refreshResult = await refreshAccessToken(integration);
       if (!refreshResult.success || !refreshResult.accessToken) {
-        console.error('❌ [Calendar Events API] No se pudo refrescar el token:', refreshResult);
+ console.error(' [Calendar Events API] No se pudo refrescar el token:', refreshResult);
         return NextResponse.json({
           error: 'Token expirado y no se pudo refrescar. Por favor, reconecta tu calendario.',
           events: [],
@@ -139,7 +139,7 @@ export async function GET(request: NextRequest) {
         })
     );
 
-    console.log(`🔍 [API Events] Sesiones activas con eventos externos: ${activeEventIds.size}`);
+ console.log(` [API Events] Sesiones activas con eventos externos: ${activeEventIds.size}`);
 
     // Filtrar eventos que corresponden a sesiones eliminadas
     const filteredEvents = events.filter(event => {
@@ -178,7 +178,7 @@ export async function GET(request: NextRequest) {
         .filter(id => id && !activeEventIds.has(id)) // Solo eventos que NO están en sesiones activas
     );
 
-    console.log(`🗑️ [API Events] Eventos huérfanos detectados: ${orphanedEventIds.size}`);
+ console.log(` [API Events] Eventos huérfanos detectados: ${orphanedEventIds.size}`);
 
     // Filtrar eventos que están en la lista de huérfanos
     const finalEvents = filteredEvents.filter(event => {
@@ -186,7 +186,7 @@ export async function GET(request: NextRequest) {
       return !orphanedEventIds.has(cleanEventId);
     });
 
-    console.log(`✅ [API Events] Eventos después de filtrar huérfanos: ${finalEvents.length} (${events.length - finalEvents.length} eliminados)`);
+ console.log(` [API Events] Eventos después de filtrar huérfanos: ${finalEvents.length} (${events.length - finalEvents.length} eliminados)`);
 
     return NextResponse.json({
       events: finalEvents,
@@ -240,14 +240,14 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
     // ✅ CORRECCIÓN: Validar que las credenciales estén disponibles
     if (integration.provider === 'google') {
       if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-        console.error('❌ [Refresh Token] Faltan credenciales de Google Calendar');
-        console.error('   GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? '✅' : '❌');
-        console.error('   GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? '✅' : '❌');
+ console.error(' [Refresh Token] Faltan credenciales de Google Calendar');
+ console.error(' GOOGLE_CLIENT_ID:', GOOGLE_CLIENT_ID ? '' : '');
+ console.error(' GOOGLE_CLIENT_SECRET:', GOOGLE_CLIENT_SECRET ? '' : '');
         return { success: false };
       }
 
       if (!integration.refresh_token) {
-        console.error('❌ [Refresh Token] No hay refresh_token en la integración');
+ console.error(' [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
       }
 
@@ -264,14 +264,14 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ [Refresh Token] Error refrescando token de Google:', response.status, errorText);
+ console.error(' [Refresh Token] Error refrescando token de Google:', response.status, errorText);
         return { success: false };
       }
 
       const tokens = await response.json();
 
       if (!tokens.access_token) {
-        console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
+ console.error(' [Refresh Token] No se recibió access_token en la respuesta');
         return { success: false };
       }
 
@@ -292,7 +292,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         .eq('id', integration.id);
 
       if (updateError) {
-        console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
+ console.error(' [Refresh Token] Error actualizando token en BD:', updateError);
         // Aún así retornar el token si se obtuvo correctamente
       } else {
 
@@ -302,12 +302,12 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
     } else if (integration.provider === 'microsoft') {
       if (!MICROSOFT_CLIENT_ID || !MICROSOFT_CLIENT_SECRET) {
-        console.error('❌ [Refresh Token] Faltan credenciales de Microsoft Calendar');
+ console.error(' [Refresh Token] Faltan credenciales de Microsoft Calendar');
         return { success: false };
       }
 
       if (!integration.refresh_token) {
-        console.error('❌ [Refresh Token] No hay refresh_token en la integración');
+ console.error(' [Refresh Token] No hay refresh_token en la integración');
         return { success: false };
       }
 
@@ -325,14 +325,14 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ [Refresh Token] Error refrescando token de Microsoft:', response.status, errorText);
+ console.error(' [Refresh Token] Error refrescando token de Microsoft:', response.status, errorText);
         return { success: false };
       }
 
       const tokens = await response.json();
 
       if (!tokens.access_token) {
-        console.error('❌ [Refresh Token] No se recibió access_token en la respuesta');
+ console.error(' [Refresh Token] No se recibió access_token en la respuesta');
         return { success: false };
       }
 
@@ -349,7 +349,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
         .eq('id', integration.id);
 
       if (updateError) {
-        console.error('❌ [Refresh Token] Error actualizando token en BD:', updateError);
+ console.error(' [Refresh Token] Error actualizando token en BD:', updateError);
       } else {
 
       }
@@ -382,7 +382,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
 
     if (!calendarsResponse.ok) {
       const errorText = await calendarsResponse.text();
-      console.error('❌ [Google] Error obteniendo lista de calendarios:', calendarsResponse.status, errorText);
+ console.error(' [Google] Error obteniendo lista de calendarios:', calendarsResponse.status, errorText);
 
       // ✅ Detectar error de scopes insuficientes (403)
       if (calendarsResponse.status === 403) {
@@ -390,7 +390,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
           const errorData = JSON.parse(errorText);
           if (errorData.error?.reason === 'ACCESS_TOKEN_SCOPE_INSUFFICIENT' ||
             errorData.error?.message?.includes('insufficient authentication scopes')) {
-            console.error('❌ [Google] El token no tiene los permisos necesarios. El usuario debe reconectar el calendario.');
+ console.error(' [Google] El token no tiene los permisos necesarios. El usuario debe reconectar el calendario.');
             // Retornar array vacío con marca de error de scopes
             throw new Error('SCOPE_INSUFFICIENT: Los permisos del calendario han cambiado. Por favor, desconecta y vuelve a conectar tu calendario de Google.');
           }
@@ -403,7 +403,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
       }
 
       // Fallback: intentar solo con primary
-      console.log('📅 [Google] Intentando solo con calendario primario');
+ console.log(' [Google] Intentando solo con calendario primario');
       return await getEventsFromCalendar(accessToken, 'primary', startDate, endDate);
     }
 
@@ -435,7 +435,7 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
 
     return allEvents;
   } catch (error) {
-    console.error('❌ [Google] Error en getGoogleCalendarEvents:', error);
+ console.error(' [Google] Error en getGoogleCalendarEvents:', error);
     return [];
   }
 }
@@ -574,7 +574,7 @@ async function syncDeletedStudySessions(
 
     // Limpiar external_event_id y calendar_provider de sesiones cuyos eventos fueron eliminados
     if (sessionsToClean.length > 0) {
-      console.log(`🔄 [Sync Study Sessions] Limpiando ${sessionsToClean.length} sesiones con eventos eliminados en ${integration.provider} Calendar`);
+ console.log(` [Sync Study Sessions] Limpiando ${sessionsToClean.length} sesiones con eventos eliminados en ${integration.provider} Calendar`);
 
       const { error: updateError } = await supabase
         .from('study_sessions')
@@ -587,13 +587,13 @@ async function syncDeletedStudySessions(
         .eq('user_id', userId);
 
       if (updateError) {
-        console.error('❌ [Sync Study Sessions] Error limpiando sesiones:', updateError);
+ console.error(' [Sync Study Sessions] Error limpiando sesiones:', updateError);
       } else {
-        console.log(`✅ [Sync Study Sessions] ${sessionsToClean.length} sesiones limpiadas exitosamente`);
+ console.log(` [Sync Study Sessions] ${sessionsToClean.length} sesiones limpiadas exitosamente`);
       }
     }
   } catch (error) {
-    console.error('❌ [Sync Study Sessions] Error en syncDeletedStudySessions:', error);
+ console.error(' [Sync Study Sessions] Error en syncDeletedStudySessions:', error);
     // No lanzar error para que la carga de eventos continúe
   }
 }

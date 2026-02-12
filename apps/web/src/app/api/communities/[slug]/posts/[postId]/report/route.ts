@@ -29,7 +29,7 @@ export async function POST(
     const user = await SessionService.getCurrentUser()
 
     if (!user) {
-      console.error('❌ User not authenticated')
+ console.error(' User not authenticated')
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -39,7 +39,7 @@ export async function POST(
     const validationResult = reportSchema.safeParse(body)
 
     if (!validationResult.success) {
-      console.error('❌ Validation error:', validationResult.error.errors)
+ console.error(' Validation error:', validationResult.error.errors)
       return NextResponse.json(
         { error: 'Datos inválidos', details: validationResult.error.errors },
         { status: 400 }
@@ -56,7 +56,7 @@ export async function POST(
       .single()
 
     if (postError || !post) {
-      console.error('❌ Error fetching post:', postError)
+ console.error(' Error fetching post:', postError)
       return NextResponse.json({ 
         error: 'Post no encontrado',
         details: postError?.message,
@@ -73,7 +73,7 @@ export async function POST(
       .single()
 
     if (communityError || !community) {
-      console.error('❌ Error fetching community or post does not belong to community:', communityError)
+ console.error(' Error fetching community or post does not belong to community:', communityError)
       return NextResponse.json({ 
         error: 'Post no encontrado en esta comunidad',
         details: communityError?.message,
@@ -96,7 +96,7 @@ export async function POST(
       .limit(1)
 
     if (tableCheckError) {
-      console.error('❌ Table check error:', {
+ console.error(' Table check error:', {
         code: tableCheckError.code,
         message: tableCheckError.message,
         details: tableCheckError.details,
@@ -127,7 +127,7 @@ export async function POST(
       .maybeSingle()
 
     if (existingReportError && existingReportError.code !== 'PGRST116') {
-      console.error('❌ Error checking existing report:', {
+ console.error(' Error checking existing report:', {
         error: existingReportError,
         code: existingReportError.code,
         message: existingReportError.message,
@@ -171,7 +171,7 @@ export async function POST(
     // La validación de permisos ya se hizo arriba (usuario autenticado, no propio post, etc.)
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (!supabaseServiceKey) {
-      console.error('❌ SUPABASE_SERVICE_ROLE_KEY no está configurada')
+ console.error(' SUPABASE_SERVICE_ROLE_KEY no está configurada')
       return NextResponse.json(
         { 
           error: 'Error de configuración del servidor',
@@ -199,7 +199,7 @@ export async function POST(
       .single()
 
     if (reportError) {
-      console.error('❌ Error creating report:', {
+ console.error(' Error creating report:', {
         error: reportError,
         code: reportError.code,
         message: reportError.message,
@@ -249,7 +249,7 @@ export async function POST(
       message: 'Reporte enviado exitosamente'
     })
   } catch (error) {
-    console.error('❌ Error in POST report API:', {
+ console.error(' Error in POST report API:', {
       error,
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined

@@ -1,10 +1,10 @@
-/**
- * Tests para el Sistema de Contexto de Errores de LIA - Fase 2
+﻿/**
+ * Tests para el Sistema de Contexto de Errores de SofLIA - Fase 2
  * 
  * Este archivo contiene tests para verificar el funcionamiento del
  * ErrorContextService y el BugReportContextProvider.
  * 
- * Para ejecutar: npx tsx apps/web/src/lib/lia-context/__tests__/error-context.test.ts
+ * Para ejecutar: npx tsx apps/web/src/lib/SofLIA-context/__tests__/error-context.test.ts
  */
 
 import { ErrorContextService, SimilarBug } from '../services/error-context.service';
@@ -14,7 +14,7 @@ import { ContextBuilderService, getContextBuilder } from '../services/context-bu
 // TESTS
 // ============================================================================
 
-console.log('\n🧪 === TESTS DEL SISTEMA DE CONTEXTO DE ERRORES DE LIA (FASE 2) ===\n');
+console.log('\n🧪 === TESTS DEL SISTEMA DE CONTEXTO DE ERRORES DE SofLIA (FASE 2) ===\n');
 
 let passed = 0;
 let failed = 0;

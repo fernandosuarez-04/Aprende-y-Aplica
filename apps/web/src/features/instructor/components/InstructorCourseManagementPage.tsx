@@ -109,7 +109,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
           }
         }
       } catch (error) {
-        // console.error('Error loading instructor signature:', error)
       }
     }
     loadInstructorSignature()
@@ -144,7 +143,6 @@ export function InstructorCourseManagementPage({ courseId }: InstructorCourseMan
             setChartData(data.charts || null)
           }
         } catch (e) {
-          // console.error('Error cargando estadísticas:', e)
         } finally {
           setStatsLoading(false)
         }

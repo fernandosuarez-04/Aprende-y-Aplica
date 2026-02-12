@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -470,7 +470,7 @@ export function BusinessAnalytics() {
                             <div className="p-2 rounded-lg bg-purple-500/20">
                                 <Zap className="w-5 h-5 text-purple-400" />
                             </div>
-                            <span className="text-sm text-gray-500 dark:text-gray-400">Total LIA Chats</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400">Total SofLIA Chats</span>
                         </div>
                         <p className="text-3xl font-bold text-gray-900 dark:text-white">
                             {data?.teams?.teams?.reduce((sum: number, t: any) => sum + (t.stats?.lia_conversations || 0), 0) || 0}
@@ -945,44 +945,44 @@ function UserDetailModal({ user, onClose, theme }: any) {
                                     )}
                                 </div>
 
-                                {/* LIA Interaction Stats */}
+                                {/* SofLIA Interaction Stats */}
                                 <div className="p-5 rounded-2xl border bg-gray-50 dark:bg-white/5 border-gray-200 dark:border-white/10" style={{ ...(theme.cardBorder ? { borderColor: theme.cardBorder } : {}) }}>
                                     <h3 className="font-semibold mb-4 flex items-center gap-2">
                                         <Zap className="w-5 h-5 text-purple-400" />
-                                        Interacciones con LIA
+                                        Interacciones con SofLIA
                                     </h3>
                                     
                                     <div className="grid grid-cols-2 gap-4">
                                         <div className="p-3 rounded-lg bg-black/20 text-center">
-                                            <p className="text-2xl font-bold text-purple-400">{user.stats?.lia?.total_conversations || 0}</p>
+                                            <p className="text-2xl font-bold text-purple-400">{user.stats?.SofLIA?.total_conversations || 0}</p>
                                             <p className="text-xs opacity-50">Conversaciones</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-black/20 text-center">
-                                            <p className="text-2xl font-bold text-blue-400">{user.stats?.lia?.total_messages || 0}</p>
+                                            <p className="text-2xl font-bold text-blue-400">{user.stats?.SofLIA?.total_messages || 0}</p>
                                             <p className="text-xs opacity-50">Mensajes Totales</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-black/20 text-center">
-                                            <p className="text-2xl font-bold text-amber-400">{user.stats?.lia?.user_messages || 0}</p>
+                                            <p className="text-2xl font-bold text-amber-400">{user.stats?.SofLIA?.user_messages || 0}</p>
                                             <p className="text-xs opacity-50">Preguntas del Usuario</p>
                                         </div>
                                         <div className="p-3 rounded-lg bg-black/20 text-center">
-                                            <p className="text-2xl font-bold text-emerald-400">{user.stats?.lia?.assistant_responses || 0}</p>
-                                            <p className="text-xs opacity-50">Respuestas de LIA</p>
+                                            <p className="text-2xl font-bold text-emerald-400">{user.stats?.SofLIA?.assistant_responses || 0}</p>
+                                            <p className="text-xs opacity-50">Respuestas de SofLIA</p>
                                         </div>
                                     </div>
                                     
-                                    {(user.stats?.lia?.contexts?.ai_chat > 0 || user.stats?.lia?.contexts?.course > 0) && (
+                                    {(user.stats?.SofLIA?.contexts?.ai_chat > 0 || user.stats?.SofLIA?.contexts?.course > 0) && (
                                         <div className="mt-4 pt-4 border-t border-white/10">
                                             <p className="text-xs opacity-50 mb-2">Contextos de uso:</p>
                                             <div className="flex gap-2">
-                                                {user.stats?.lia?.contexts?.ai_chat > 0 && (
+                                                {user.stats?.SofLIA?.contexts?.ai_chat > 0 && (
                                                     <span className="px-2 py-1 text-xs rounded-full bg-purple-500/20 text-purple-400">
-                                                        Chat General: {user.stats.lia.contexts.ai_chat}
+                                                        Chat General: {user.stats.SofLIA.contexts.ai_chat}
                                                     </span>
                                                 )}
-                                                {user.stats?.lia?.contexts?.course > 0 && (
+                                                {user.stats?.SofLIA?.contexts?.course > 0 && (
                                                     <span className="px-2 py-1 text-xs rounded-full bg-blue-500/20 text-blue-400">
-                                                        En Cursos: {user.stats.lia.contexts.course}
+                                                        En Cursos: {user.stats.SofLIA.contexts.course}
                                                     </span>
                                                 )}
                                             </div>

@@ -1,4 +1,4 @@
-{
+﻿{
   "appName": "SOFLIA",  
   "welcome": "Welcome",
   "language": "Language",
@@ -44,21 +44,21 @@
     "helpPrompt": "What can I do here? Help me",
     "helpFallback": "Sorry, I couldn't generate a response.",
     "helpError": "Sorry, there was an error processing your help request. Please try again.",
-    "initialMessage": "Hi! ðŸ‘‹ I'm Lia, your AI assistant. I'm here to help you with any questions you have.",
+    "initialMessage": "Hi! ðŸ‘‹ I'm SofLIA, your AI assistant. I'm here to help you with any questions you have.",
     "clearConversation": "Clear conversation",
-    "changeMode": "Change Lia mode",
+    "changeMode": "Change SofLIA mode",
     "clearContext": "Clear context",
     "clearContextConfirm": "Do you want to clear the context and start a new conversation?",
     "reportProblem": "Report problem",
     "promptMode": {
       "placeholder": "Describe what kind of prompt you want to create...",
       "title": "Prompt Designer",
-      "description": "Create and refine professional prompts guided by LIA.",
+      "description": "Create and refine professional prompts guided by SofLIA.",
       "viewGenerated": "View Generated Prompt",
       "download": "Download",
       "titleLabel": "Title",
       "contentLabel": "Content",
-      "emptyDescription": "Generate and refine professional prompts. Specify the objective, tone, and requirements; LIA delivers a ready-to-use prompt with best practices.",
+      "emptyDescription": "Generate and refine professional prompts. Specify the objective, tone, and requirements; SofLIA delivers a ready-to-use prompt with best practices.",
       "loginRequired": "You must sign in to save prompts"
     },
     "nanobanaMode": {
@@ -92,8 +92,8 @@
     }
   },
   "tours": {
-    "viewTourWithLia": "View Tour with LIA",
-    "viewTourWithLiaTitle": "View the welcome experience with LIA again",
+    "viewTourWithSofLIA": "View Tour with SofLIA",
+    "viewTourWithSofLIATitle": "View the welcome experience with SofLIA again",
     "viewGuidedTour": "View guided tour",
     "promptDirectory": {
       "replayButtonLabel": "View directory tour",
@@ -108,9 +108,9 @@
         "speech": "Welcome to Aprende y Aplica. I'm your intelligent assistant. I'm here to guide you on your learning journey with artificial intelligence."
       },
       "2": {
-        "title": "Meet LIA",
-        "description": "LIA is your learning companion who will accompany you everywhere. She can answer your questions, help you with tasks, and adapt to the context of each page.",
-        "speech": "LIA is your learning companion who will accompany you everywhere. She can answer your questions and adapt to the context of each page.",
+        "title": "Meet SofLIA",
+        "description": "SofLIA is your learning companion who will accompany you everywhere. She can answer your questions, help you with tasks, and adapt to the context of each page.",
+        "speech": "SofLIA is your learning companion who will accompany you everywhere. She can answer your questions and adapt to the context of each page.",
         "actionLabel": "View Dashboard"
       },
       "3": {
@@ -121,8 +121,8 @@
       },
       "4": {
         "title": "You're ready!",
-        "description": "Now you can start your adventure. Remember, LIA will always be available in the bottom right corner to help you.",
-        "speech": "Now you can start your adventure. Remember, LIA will always be available to help you.",
+        "description": "Now you can start your adventure. Remember, SofLIA will always be available in the bottom right corner to help you.",
+        "speech": "Now you can start your adventure. Remember, SofLIA will always be available to help you.",
         "actionLabel": "Start"
       }
     },
@@ -153,7 +153,7 @@
     "viewTour": "View Tour",
     "logout": "Sign out"
   },
-  "lia": {
+  "SofLIA": {
     "tips": [
       "Found a bug? Tell me and I'll report it.",
       "Lost on this page? Tell me and I'll guide you.",
@@ -170,11 +170,11 @@
       "help": "Quick help"
     },
     "header": {
-      "title": "LIA",
+      "title": "SofLIA",
       "subtitle": "AI Assistant"
     },
     "chat": {
-      "inputPlaceholder": "Type a message to LIA...",
+      "inputPlaceholder": "Type a message to SofLIA...",
       "cleanHistory": "Clear conversation"
     }
   },
@@ -238,7 +238,7 @@
       "stats": {
         "languages": "Languages",
         "compatible": "Compatible",
-        "lia": "LIA Assistant",
+        "SofLIA": "SofLIA Assistant",
         "hash": "Certificates"
       }
     },
@@ -252,7 +252,7 @@
           "description": "Specialized artificial intelligence courses for corporate teams"
         },
         "liaAssistant": {
-          "title": "LIA Assistant",
+          "title": "SofLIA Assistant",
           "description": "24/7 contextual AI that adapts to each user and lesson"
         },
         "studyPlanner": {
@@ -274,8 +274,8 @@
       "title": "Everything you need to train your team",
       "subtitle": "Every feature is designed to generate measurable impact in your organization",
       "items": {
-        "lia": {
-          "title": "LIA - AI Assistant",
+        "SofLIA": {
+          "title": "SofLIA - AI Assistant",
           "benefit": "24/7 contextual help in ES, EN and PT",
           "result": "Reduces HR inquiries"
         },
@@ -335,7 +335,7 @@
         "onboarding": {
           "title": "Accelerated Onboarding",
           "pain": "Too long time-to-productivity",
-          "solution": "Onboarding paths + LIA as guide",
+          "solution": "Onboarding paths + SofLIA as guide",
           "result": "Reduced ramp-up time"
         },
         "salesEnablement": {
@@ -356,11 +356,11 @@
           "solution": "Academy for customers and users",
           "result": "Higher retention and NPS"
         },
-        "compliance": {
-          "title": "Compliance & Standardization",
+        "compSofLIAnce": {
+          "title": "CompSofLIAnce & Standardization",
           "pain": "Lack of training traceability",
           "solution": "Verifiable certificates + reports",
-          "result": "Auditable compliance"
+          "result": "Auditable compSofLIAnce"
         }
       }
     },
@@ -455,11 +455,11 @@
         },
         "governance": {
           "question": "How is access and traceability governed?",
-          "answer": "The system includes customizable roles and permissions, management by organizational hierarchies, and complete audit logs. Everything is exportable to comply with compliance requirements."
+          "answer": "The system includes customizable roles and permissions, management by organizational hierarchies, and complete audit logs. Everything is exportable to comply with compSofLIAnce requirements."
         },
         "multilingual": {
           "question": "How does it support multiple languages?",
-          "answer": "SOFLIA is available in Spanish, English and Portuguese. LIA automatically detects the user's language and responds in that language. Content can be available in multiple languages."
+          "answer": "SOFLIA is available in Spanish, English and Portuguese. SofLIA automatically detects the user's language and responds in that language. Content can be available in multiple languages."
         },
         "certificates": {
           "question": "How does verifiable certification work?",
@@ -471,7 +471,7 @@
         },
         "adoption": {
           "question": "How is change and adoption managed?",
-          "answer": "LIA acts as a guide throughout the process, helping users navigate the platform. Additionally, we offer onboarding materials, suggested internal communication and real-time adoption metrics."
+          "answer": "SofLIA acts as a guide throughout the process, helping users navigate the platform. Additionally, we offer onboarding materials, suggested internal communication and real-time adoption metrics."
         }
       }
     },
@@ -506,7 +506,7 @@
       },
       "links": {
         "features": "Features",
-        "lia": "LIA Assistant",
+        "SofLIA": "SofLIA Assistant",
         "studyPlanner": "Study Planner",
         "analytics": "Analytics",
         "certificates": "Certificates",

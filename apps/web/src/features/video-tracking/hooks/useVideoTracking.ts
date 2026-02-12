@@ -43,9 +43,9 @@ export function useVideoTracking({
         console.log('[useVideoTracking] Hook initialized with:', { lessonId, trackingId });
 
         if (!lessonId) {
-            console.warn('[useVideoTracking] ⚠️ No lessonId provided - tracking will NOT work');
+ console.warn('[useVideoTracking] No lessonId provided - tracking will NOT work');
         } else {
-            console.log('[useVideoTracking] ✅ Tracking is ACTIVE for lesson:', lessonId);
+ console.log('[useVideoTracking] Tracking is ACTIVE for lesson:', lessonId);
         }
     }, [lessonId, trackingId]);
 

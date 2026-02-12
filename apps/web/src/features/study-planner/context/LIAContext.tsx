@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 /**
  * LIAContext.tsx
  * 
- * Contexto centralizado para LIA (Learning Intelligence Assistant).
+ * Contexto centralizado para SofLIA (Learning Intelligence Assistant).
  * Sigue el patrón Bridge de IRIS para obtener datos directamente de la BD.
  * 
  * Este contexto:
@@ -77,7 +77,7 @@ export interface StudyPreferences {
   preferredTimes: string[]; // ['mañana', 'noche']
 }
 
-/** Estado completo del contexto de LIA */
+/** Estado completo del contexto de SofLIA */
 export interface LIAContextState {
   // Datos del usuario
   userProfile: UserProfile | null;
@@ -215,7 +215,7 @@ export function LIAProvider({ children }: LIAProviderProps) {
       }
 
     } catch (error) {
-      console.error('❌ [LIAContext] Error cargando datos del usuario:', error);
+      console.error('[LIAContext] Error cargando datos del usuario:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error desconocido',
@@ -230,8 +230,6 @@ export function LIAProvider({ children }: LIAProviderProps) {
   const loadPendingLessons = useCallback(async () => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-
-      console.log('📚 [LIAContext] Consultando BD para lecciones pendientes...');
 
       // Usar el endpoint que consulta directamente la BD
       const response = await fetch('/api/study-planner/pending-lessons');
@@ -280,18 +278,10 @@ export function LIAProvider({ children }: LIAProviderProps) {
         lastUpdated: new Date(),
       }));
 
-      console.log(`✅ [LIAContext] ${allPendingLessons.length} lecciones pendientes cargadas`);
 
-      // Log de verificación
-      if (allPendingLessons.length > 0) {
-        console.log('   📋 Primeras 3 lecciones (nombres exactos):');
-        allPendingLessons.slice(0, 3).forEach((l, i) => {
-          console.log(`      ${i + 1}. "${l.lessonTitle}" (${l.durationMinutes} min)`);
-        });
-      }
 
     } catch (error) {
-      console.error('❌ [LIAContext] Error cargando lecciones:', error);
+      console.error('[LIAContext] Error cargando lecciones:', error);
       setState(prev => ({
         ...prev,
         error: error instanceof Error ? error.message : 'Error desconocido',
@@ -346,7 +336,7 @@ export function LIAProvider({ children }: LIAProviderProps) {
   }, []);
 
   // -------------------------------------------------------------------------
-  // ACCIONES: Generar contexto para el prompt de LIA
+  // ACCIONES: Generar contexto para el prompt de SofLIA
   // -------------------------------------------------------------------------
   const getContextForPrompt = useCallback((): string => {
     const { userProfile, courses, allPendingLessons, totalPendingLessons, calendar, preferences } = state;
@@ -474,11 +464,11 @@ export function LIAProvider({ children }: LIAProviderProps) {
 // HOOK
 // ============================================================================
 
-export function useLIA() {
+export function useSofLIA() {
   const context = useContext(LIAContext);
 
   if (!context) {
-    throw new Error('useLIA debe usarse dentro de LIAProvider');
+    throw new Error('useSofLIA debe usarse dentro de LIAProvider');
   }
 
   return context;

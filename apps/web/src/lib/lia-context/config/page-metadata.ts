@@ -1,10 +1,10 @@
-/**
- * Metadata de Páginas para el Sistema de Contexto Dinámico de LIA
+﻿/**
+ * Metadata de Páginas para el Sistema de Contexto Dinámico de SofLIA
  * 
  * Este archivo contiene información técnica sobre cada página de la plataforma,
  * incluyendo componentes, APIs, flujos de usuario y problemas comunes.
  * 
- * LIA usa esta información para:
+ * SofLIA usa esta información para:
  * - Identificar componentes cuando hay problemas
  * - Entender flujos de usuario
  * - Sugerir soluciones basadas en problemas conocidos
@@ -432,10 +432,10 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
       {
         name: 'EmbeddedLiaPanel',
         path: 'apps/web/src/core/components/EmbeddedLiaPanel/EmbeddedLiaPanel.tsx',
-        description: 'Panel de LIA integrado para ayuda contextual',
+        description: 'Panel de SofLIA integrado para ayuda contextual',
         props: ['lessonContext', 'transcript'],
         commonErrors: [
-          'LIA no responde: Error en API de chat',
+          'SofLIA no responde: Error en API de chat',
           'Contexto incorrecto: Transcripción no disponible'
         ]
       },
@@ -469,9 +469,9 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         ]
       },
       {
-        endpoint: '/api/lia/chat',
+        endpoint: '/api/SofLIA/chat',
         method: 'POST',
-        description: 'Chat con LIA en contexto de lección',
+        description: 'Chat con SofLIA en contexto de lección',
         commonErrors: [
           '500 Internal Error: Error en API de IA',
           '429 Too Many Requests: Límite de requests alcanzado'
@@ -500,7 +500,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
           '2. Leer instrucciones de la actividad',
           '3. Completar la actividad (quiz, reflexión, etc.)',
           '4. Enviar respuesta',
-          '5. Ver feedback de LIA'
+          '5. Ver feedback de SofLIA'
         ],
         commonBreakpoints: [
           'Paso 3: Campos no validan',
@@ -509,16 +509,16 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         ]
       },
       {
-        name: 'Pedir ayuda a LIA sobre el contenido',
+        name: 'Pedir ayuda a SofLIA sobre el contenido',
         steps: [
-          '1. Abrir panel de LIA',
+          '1. Abrir panel de SofLIA',
           '2. Escribir pregunta sobre el contenido',
-          '3. LIA responde con contexto del video',
+          '3. SofLIA responde con contexto del video',
           '4. Continuar conversación si es necesario'
         ],
         commonBreakpoints: [
           'Paso 2: Input no funciona',
-          'Paso 3: LIA no responde o da error'
+          'Paso 3: SofLIA no responde o da error'
         ]
       }
     ],
@@ -552,7 +552,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         ]
       },
       {
-        description: 'LIA no responde en contexto de lección',
+        description: 'SofLIA no responde en contexto de lección',
         possibleCauses: [
           'Transcripción del video no disponible',
           'Error en API de chat',
@@ -586,12 +586,12 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         ]
       },
       {
-        name: 'StudyPlannerLIA',
-        path: 'apps/web/src/features/study-planner/components/StudyPlannerLIA.tsx',
-        description: 'Componente de LIA especializado para el planificador',
+        name: 'StudyPlannerSofLIA',
+        path: 'apps/web/src/features/study-planner/components/StudyPlannerSofLIA.tsx',
+        description: 'Componente de SofLIA especializado para el planificador',
         props: ['userId', 'pendingLessons', 'connectedCalendar'],
         commonErrors: [
-          'LIA no genera plan: Datos insuficientes',
+          'SofLIA no genera plan: Datos insuficientes',
           'Plan no se guarda: Error en API'
         ]
       },
@@ -648,14 +648,14 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         name: 'Crear un plan de estudio nuevo',
         steps: [
           '1. Abrir el Study Planner',
-          '2. Iniciar conversación con LIA',
+          '2. Iniciar conversación con SofLIA',
           '3. Indicar preferencias de estudio (días, horarios)',
-          '4. LIA genera un plan personalizado',
+          '4. SofLIA genera un plan personalizado',
           '5. Revisar y ajustar el plan',
           '6. Confirmar y guardar el plan'
         ],
         commonBreakpoints: [
-          'Paso 3: LIA no entiende preferencias',
+          'Paso 3: SofLIA no entiende preferencias',
           'Paso 4: Plan generado no es adecuado',
           'Paso 6: Error al guardar'
         ]
@@ -677,19 +677,19 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         name: 'Modificar plan existente',
         steps: [
           '1. Abrir plan actual',
-          '2. Hablar con LIA para ajustar',
+          '2. Hablar con SofLIA para ajustar',
           '3. Confirmar cambios',
           '4. Plan actualizado'
         ],
         commonBreakpoints: [
-          'Paso 2: LIA no actualiza el plan',
+          'Paso 2: SofLIA no actualiza el plan',
           'Paso 3: Error al guardar cambios'
         ]
       }
     ],
     commonIssues: [
       {
-        description: 'LIA no genera un plan adecuado',
+        description: 'SofLIA no genera un plan adecuado',
         possibleCauses: [
           'Preferencias no claras',
           'No hay suficientes lecciones pendientes',
@@ -698,7 +698,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
         solutions: [
           'Ser más específico con días y horarios disponibles',
           'Verificar que hay cursos asignados con lecciones pendientes',
-          'Ampliar disponibilidad horaria'
+          'AmpSofLIAr disponibilidad horaria'
         ]
       },
       {
@@ -1400,17 +1400,17 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
   },
 
   // ============================================================================
-  // ADMIN PANEL - LIA ANALYTICS
+  // ADMIN PANEL - SofLIA ANALYTICS
   // ============================================================================
-  '/admin/lia-analytics': {
-    route: '/admin/lia-analytics',
-    routePattern: '/admin/lia-analytics',
-    pageType: 'admin_lia_analytics',
+  '/admin/SofLIA-analytics': {
+    route: '/admin/SofLIA-analytics',
+    routePattern: '/admin/SofLIA-analytics',
+    pageType: 'admin_SofLIA_analytics',
     components: [
       {
         name: 'LiaAnalyticsPage',
-        path: 'apps/web/src/app/admin/lia-analytics/page.tsx',
-        description: 'Analytics y métricas de uso de LIA',
+        path: 'apps/web/src/app/admin/SofLIA-analytics/page.tsx',
+        description: 'Analytics y métricas de uso de SofLIA',
         props: [],
         commonErrors: [
           'Datos no cargan: Error en API de analytics',
@@ -1420,9 +1420,9 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     ],
     apis: [
       {
-        endpoint: '/api/admin/lia-analytics',
+        endpoint: '/api/admin/SofLIA-analytics',
         method: 'GET',
-        description: 'Obtiene métricas de uso de LIA',
+        description: 'Obtiene métricas de uso de SofLIA',
         commonErrors: [
           '403 Forbidden: Sin permisos',
           '500 Internal Error: Error calculando métricas'
@@ -1431,7 +1431,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     ],
     userFlows: [
       {
-        name: 'Analizar uso de LIA',
+        name: 'Analizar uso de SofLIA',
         steps: [
           '1. Seleccionar rango de fechas',
           '2. Ver métricas generales',
@@ -2784,9 +2784,9 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
       {
         name: 'CreatePlanPage',
         path: 'apps/web/src/app/study-planner/create/page.tsx',
-        description: 'Creación de plan de estudio con LIA',
+        description: 'Creación de plan de estudio con SofLIA',
         props: [],
-        commonErrors: ['LIA no responde', 'Plan no se genera', 'Calendario no conecta']
+        commonErrors: ['SofLIA no responde', 'Plan no se genera', 'Calendario no conecta']
       }
     ],
     apis: [
@@ -2800,7 +2800,7 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     userFlows: [
       {
         name: 'Crear plan personalizado',
-        steps: ['1. Conversar con LIA sobre preferencias', '2. LIA genera plan', '3. Revisar y ajustar', '4. Guardar plan'],
+        steps: ['1. Conversar con SofLIA sobre preferencias', '2. SofLIA genera plan', '3. Revisar y ajustar', '4. Guardar plan'],
         commonBreakpoints: ['Paso 2: Plan no adecuado', 'Paso 4: Error guardando']
       }
     ],
@@ -2876,17 +2876,17 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
   },
 
   // ============================================================================
-  // CONOCER LIA
+  // CONOCER SofLIA
   // ============================================================================
-  '/conocer-lia': {
-    route: '/conocer-lia',
-    routePattern: '/conocer-lia',
-    pageType: 'lia_landing',
+  '/conocer-SofLIA': {
+    route: '/conocer-SofLIA',
+    routePattern: '/conocer-SofLIA',
+    pageType: 'SofLIA_landing',
     components: [
       {
-        name: 'ConocerLiaPage',
-        path: 'apps/web/src/app/conocer-lia/page.tsx',
-        description: 'Landing page sobre LIA',
+        name: 'ConocerSofLIAPage',
+        path: 'apps/web/src/app/conocer-SofLIA/page.tsx',
+        description: 'Landing page sobre SofLIA',
         props: [],
         commonErrors: ['Página no carga', 'Animaciones no funcionan']
       }
@@ -2894,8 +2894,8 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
     apis: [],
     userFlows: [
       {
-        name: 'Conocer características de LIA',
-        steps: ['1. Ver información', '2. Interactuar con demo', '3. Probar LIA'],
+        name: 'Conocer características de SofLIA',
+        steps: ['1. Ver información', '2. Interactuar con demo', '3. Probar SofLIA'],
         commonBreakpoints: []
       }
     ],

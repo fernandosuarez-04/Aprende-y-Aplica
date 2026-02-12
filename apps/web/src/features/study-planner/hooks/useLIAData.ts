@@ -1,7 +1,7 @@
-/**
- * useLIAData Hook
+﻿/**
+ * useSofLIAData Hook
  * 
- * Hook simplificado para obtener datos del contexto de LIA.
+ * Hook simplificado para obtener datos del contexto de SofLIA.
  * Puede usarse independientemente del LIAProvider si es necesario.
  * 
  * Este hook:
@@ -37,7 +37,7 @@ export interface CourseData {
   pendingCount: number;
 }
 
-export interface LIADataState {
+export interface SofLIADataState {
   lessons: LessonData[];
   courses: CourseData[];
   totalPending: number;
@@ -50,8 +50,8 @@ export interface LIADataState {
 // HOOK
 // ============================================================================
 
-export function useLIAData() {
-  const [state, setState] = useState<LIADataState>({
+export function useSofLIAData() {
+  const [state, setState] = useState<SofLIADataState>({
     lessons: [],
     courses: [],
     totalPending: 0,
@@ -70,12 +70,12 @@ export function useLIAData() {
   const loadPendingLessons = useCallback(async () => {
     // Evitar cargar múltiples veces
     if (loadedRef.current && lessonsRef.current.length > 0) {
-      console.log('📚 [useLIAData] Lecciones ya cargadas, omitiendo...');
+      
       return;
     }
 
     setState(prev => ({ ...prev, isLoading: true, error: null }));
-    console.log('📚 [useLIAData] Cargando lecciones pendientes desde BD...');
+    
 
     try {
       const response = await fetch('/api/study-planner/pending-lessons');
@@ -126,18 +126,10 @@ export function useLIAData() {
         error: null,
       });
 
-      console.log(`✅ [useLIAData] ${lessons.length} lecciones cargadas desde BD`);
       
-      // Log de verificación
-      if (lessons.length > 0) {
-        console.log('   📋 Primeras 3 lecciones (nombres exactos):');
-        lessons.slice(0, 3).forEach((l, i) => {
-          console.log(`      ${i + 1}. "${l.lessonTitle}" (${l.durationMinutes} min)`);
-        });
-      }
 
     } catch (error) {
-      console.error('❌ [useLIAData] Error cargando lecciones:', error);
+      console.error('[useSofLIAData] Error cargando lecciones:', error);
       setState(prev => ({
         ...prev,
         isLoading: false,
@@ -238,4 +230,4 @@ export function useLIAData() {
   };
 }
 
-export default useLIAData;
+export default useSofLIAData;

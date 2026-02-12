@@ -42,7 +42,6 @@ export function LiaCourseProvider({ children }: { children: React.ReactNode }) {
   const [liaChat, setLiaChat] = useState<UseLiaCourseChatReturn | null>(null);
 
   const setActivity = useCallback((activity: ActivityContextType | null) => {
-    // console.log('🔄 Actualizando contexto de actividad LIA:', activity?.title);
     setCurrentActivity(activity);
   }, []);
 

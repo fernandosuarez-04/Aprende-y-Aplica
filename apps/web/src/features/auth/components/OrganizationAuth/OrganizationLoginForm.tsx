@@ -69,7 +69,6 @@ export function OrganizationLoginForm({
           setLoginStyles(data.styles.login);
         }
       } catch (error) {
-        // console.error('Error fetching login styles:', error);
       }
     };
 
@@ -211,7 +210,6 @@ export function OrganizationLoginForm({
         try {
           localStorage.setItem('last_organization_slug', organizationSlug);
         } catch (error) {
-          // console.error('Error saving organization slug:', error);
         }
       }
 
@@ -268,7 +266,7 @@ export function OrganizationLoginForm({
       } else if (result?.success && result?.redirectTo) {
         // ✅ Login exitoso - navegar a la URL indicada
         // IMPORTANTE: Usar window.location.href para forzar navegación completa
-        console.log('🚀 [OrganizationLoginForm] Redirigiendo a:', result.redirectTo);
+ console.log(' [OrganizationLoginForm] Redirigiendo a:', result.redirectTo);
         window.location.href = result.redirectTo;
         // No resetear isPending - la página recargará completamente
       }

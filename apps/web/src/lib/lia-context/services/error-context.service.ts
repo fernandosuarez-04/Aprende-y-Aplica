@@ -1,7 +1,7 @@
-/**
+﻿/**
  * ErrorContextService
  * 
- * Servicio para obtener y construir contexto de errores para LIA.
+ * Servicio para obtener y construir contexto de errores para SofLIA.
  * Proporciona información sobre:
  * - Errores recientes del usuario
  * - Bugs similares reportados en la misma página
@@ -173,7 +173,7 @@ export class ErrorContextService {
   }
 
   /**
-   * Construye contexto de errores para incluir en el prompt de LIA
+   * Construye contexto de errores para incluir en el prompt de SofLIA
    * @param userId - ID del usuario (opcional)
    * @param currentPage - Ruta actual del usuario (opcional)
    * @param recentErrors - Errores de consola recientes (opcional)

@@ -75,7 +75,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       .eq('user_id', user.id);
     
     if (sessionsError) {
-      console.error('âŒ Error obteniendo sesiones:', sessionsError);
+ console.error(' Error obteniendo sesiones:', sessionsError);
       return NextResponse.json(
         { success: false, error: `Error obteniendo sesiones: ${sessionsError.message}` },
         { status: 500 }
@@ -83,7 +83,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     }
     
     if (!sessions || sessions.length === 0) {
-      console.error('âŒ No se encontraron sesiones para sincronizar');
+ console.error(' No se encontraron sesiones para sincronizar');
       return NextResponse.json(
         { success: false, error: 'No se encontraron sesiones para sincronizar' },
         { status: 404 }
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
     const planId = (firstSession as any).plan_id;
     
     if (!planId) {
-      console.warn('⚠️ La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
+ console.warn(' La sesión no tiene plan_id, usando UTC como zona horaria por defecto');
     } else {
 
       const { data: planData, error: planError } = await supabase
@@ -108,13 +108,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         .single();
       
       if (planError) {
-        console.error('âŒ Error obteniendo plan:', planError);
-        console.warn('⚠️ Usando UTC como zona horaria por defecto');
+ console.error(' Error obteniendo plan:', planError);
+ console.warn(' Usando UTC como zona horaria por defecto');
       } else if (planData && planData.timezone) {
         planTimezone = planData.timezone;
 
       } else {
-        console.warn('⚠️ El plan no tiene zona horaria configurada, usando UTC');
+ console.warn(' El plan no tiene zona horaria configurada, usando UTC');
       }
     }
 
@@ -154,7 +154,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       try {
         tokenExpiry = new Date(integration.expires_at);
       } catch (e) {
-        console.warn('⚠️ [Sync Sessions] Error parseando expires_at:', e);
+ console.warn(' [Sync Sessions] Error parseando expires_at:', e);
         tokenExpiry = null;
       }
     }
@@ -166,7 +166,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
 
       // Verificar que haya refresh_token disponible
       if (!integration.refresh_token) {
-        console.error('âŒ [Sync Sessions] No hay refresh_token disponible');
+ console.error(' [Sync Sessions] No hay refresh_token disponible');
         return NextResponse.json(
           { success: false, error: 'Token expirado y no hay refresh token disponible. Por favor, reconecta tu calendario.' },
           { status: 401 }
@@ -175,7 +175,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
       
       const refreshResult = await refreshAccessToken(integration);
       if (!refreshResult.success || !refreshResult.accessToken) {
-        console.error('âŒ [Sync Sessions] No se pudo refrescar el token');
+ console.error(' [Sync Sessions] No se pudo refrescar el token');
         return NextResponse.json(
           { success: false, error: 'Token expirado y no se pudo refrescar. Por favor, reconecta tu calendario.' },
           { status: 401 }
@@ -203,9 +203,9 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
           .eq('user_id', user.id)
           .eq('provider', 'google');
 
-        console.log('[Sync Sessions] ✅ Calendario secundario creado/obtenido:', secondaryCalendarId);
+ console.log('[Sync Sessions] Calendario secundario creado/obtenido:', secondaryCalendarId);
       } else {
-        console.warn('[Sync Sessions] ⚠️ No se pudo crear el calendario secundario, se usará el principal');
+ console.warn('[Sync Sessions] No se pudo crear el calendario secundario, se usará el principal');
       }
     }
 
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
         } else if (integration.provider === 'microsoft') {
           eventId = await createMicrosoftCalendarEvent(accessToken, session, planTimezone);
         } else {
-          console.error(`âŒ [Sync Sessions] Proveedor desconocido: ${integration.provider}`);
+ console.error(` [Sync Sessions] Proveedor desconocido: ${integration.provider}`);
           failedCount++;
           errors.push(`Proveedor de calendario desconocido: ${integration.provider}`);
           continue;
@@ -245,7 +245,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
             .eq('id', session.id);
           
           if (updateError) {
-            console.error(`⚠️ [${i + 1}/${sessions.length}] Error actualizando sesión en BD:`, updateError);
+ console.error(` [${i + 1}/${sessions.length}] Error actualizando sesión en BD:`, updateError);
             // No fallar la sincronización si solo falla la actualización en BD
           }
           
@@ -254,13 +254,13 @@ export async function POST(request: NextRequest): Promise<NextResponse<SyncSessi
           failedCount++;
           const errorMsg = `No se pudo crear evento para sesión: ${session.title}`;
           errors.push(errorMsg);
-          console.error(`âŒ [${i + 1}/${sessions.length}] ${errorMsg}`);
+ console.error(` [${i + 1}/${sessions.length}] ${errorMsg}`);
         }
       } catch (error: any) {
         failedCount++;
         const errorMsg = `Error sincronizando sesión ${session.title}: ${error.message || 'Error desconocido'}`;
         errors.push(errorMsg);
-        console.error(`âŒ [${i + 1}/${sessions.length}] ${errorMsg}`, error);
+ console.error(` [${i + 1}/${sessions.length}] ${errorMsg}`, error);
       }
     }
 
@@ -459,7 +459,7 @@ async function createGoogleCalendarEvent(
     
     // Validar que las fechas sean válidas
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-      console.error('âŒ Fechas inválidas en sesión:', {
+ console.error(' Fechas inválidas en sesión:', {
         sessionId: session.id,
         start_time: session.start_time,
         end_time: session.end_time
@@ -511,7 +511,7 @@ async function createGoogleCalendarEvent(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('âŒ [Google Calendar] Error creando evento:', response.status, errorText);
+ console.error(' [Google Calendar] Error creando evento:', response.status, errorText);
       console.error('   Evento que falló:', JSON.stringify(event, null, 2));
       return null;
     }
@@ -537,7 +537,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
     
     // Validar que las fechas sean válidas
     if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
-      console.error('âŒ Fechas inválidas en sesión:', {
+ console.error(' Fechas inválidas en sesión:', {
         sessionId: session.id,
         start_time: session.start_time,
         end_time: session.end_time
@@ -583,7 +583,7 @@ async function createMicrosoftCalendarEvent(accessToken: string, session: any, t
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('âŒ [Microsoft Calendar] Error creando evento:', response.status, errorText);
+ console.error(' [Microsoft Calendar] Error creando evento:', response.status, errorText);
       console.error('   Evento que falló:', JSON.stringify(event, null, 2));
       return null;
     }

@@ -1,8 +1,8 @@
-/**
- * Sistema de Contexto Dinámico para LIA
+﻿/**
+ * Sistema de Contexto Dinámico para SofLIA
  * 
  * Este módulo proporciona un sistema modular y escalable para construir
- * contexto relevante para LIA (Learning Intelligence Assistant).
+ * contexto relevante para SofLIA (Learning Intelligence Assistant).
  * 
  * Características principales:
  * - Metadata de páginas con componentes, APIs y flujos de usuario
@@ -15,7 +15,7 @@
  * @example
  * ```typescript
  * // Backend: Construir contexto completo
- * import { buildLiaContext, PageContextService } from '@/lib/lia-context';
+ * import { buildLiaContext, PageContextService } from '@/lib/SofLIA-context';
  * 
  * const context = await buildLiaContext({
  *   userId: 'user-123',
@@ -24,7 +24,7 @@
  * });
  * 
  * // Frontend: Usar el provider y hooks
- * import { LiaContextProvider, useLiaContext } from '@/lib/lia-context/client';
+ * import { LiaContextProvider, useLiaContext } from '@/lib/SofLIA-context/client';
  * 
  * function App() {
  *   return (
@@ -36,7 +36,7 @@
  * 
  * function MyComponent() {
  *   const { metadata, hasErrors } = useLiaContext();
- *   // Usar metadata para enviar contexto a LIA
+ *   // Usar metadata para enviar contexto a SofLIA
  * }
  * ```
  */
@@ -77,27 +77,27 @@ export { PAGE_METADATA, getRegisteredRoutes, hasPageMetadata } from './config/pa
 // Contexto de base de datos (existente)
 export { DATABASE_SCHEMA_CONTEXT } from './database-schema';
 
-// Utilidades de componentes LIA
+// Utilidades de componentes SofLIA
 export {
   liaComponent,
-  liaMarker,
-  liaModal,
-  liaForm,
-  liaDataTable,
-  liaErrorBoundary,
-  parseLiaElement,
+  SofLIAMarker,
+  SofLIAModal,
+  SofLIAForm,
+  SofLIADataTable,
+  SofLIAErrorBoundary,
+  parseSofLIAElement,
   findAllLiaComponents,
   findVisibleLiaComponents,
   LIA_DATA_ATTRIBUTES
-} from './utils/lia-component';
+} from './utils/SofLIA-component';
 
 // ============================================================================
 // CLIENTE (exportar separadamente para evitar SSR issues)
 // ============================================================================
 
 // Los hooks y el provider de cliente se exportan desde:
-// - '@/lib/lia-context/client' - LiaContextProvider, useLiaContext
-// - '@/lib/lia-context/hooks' - useErrorCapture, useActiveComponents, useApiTracking
+// - '@/lib/SofLIA-context/client' - LiaContextProvider, useLiaContext
+// - '@/lib/SofLIA-context/hooks' - useErrorCapture, useActiveComponents, useApiTracking
 //
 // Esto evita problemas de SSR al importar el módulo en el servidor.
 

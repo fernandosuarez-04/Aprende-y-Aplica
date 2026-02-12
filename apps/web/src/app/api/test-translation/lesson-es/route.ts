@@ -72,7 +72,7 @@ export async function GET(request: NextRequest) {
         }
       )
 
-      console.log('[TEST-ES-TRANSLATION] ✅ Traducción completada:', {
+ console.log('[TEST-ES-TRANSLATION] Traducción completada:', {
         translationKeys: Object.keys(translations),
         titleLength: translations.lesson_title?.length || 0,
         descriptionLength: translations.lesson_description?.length || 0,
@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
         sampleTitle: translations.lesson_title?.substring(0, 100)
       })
     } catch (error) {
-      console.error('[TEST-ES-TRANSLATION] ❌ Error en traducción:', error)
+ console.error('[TEST-ES-TRANSLATION] Error en traducción:', error)
       return NextResponse.json({
         success: false,
         step: 'translation',
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
 
     } catch (error) {
       saveError = error
-      console.error('[TEST-ES-TRANSLATION] ❌ Excepción en saveTranslation:', error)
+ console.error('[TEST-ES-TRANSLATION] Excepción en saveTranslation:', error)
     }
 
     // Si falló, intentar guardar directamente para ver el error
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
               hint: directError.hint,
               code: directError.code
             }
-            console.error('[TEST-ES-TRANSLATION] ❌ Error directo de Supabase:', directError)
+ console.error('[TEST-ES-TRANSLATION] Error directo de Supabase:', directError)
           } else {
             saved = true
 
@@ -179,7 +179,7 @@ export async function GET(request: NextRequest) {
           message: directError instanceof Error ? directError.message : String(directError),
           stack: directError instanceof Error ? directError.stack : undefined
         }
-        console.error('[TEST-ES-TRANSLATION] ❌ Excepción en guardado directo:', directError)
+ console.error('[TEST-ES-TRANSLATION] Excepción en guardado directo:', directError)
       }
     }
 
@@ -219,7 +219,7 @@ export async function GET(request: NextRequest) {
         : '❌ Error al guardar traducción a español. Revisa los logs del servidor para más detalles.'
     })
   } catch (error) {
-    console.error('[TEST-ES-TRANSLATION] ❌ Error en prueba:', error)
+ console.error('[TEST-ES-TRANSLATION] Error en prueba:', error)
     return NextResponse.json(
       {
         success: false,

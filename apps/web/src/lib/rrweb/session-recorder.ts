@@ -30,7 +30,7 @@ function setupMutationRecordErrorHandler() {
   // El patch ya se aplicó automáticamente al cargar el módulo
   // Esta función solo verifica que esté activo
   if (!(window as any).__mutationRecordPatchApplied) {
-    console.warn('[SessionRecorder] ⚠️ El patch de MutationRecord no está aplicado. Esto puede causar errores.');
+ console.warn('[SessionRecorder] El patch de MutationRecord no está aplicado. Esto puede causar errores.');
   }
 }
 
@@ -121,7 +121,7 @@ export class SessionRecorder {
       this.rrwebAvailable = isAvailable;
       return isAvailable;
     } catch (error) {
-      console.error('❌ Error verificando disponibilidad de rrweb:', error);
+ console.error(' Error verificando disponibilidad de rrweb:', error);
       this.rrwebAvailable = false;
       return false;
     }
@@ -134,7 +134,7 @@ export class SessionRecorder {
   async startRecording(maxDuration?: number): Promise<void> {
     // Solo ejecutar en el cliente
     if (typeof window === 'undefined') {
-      console.warn('⚠️ SessionRecorder solo funciona en el cliente');
+ console.warn(' SessionRecorder solo funciona en el cliente');
       return;
     }
 
@@ -146,7 +146,7 @@ export class SessionRecorder {
     // Verificar disponibilidad de rrweb
     const isAvailable = await this.checkRrwebAvailability();
     if (!isAvailable) {
-      console.warn('⚠️ rrweb no está disponible. La grabación de sesión estará deshabilitada temporalmente.');
+ console.warn(' rrweb no está disponible. La grabación de sesión estará deshabilitada temporalmente.');
       return;
     }
 
@@ -316,7 +316,7 @@ export class SessionRecorder {
       }, this.maxDuration);
 
     } catch (error) {
-      console.error('❌ Error iniciando grabación:', error);
+ console.error(' Error iniciando grabación:', error);
       this.isRecording = false;
       this.stopRecording = null;
       this.rrwebAvailable = false;
@@ -335,13 +335,13 @@ export class SessionRecorder {
    */
   captureSnapshot(): RecordingSession | null {
     if (!this.isRecording) {
-      console.warn('⚠️ No hay grabación activa para capturar');
+ console.warn(' No hay grabación activa para capturar');
       return null;
     }
 
     // Verificar que tengamos eventos
     if (this.events.length === 0) {
-      console.error('❌ No hay eventos para capturar');
+ console.error(' No hay eventos para capturar');
       return null;
     }
 
@@ -383,20 +383,20 @@ export class SessionRecorder {
 
     // Verificar que tengamos eventos
     if (this.events.length === 0) {
-      console.error('❌ No se capturaron eventos');
+ console.error(' No se capturaron eventos');
       return null;
     }
 
     // Verificar que tengamos el snapshot inicial (tipo 2)
     const hasSnapshot = this.events.some(e => e.type === 2);
     if (!hasSnapshot) {
-      console.warn('⚠️ No se encontró snapshot inicial (tipo 2), intentando recuperar...');
+ console.warn(' No se encontró snapshot inicial (tipo 2), intentando recuperar...');
       // Si tenemos el snapshot guardado, agregarlo al inicio
       if (this.initialSnapshot) {
         this.events.unshift(this.initialSnapshot);
 
       } else {
-        console.error('❌ No se puede reproducir sin snapshot inicial');
+ console.error(' No se puede reproducir sin snapshot inicial');
       }
     }
 
@@ -495,7 +495,7 @@ export class SessionRecorder {
   async exportSessionCompressed(session: RecordingSession): Promise<string> {
     try {
       const result = await compressSession(session);
-      console.log(`[SessionRecorder] Compresión: ${formatBytes(result.originalSize)} → ${formatBytes(result.compressedSize)} (${result.compressionRatio}% reducción)`);
+ console.log(`[SessionRecorder] Compresión: ${formatBytes(result.originalSize)} ${formatBytes(result.compressedSize)} (${result.compressionRatio}% reducción)`);
       return result.compressed;
     } catch (error) {
       console.error('[SessionRecorder] Error en compresión, usando fallback:', error);
@@ -516,7 +516,7 @@ export class SessionRecorder {
   pause(): void {
     if (this.isRecording && !this.isPausedState) {
       this.isPausedState = true;
-      console.log('[SessionRecorder] ⏸️ Grabación pausada');
+ console.log('[SessionRecorder] Grabación pausada');
     }
   }
 
@@ -526,7 +526,7 @@ export class SessionRecorder {
   resume(): void {
     if (this.isRecording && this.isPausedState) {
       this.isPausedState = false;
-      console.log('[SessionRecorder] ▶️ Grabación reanudada');
+ console.log('[SessionRecorder] Grabación reanudada');
     }
   }
 

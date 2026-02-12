@@ -149,7 +149,7 @@ export class PostReportsService {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
         const errorMessage = errorData.error || `Error ${response.status}: ${response.statusText}`
-        console.error('❌ Error fetching reports:', {
+ console.error(' Error fetching reports:', {
           status: response.status,
           statusText: response.statusText,
           error: errorMessage,

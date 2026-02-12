@@ -53,8 +53,6 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
   trackingId,
   onTrackingError
 }, ref) => {
-  // 🐛 DEBUG: SYNC log (runs immediately, before any hooks)
-  console.log('[CustomVideoPlayer] 🔄 RENDERING with:', { lessonId, trackingId, hasLessonId: !!lessonId });
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,34 +90,15 @@ export const CustomVideoPlayer = forwardRef<CustomVideoPlayerRef, CustomVideoPla
     trackingRef.current = tracking;
   }, [tracking]);
 
-  // 🐛 DEBUG: Log tracking status
-  useEffect(() => {
-    if (lessonId) {
-      console.log('[CustomVideoPlayer] 🎯 Tracking ENABLED for lesson:', lessonId);
-    } else {
-      console.log('[CustomVideoPlayer] ⚠️ Tracking DISABLED - no lessonId provided');
-    }
-  }, [lessonId]);
 
   // 🎯 Connect video events to tracking hook
   useEffect(() => {
     const video = videoRef.current;
 
-    // 🐛 DEBUG: Log event listener setup status
-    console.log('[CustomVideoPlayer] Event listener setup:', {
-      hasVideo: !!video,
-      hasTracking: !!trackingRef.current,
-      lessonId
-    });
 
     if (!video || !lessonId) {
-      console.log('[CustomVideoPlayer] ⚠️ Skipping event listeners:', {
-        reason: !video ? 'No video element' : 'No lessonId'
-      });
       return;
     }
-
-    console.log('[CustomVideoPlayer] ✅ Attaching event listeners to video element');
 
     const handlePlayEvent = () => {
       trackingRef.current?.handlePlay(video.currentTime, video.duration, video.playbackRate);

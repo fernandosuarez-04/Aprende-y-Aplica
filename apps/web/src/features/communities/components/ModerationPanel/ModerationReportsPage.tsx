@@ -75,11 +75,11 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
           hasMore: false,
         })
       } else {
-        console.error('❌ Reports fetch failed:', result)
+ console.error(' Reports fetch failed:', result)
         setError('Error al cargar reportes')
       }
     } catch (err) {
-      console.error('❌ Error fetching reports:', err)
+ console.error(' Error fetching reports:', err)
       setError('Error de conexión')
     } finally {
       setIsLoading(false)
@@ -114,11 +114,11 @@ export function ModerationReportsPage({ communitySlug }: ModerationReportsPagePr
         await fetchReports()
 
       } else {
-        console.error('❌ Resolve failed:', result.error)
+ console.error(' Resolve failed:', result.error)
         alert(result.error || 'Error al resolver el reporte')
       }
     } catch (err) {
-      console.error('❌ Error resolving report:', err)
+ console.error(' Error resolving report:', err)
       alert('Error de conexión. Por favor intenta nuevamente.')
     } finally {
       setIsResolving(false)

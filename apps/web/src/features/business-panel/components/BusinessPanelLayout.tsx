@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
@@ -48,9 +48,9 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   // Asegurar que isLoading sea siempre un booleano
   const isLoading = typeof authLoading === 'boolean' ? authLoading : true;
 
-  // Obtener estado del panel de LIA para desplazar contenido
+  // Obtener estado del panel de SofLIA para desplazar contenido
 
-  // Obtener estado del panel de LIA para desplazar contenido (solo el main, no el sidebar)
+  // Obtener estado del panel de SofLIA para desplazar contenido (solo el main, no el sidebar)
   let isLiaPanelOpen = false;
   let liaPanel = null;
   try {
@@ -73,7 +73,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
   // Debug: Log cuando los estilos se aplican
   useEffect(() => {
     if (panelStyles) {
-      console.log('✅ [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
+ console.log(' [BusinessPanelLayout] Estilos aplicados correctamente al layout:', {
         theme: styles?.selectedTheme,
         mode: effectiveStyles ? 'effective' : 'base',
         backgroundValue: panelStyles.background_value?.substring(0, 50),
@@ -103,7 +103,6 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
             redirectPath = `/auth/${lastOrgSlug}`;
           }
         } catch (error) {
-          // console.error('Error reading localStorage:', error);
         }
       }
 
@@ -136,7 +135,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     }
   }, [sidebarPinned])
 
-  // Cerrar sidebar cuando se abre LIA (solo cuando LIA cambia de cerrado a abierto)
+  // Cerrar sidebar cuando se abre SofLIA (solo cuando SofLIA cambia de cerrado a abierto)
   useEffect(() => {
     if (liaPanel && !prevLiaPanelOpen.current && isLiaPanelOpen && sidebarOpen) {
       setSidebarOpen(false)
@@ -144,7 +143,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
     prevLiaPanelOpen.current = isLiaPanelOpen
   }, [isLiaPanelOpen, sidebarOpen, liaPanel])
 
-  // Cerrar LIA cuando se abre el sidebar (solo cuando el sidebar cambia de cerrado a abierto)
+  // Cerrar SofLIA cuando se abre el sidebar (solo cuando el sidebar cambia de cerrado a abierto)
   useEffect(() => {
     if (liaPanel && !prevSidebarOpen.current && sidebarOpen && isLiaPanelOpen) {
       liaPanel.closePanel()
@@ -218,7 +217,7 @@ function BusinessPanelLayoutInner({ children }: BusinessPanelLayoutProps) {
           onToggleCollapse={handleToggleCollapse}
         />
 
-        {/* Componentes de LIA */}
+        {/* Componentes de SofLIA */}
         <LiaSidePanel />
         <LiaFloatingButton />
 

@@ -1,5 +1,5 @@
-/**
- * Servicio orquestador para construir contexto de LIA
+﻿/**
+ * Servicio orquestador para construir contexto de SofLIA
  * Agrupa fragmentos de múltiples providers y construye el prompt final
  */
 
@@ -19,7 +19,7 @@ export class ContextBuilderService {
   }
   
   /**
-   * Construye el contexto completo para LIA
+   * Construye el contexto completo para SofLIA
    */
   static async buildContext(
     request: ContextRequest,

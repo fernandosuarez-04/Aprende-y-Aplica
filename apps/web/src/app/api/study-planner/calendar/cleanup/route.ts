@@ -60,7 +60,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
       );
     }
 
-    console.log(`🧹 [Cleanup] Iniciando limpieza de eventos huérfanos para usuario ${user.id}`);
+ console.log(` [Cleanup] Iniciando limpieza de eventos huérfanos para usuario ${user.id}`);
 
     const supabase = createAdminClient();
 
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
         })
     );
 
-    console.log(`📊 [Cleanup] Sesiones activas con eventos: ${activeEventIds.size}`);
+ console.log(` [Cleanup] Sesiones activas con eventos: ${activeEventIds.size}`);
 
     // 5. Obtener eventos del calendario externo
     const now = new Date();
@@ -155,7 +155,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
       calendarEvents = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
     }
 
-    console.log(`📅 [Cleanup] Eventos encontrados en calendario: ${calendarEvents.length}`);
+ console.log(` [Cleanup] Eventos encontrados en calendario: ${calendarEvents.length}`);
 
     // 6. Encontrar eventos huérfanos (en calendario pero no en sesiones)
     const orphanedEvents = calendarEvents.filter((event) => {
@@ -163,7 +163,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
       return !activeEventIds.has(cleanId);
     });
 
-    console.log(`🔍 [Cleanup] Eventos huérfanos encontrados: ${orphanedEvents.length}`);
+ console.log(` [Cleanup] Eventos huérfanos encontrados: ${orphanedEvents.length}`);
 
     if (orphanedEvents.length === 0) {
       return NextResponse.json({
@@ -191,18 +191,18 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
 
         if (deleteSuccess) {
           eventsDeleted++;
-          console.log(`✅ [Cleanup] Evento eliminado: ${event.id} (${event.summary || 'sin título'})`);
+ console.log(` [Cleanup] Evento eliminado: ${event.id} (${event.summary || 'sin título'})`);
         } else {
           errors.push(`No se pudo eliminar: ${event.id}`);
         }
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : 'Error desconocido';
         errors.push(`Error en ${event.id}: ${errorMsg}`);
-        console.error(`❌ [Cleanup] Error eliminando evento ${event.id}:`, error);
+ console.error(` [Cleanup] Error eliminando evento ${event.id}:`, error);
       }
     }
 
-    console.log(`📊 [Cleanup] Resultado: ${eventsDeleted} eliminados, ${errors.length} errores`);
+ console.log(` [Cleanup] Resultado: ${eventsDeleted} eliminados, ${errors.length} errores`);
 
     return NextResponse.json({
       success: errors.length === 0,
@@ -215,7 +215,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<CleanupRe
           : `Se eliminaron ${eventsDeleted} de ${orphanedEvents.length} eventos. ${errors.length} errores.`,
     });
   } catch (error) {
-    console.error('❌ [Cleanup] Error general:', error);
+ console.error(' [Cleanup] Error general:', error);
     return NextResponse.json(
       {
         success: false,

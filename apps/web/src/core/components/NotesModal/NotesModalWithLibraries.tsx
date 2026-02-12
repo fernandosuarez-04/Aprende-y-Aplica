@@ -260,7 +260,6 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
       });
       onClose();
     } catch (error) {
-      // console.error('Error al guardar nota:', error);
     } finally {
       setIsSaving(false);
     }
@@ -657,7 +656,6 @@ export const NotesModalWithLibraries: React.FC<NotesModalProps> = ({
       pdf.save(fileName);
 
     } catch (error) {
-      // console.error('Error al generar PDF:', error);
       alert('Error al generar el PDF. Inténtalo de nuevo.');
     }
   };

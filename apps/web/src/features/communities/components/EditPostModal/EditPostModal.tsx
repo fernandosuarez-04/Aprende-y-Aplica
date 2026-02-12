@@ -239,7 +239,7 @@ export function EditPostModal({
           const processedAttachments = []
           const filesToProcess = postAttachments.filter(att => att.data?.file)
           
-          console.log(`📤 Procesando ${filesToProcess.length} archivo(s)...`)
+ console.log(` Procesando ${filesToProcess.length} archivo(s)...`)
           
           for (const att of postAttachments) {
             if (att.data?.file) {
@@ -256,13 +256,13 @@ export function EditPostModal({
 
                   processedAttachments.push(processed)
                 } else {
-                  console.error(`❌ Error: processAttachment retornó null para ${att.type}`)
+ console.error(` Error: processAttachment retornó null para ${att.type}`)
                   setIsProcessingAttachment(false)
                   throw new Error(`Error al procesar el adjunto ${att.type}. Por favor, intenta de nuevo.`)
                 }
               } catch (attError) {
                 setIsProcessingAttachment(false)
-                console.error('❌ Error procesando attachment:', attError)
+ console.error(' Error procesando attachment:', attError)
                 const errorMessage = attError instanceof Error 
                   ? attError.message 
                   : `Error al subir el archivo ${att.data?.name || att.type}. Por favor, intenta de nuevo.`

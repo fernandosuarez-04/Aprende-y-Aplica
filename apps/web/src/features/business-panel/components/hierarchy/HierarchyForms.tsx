@@ -13,7 +13,7 @@ async function geocodeAddress(data: { address?: string, city?: string, state?: s
   }
   
   try {
-    console.log('🔍 Iniciando geocoding para:', parts.join(', '));
+ console.log(' Iniciando geocoding para:', parts.join(', '));
     
     const res = await fetch('/api/business/hierarchy/geocode', {
       method: 'POST',
@@ -31,24 +31,24 @@ async function geocodeAddress(data: { address?: string, city?: string, state?: s
     
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({ error: 'Error desconocido' }));
-      console.error('❌ Geocoding API error:', errorData);
+ console.error(' Geocoding API error:', errorData);
       throw new Error(errorData.error || `Error ${res.status}: ${res.statusText}`);
     }
     
     const json = await res.json();
     
     if (json.success && json.coordinates) {
-      console.log('✅ Geocoding exitoso:', json.coordinates);
+ console.log(' Geocoding exitoso:', json.coordinates);
       return { 
         lat: json.coordinates.lat.toString(), 
         lon: json.coordinates.lon.toString() 
       };
     }
     
-    console.warn('⚠️ Geocoding: No se encontraron coordenadas');
+ console.warn(' Geocoding: No se encontraron coordenadas');
     return null;
   } catch (e) {
-    console.error('❌ Error en geocoding:', e);
+ console.error(' Error en geocoding:', e);
     throw e; // Re-lanzar para que handleAutoLocate pueda manejarlo
   }
 }
@@ -186,8 +186,8 @@ export function RegionForm({ region, isOpen, onClose, onSave, isLoading, availab
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        console.log('✅ Coordenadas calculadas:', coords);
-        console.log('📝 Actualizando formData con:', { 
+ console.log(' Coordenadas calculadas:', coords);
+ console.log(' Actualizando formData con:', { 
           latitude: coords.lat, 
           longitude: coords.lon,
           latitudeType: typeof coords.lat,
@@ -196,7 +196,7 @@ export function RegionForm({ region, isOpen, onClose, onSave, isLoading, availab
         
         setFormData(prev => {
           const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
-          console.log('✅ formData actualizado:', {
+ console.log(' formData actualizado:', {
             latitude: updated.latitude,
             longitude: updated.longitude
           });
@@ -208,7 +208,7 @@ export function RegionForm({ region, isOpen, onClose, onSave, isLoading, availab
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
-      console.error('❌ Error en handleAutoLocate:', e);
+ console.error(' Error en handleAutoLocate:', e);
       setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);
@@ -595,8 +595,8 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        console.log('✅ Coordenadas calculadas:', coords);
-        console.log('📝 Actualizando formData con:', { 
+ console.log(' Coordenadas calculadas:', coords);
+ console.log(' Actualizando formData con:', { 
           latitude: coords.lat, 
           longitude: coords.lon,
           latitudeType: typeof coords.lat,
@@ -605,7 +605,7 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
         
         setFormData(prev => {
           const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
-          console.log('✅ formData actualizado:', {
+ console.log(' formData actualizado:', {
             latitude: updated.latitude,
             longitude: updated.longitude
           });
@@ -617,7 +617,7 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
-      console.error('❌ Error en handleAutoLocate:', e);
+ console.error(' Error en handleAutoLocate:', e);
       setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);
@@ -633,7 +633,7 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
         ? Number(zone.longitude).toString() 
         : '';
       
-      console.log('📥 ZoneForm - Cargando zona:', {
+ console.log(' ZoneForm - Cargando zona:', {
         name: zone.name,
         latitude: zone.latitude,
         longitude: zone.longitude,
@@ -725,7 +725,7 @@ export function ZoneForm({ zone, regions, selectedRegionId, isOpen, onClose, onS
         manager_id: formData.manager_id || undefined
       };
 
-      console.log('💾 ZoneForm - Enviando datos:', {
+ console.log(' ZoneForm - Enviando datos:', {
         ...saveData,
         latitude: saveData.latitude,
         longitude: saveData.longitude,
@@ -938,8 +938,8 @@ export function TeamForm({ team, zones, selectedZoneId, isOpen, onClose, onSave,
     try {
       const coords = await geocodeAddress(formData);
       if (coords) {
-        console.log('✅ Coordenadas calculadas:', coords);
-        console.log('📝 Actualizando formData con:', { 
+ console.log(' Coordenadas calculadas:', coords);
+ console.log(' Actualizando formData con:', { 
           latitude: coords.lat, 
           longitude: coords.lon,
           latitudeType: typeof coords.lat,
@@ -948,7 +948,7 @@ export function TeamForm({ team, zones, selectedZoneId, isOpen, onClose, onSave,
         
         setFormData(prev => {
           const updated = { ...prev, latitude: coords.lat, longitude: coords.lon };
-          console.log('✅ formData actualizado:', {
+ console.log(' formData actualizado:', {
             latitude: updated.latitude,
             longitude: updated.longitude
           });
@@ -960,7 +960,7 @@ export function TeamForm({ team, zones, selectedZoneId, isOpen, onClose, onSave,
       }
     } catch (e) {
       const errorMessage = e instanceof Error ? e.message : 'Error desconocido';
-      console.error('❌ Error en handleAutoLocate:', e);
+ console.error(' Error en handleAutoLocate:', e);
       setError(`Error al buscar coordenadas: ${errorMessage}. Por favor, intenta de nuevo.`);
     } finally {
       setIsGeocoding(false);

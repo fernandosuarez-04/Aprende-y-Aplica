@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Tipos TypeScript para el contexto de usuario del planificador de estudios
  * 
  * Este archivo contiene todas las interfaces y tipos necesarios para manejar
@@ -222,7 +222,7 @@ export interface LessonDuration {
   interactionsMinutes: number;
   /** Tiempo total de la lección en minutos */
   totalMinutes: number;
-  /** Si el tiempo fue estimado por LIA o calculado */
+  /** Si el tiempo fue estimado por SofLIA o calculado */
   isEstimated: boolean;
 }
 
@@ -237,7 +237,7 @@ export interface CourseComplexity {
   totalModules: number;
   totalDurationMinutes: number;
   averageLessonDuration: number;
-  complexityScore: number; // 1-10, calculado por LIA
+  complexityScore: number; // 1-10, calculado por SofLIA
   recommendedSessionMinutes: number;
   recommendedBreakMinutes: number;
 }
@@ -331,7 +331,7 @@ export interface LearningRoute {
 }
 
 /**
- * Sugerencia de ruta de aprendizaje por LIA
+ * Sugerencia de ruta de aprendizaje por SofLIA
  */
 export interface LearningRouteSuggestion {
   name: string;
@@ -465,11 +465,11 @@ export interface UserContext {
 }
 
 // ============================================================================
-// ANÁLISIS DE LIA
+// ANÁLISIS DE SofLIA
 // ============================================================================
 
 /**
- * Análisis de disponibilidad generado por LIA
+ * Análisis de disponibilidad generado por SofLIA
  */
 export interface LIAAvailabilityAnalysis {
   /** Tiempo estimado de disponibilidad semanal en minutos */
@@ -484,7 +484,7 @@ export interface LIAAvailabilityAnalysis {
   suggestedDays: number[];
   /** Bloques de tiempo sugeridos */
   suggestedTimeBlocks: TimeBlock[];
-  /** Razonamiento de LIA */
+  /** Razonamiento de SofLIA */
   reasoning: string;
   /** Factores considerados */
   factorsConsidered: {
@@ -499,9 +499,9 @@ export interface LIAAvailabilityAnalysis {
 }
 
 /**
- * Análisis de tiempos generado por LIA
+ * Análisis de tiempos generado por SofLIA
  */
-export interface LIATimeAnalysis {
+export interface SofLIATimeAnalysis {
   /** Tiempo total estimado para completar todos los cursos */
   totalEstimatedMinutes: number;
   /** Tiempo por curso */
@@ -528,7 +528,7 @@ export interface LIATimeAnalysis {
     isAtRisk: boolean;
     suggestedAction: string;
   }[];
-  /** Razonamiento de LIA */
+  /** Razonamiento de SofLIA */
   reasoning: string;
   /** Fecha del análisis */
   analyzedAt: string;
@@ -571,10 +571,10 @@ export interface StudyPlanConfig {
   preferredSessionType: SessionType;
   /** Modo de generación */
   generationMode: PlanGenerationMode;
-  /** Análisis de LIA */
+  /** Análisis de SofLIA */
   liaAvailabilityAnalysis?: LIAAvailabilityAnalysis;
-  /** Análisis de tiempos de LIA */
-  liaTimeAnalysis?: LIATimeAnalysis;
+  /** Análisis de tiempos de SofLIA */
+  SofLIATimeAnalysis?: SofLIATimeAnalysis;
   /** Calendario analizado */
   calendarAnalyzed: boolean;
   /** Proveedor de calendario usado */
@@ -600,7 +600,7 @@ export interface StudySession {
   breakDurationMinutes?: number;
   status: 'planned' | 'in_progress' | 'completed' | 'missed' | 'rescheduled';
   isAiGenerated: boolean;
-  liaSuggested: boolean;
+  SofLIASuggested: boolean;
   sessionType: SessionType;
   /** Fecha límite del curso (para B2B) */
   dueDate?: string;
@@ -646,11 +646,11 @@ export type UserContextResponse = ApiResponse<UserContext>;
 export type CoursesResponse = ApiResponse<CourseAssignment[]>;
 
 /**
- * Respuesta de análisis de LIA
+ * Respuesta de análisis de SofLIA
  */
 export type LIAAnalysisResponse = ApiResponse<{
   availabilityAnalysis: LIAAvailabilityAnalysis;
-  timeAnalysis: LIATimeAnalysis;
+  timeAnalysis: SofLIATimeAnalysis;
 }>;
 
 /**

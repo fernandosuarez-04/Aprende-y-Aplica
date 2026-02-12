@@ -4,11 +4,11 @@ import { createClient } from '@/lib/supabase/server'
 import { logger } from '@/lib/utils/logger'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 
-export type ReportType = 
-  | 'users' 
-  | 'courses' 
-  | 'progress' 
-  | 'activity' 
+export type ReportType =
+  | 'users'
+  | 'courses'
+  | 'progress'
+  | 'activity'
   | 'completion'
   | 'time_spent'
   | 'certificates'
@@ -142,9 +142,9 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   // Obtener asignaciones de cursos a equipos (depende de los equipos obtenidos)
   const teamIds = workTeamsData.data?.map((t: any) => t.team_id) || []
   const { data: teamAssignmentsData } = await supabase
-        .from('work_team_course_assignments')
-        .select('id, course_id')
-        .in('team_id', teamIds)
+    .from('work_team_course_assignments')
+    .select('id, course_id')
+    .in('team_id', teamIds)
 
   // Procesar métricas adicionales
   const teamsCount = workTeamsData.data?.length || 0
@@ -155,18 +155,18 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
   const totalSessions = studySessionsData.data?.length || 0
   const completedSessions = studySessionsData.data?.filter((s: any) => s.status === 'completed').length || 0
   const adherenceRate = totalSessions > 0 ? (completedSessions / totalSessions) * 100 : 0
-  
+
   const totalLiaConversations = liaConversationsData.data?.length || 0
   const aiChatConversations = liaConversationsData.data?.filter((c: any) => c.context_type === 'ai_chat').length || 0
   const courseContextConversations = liaConversationsData.data?.filter((c: any) => c.context_type?.includes('course')).length || 0
 
   // 3. Preparar el prompt para Gemini
   const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY || '')
-  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro' 
+  const modelName = process.env.GEMINI_MODEL || 'gemini-1.5-pro'
   const model = genAI.getGenerativeModel({ model: modelName })
 
   const prompt = `
-    Actúa como LIA, la experta en análisis de datos y recursos humanos de la plataforma SOFLIA.
+    Actúa como SofLIA, la experta en análisis de datos y recursos humanos de la plataforma SOFLIA.
     
     Tu tarea es generar un "Reporte Ejecutivo de Análisis Predictivo y Rendimiento" para el administrador de la organización.
     Debes analizar los datos proporcionados y generar un informe profesional, detallado y útil para la toma de decisiones.
@@ -188,33 +188,33 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
     - Tasa de Adherencia al Plan (Cumplimiento): ${adherenceRate.toFixed(1)}%
     - Sesiones de Estudio Completadas: ${completedSessions}
 
-    INTERACCIÓN CON INTELIGENCIA ARTIFICIAL (LIA):
+    INTERACCIÓN CON INTELIGENCIA ARTIFICIAL (SofLIA):
     - Conversaciones de Orientación General: ${aiChatConversations}
     - Consultas sobre Cursos Específicos: ${courseContextConversations}
     - Total Interacciones: ${totalLiaConversations}
 
     DETALLE DE USUARIOS (Muestra representativa):
     ${JSON.stringify(usersReport.users.slice(0, 15).map((u: any) => ({
-      nombre: u.display_name,
-      cargo: u.job_title,
-      progreso_promedio: u.progress.average_progress,
-      cursos_asignados: u.progress.total_courses,
-      cursos_completados: u.progress.completed_courses,
-      ultimo_acceso: u.last_login_at
-    })))}
+    nombre: u.display_name,
+    cargo: u.job_title,
+    progreso_promedio: u.progress.average_progress,
+    cursos_asignados: u.progress.total_courses,
+    cursos_completados: u.progress.completed_courses,
+    ultimo_acceso: u.last_login_at
+  })))}
 
     INSTRUCCIONES PARA EL REPORTE:
     1. **Resumen Ejecutivo**: Breve visión general del estado de la capacitación y la salud digital de la organización.
     2. **Análisis de Rendimiento y Adopción**:
        - Evalúa el ritmo de aprendizaje.
-       - **IMPORTANTE**: Analiza la adopción de herramientas de productividad como el "Planificador de Estudios" y el asistente "LIA". ¿Están usando la IA para aprender mejor?
+       - **IMPORTANTE**: Analiza la adopción de herramientas de productividad como el "Planificador de Estudios" y el asistente "SofLIA". ¿Están usando la IA para aprender mejor?
     3. **Estructura y Equipos**: Comenta sobre la organización en equipos (${teamsCount} equipos detectados). ¿Se está aprovechando la estructura grupal?
     4. **Top Talent & Riesgos**:
        - Menciona usuarios destacados.
        - Identifica usuarios en riesgo.
     5. **Predicciones y Sugerencias Estratégicas**:
        - Basado en la adherencia (${adherenceRate.toFixed(1)}%), predice si se cumplirán las metas trimestrales.
-       - Sugiere acciones para mejorar el uso del Planificador y LIA si las métricas son bajas.
+       - Sugiere acciones para mejorar el uso del Planificador y SofLIA si las métricas son bajas.
     6. **Conclusión Profesional**: Cierre motivador.
 
     FORMATO:
@@ -225,7 +225,7 @@ async function generateLiaAnalysisReport(supabase: any, organizationId: string, 
       
       <div style="text-align: center; margin-top: 40px;">
         Atentamente,<br><br>
-        <strong>LIA</strong><br>
+        <strong>SofLIA</strong><br>
         <span style="color: #64748b; font-size: 14px;">Sistema Operativo de Formación de Inteligencia Aplicada</span>
       </div>
 
@@ -360,7 +360,7 @@ async function generateUsersReport(supabase: any, organizationId: string, filter
         progress_count: 0
       })
     }
-    
+
     const course = a.courses
     if (course) {
       coursesByUser.get(a.user_id).push({
@@ -513,7 +513,7 @@ async function generateCoursesReport(supabase: any, organizationId: string, filt
 
   // Procesar datos
   const courseMap = new Map()
-  
+
   coursesData.forEach(course => {
     courseMap.set(course.id, {
       course_id: course.id,
@@ -558,8 +558,8 @@ async function generateCoursesReport(supabase: any, organizationId: string, filt
       total_completed: courses.reduce((sum, c) => sum + c.completed, 0),
       total_in_progress: courses.reduce((sum, c) => sum + c.in_progress, 0),
       total_not_started: courses.reduce((sum, c) => sum + c.not_started, 0),
-      average_completion_rate: courses.length > 0 
-        ? courses.reduce((sum, c) => sum + c.average_progress, 0) / courses.length 
+      average_completion_rate: courses.length > 0
+        ? courses.reduce((sum, c) => sum + c.average_progress, 0) / courses.length
         : 0
     }
   }

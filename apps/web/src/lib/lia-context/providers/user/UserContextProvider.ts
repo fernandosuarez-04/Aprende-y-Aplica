@@ -1,7 +1,7 @@
-/**
+﻿/**
  * UserContextProvider
  * 
- * Provee contexto sobre el usuario actual a LIA.
+ * Provee contexto sobre el usuario actual a SofLIA.
  * Incluye información de rol, organización, preferencias y actividad reciente.
  */
 

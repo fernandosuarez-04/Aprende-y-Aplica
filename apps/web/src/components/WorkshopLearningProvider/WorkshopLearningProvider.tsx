@@ -111,7 +111,7 @@ export function WorkshopLearningProvider({
       acceptHelp();
 
     } catch (error) {
-      console.error('❌ Error al procesar ayuda proactiva:', error);
+ console.error(' Error al procesar ayuda proactiva:', error);
       // Aún así aceptar la ayuda localmente para cerrar el modal
       acceptHelp();
     } finally {

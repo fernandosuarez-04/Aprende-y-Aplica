@@ -54,7 +54,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
       }
 
       startRecording().catch((error) => {
-        console.error('❌ Error al iniciar grabación automática:', error);
+ console.error(' Error al iniciar grabación automática:', error);
       });
     }
 
@@ -90,12 +90,12 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
   const startRecording = useCallback(async () => {
     const recorder = await getSessionRecorder();
     if (!recorder) {
-      console.warn('⚠️ sessionRecorder no está disponible');
+ console.warn(' sessionRecorder no está disponible');
       return;
     }
 
     if (recorder.isActive()) {
-      console.warn('⚠️ Ya hay una grabación activa');
+ console.warn(' Ya hay una grabación activa');
       return;
     }
 
@@ -104,7 +104,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
       setIsRecording(true);
 
     } catch (error) {
-      console.error('❌ Error al iniciar grabación:', error);
+ console.error(' Error al iniciar grabación:', error);
       setIsRecording(false);
     }
   }, [maxDuration]);
@@ -112,12 +112,12 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
   const stopRecording = useCallback(async () => {
     const recorder = await getSessionRecorder();
     if (!recorder) {
-      console.warn('⚠️ sessionRecorder no está disponible');
+ console.warn(' sessionRecorder no está disponible');
       return null;
     }
 
     if (!recorder.isActive()) {
-      console.warn('⚠️ No hay grabación activa');
+ console.warn(' No hay grabación activa');
       return null;
     }
 
@@ -128,7 +128,7 @@ export function useSessionRecorder(options: UseSessionRecorderOptions = {}) {
 
       return session;
     } catch (error) {
-      console.error('❌ Error al detener grabación:', error);
+ console.error(' Error al detener grabación:', error);
       return null;
     }
   }, []);

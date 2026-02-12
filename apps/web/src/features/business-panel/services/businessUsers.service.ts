@@ -115,7 +115,6 @@ export class BusinessUsersService {
         members: 0
       }
     } catch (error) {
-      // console.error('Error fetching stats:', error)
       return {
         total: 0,
         active: 0,

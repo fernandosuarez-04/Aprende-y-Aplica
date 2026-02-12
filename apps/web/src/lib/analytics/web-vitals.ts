@@ -43,14 +43,12 @@ export function reportWebVitals(metric: NextWebVitalsMetric) {
     }).catch((error) => {
       // Falló silenciosamente - no queremos que afecte la app
       if (process.env.NODE_ENV === 'development') {
-        // console.error('Failed to send web vitals:', error)
       }
     })
   }
 
   // Log en desarrollo
   if (process.env.NODE_ENV === 'development') {
-    // console.log('📊 Web Vital:', {
     // // name: metric.name,
     // // value: metric.value,
     // // rating: metric.rating,

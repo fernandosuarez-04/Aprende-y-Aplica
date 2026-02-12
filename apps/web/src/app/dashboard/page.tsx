@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -29,7 +29,7 @@ const plans = [
         featured: false,
         features: [
             'Acceso a biblioteca de cursos básicos',
-            'Asistente LIA (100 consultas/mes)',
+            'Asistente SofLIA (100 consultas/mes)',
             'Asignación de cursos',
             'Reportes básicos',
             'Soporte por email',
@@ -49,7 +49,7 @@ const plans = [
         featured: true,
         features: [
             'Acceso completo a todos los cursos',
-            'Asistente LIA ilimitado',
+            'Asistente SofLIA ilimitado',
             'Rutas de aprendizaje personalizadas',
             'Analytics avanzados y dashboards',
             'Integraciones (Slack, Teams)',

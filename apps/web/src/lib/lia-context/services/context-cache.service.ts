@@ -1,7 +1,7 @@
-/**
+﻿/**
  * ContextCacheService
  * 
- * Servicio de caché para el contexto de LIA.
+ * Servicio de caché para el contexto de SofLIA.
  * Implementa caché en memoria con TTL configurable para diferentes tipos de datos.
  * 
  * Niveles de caché:

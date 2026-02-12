@@ -54,7 +54,7 @@ export function useTourProgress(tourId: string): UseTourProgressReturn {
 
   // Registrar inicio del tour
   const startTour = useCallback(async () => {
-    console.log('📡 [useTourProgress] startTour called for:', tourId);
+ console.log(' [useTourProgress] startTour called for:', tourId);
     try {
       const response = await fetch('/api/tours', {
         method: 'POST',
@@ -65,10 +65,10 @@ export function useTourProgress(tourId: string): UseTourProgressReturn {
 
       if (response.ok) {
         const data = await response.json();
-        console.log('✅ [useTourProgress] Tour started successfully:', data);
+ console.log(' [useTourProgress] Tour started successfully:', data);
         setTourProgress(data.tourProgress);
       } else {
-        console.error('❌ [useTourProgress] Failed to start tour:', await response.text());
+ console.error(' [useTourProgress] Failed to start tour:', await response.text());
       }
     } catch (error) {
       console.error('Error al iniciar tour:', error);

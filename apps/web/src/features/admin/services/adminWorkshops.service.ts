@@ -1,4 +1,4 @@
-import { createClient } from '../../../lib/supabase/server'
+﻿import { createClient } from '../../../lib/supabase/server'
 import { sanitizeSlug, generateUniqueSlugAsync } from '../../../lib/slug'
 import { AuditLogService } from './auditLog.service'
 
@@ -306,7 +306,7 @@ export class AdminWorkshopsService {
         .single()
 
       if (error) {
-        console.error('[AdminWorkshopsService.createWorkshop] ❌ Error creando curso en BD:', error);
+ console.error('[AdminWorkshopsService.createWorkshop] Error creando curso en BD:', error);
         throw error
       }
 
@@ -351,7 +351,7 @@ export class AdminWorkshopsService {
 
 
         if (!translationResult.success) {
-          console.error('[AdminWorkshopsService] ❌ La traducción NO fue exitosa');
+ console.error('[AdminWorkshopsService] La traducción NO fue exitosa');
           console.error('[AdminWorkshopsService] Errores:', translationResult.errors);
         } else {
 
@@ -360,7 +360,7 @@ export class AdminWorkshopsService {
       } catch (translationError) {
         // No fallar la creación del curso si falla la traducción
         console.error('[AdminWorkshopsService] ========== ERROR EN TRADUCCIÓN ==========');
-        console.error('[AdminWorkshopsService] ❌ EXCEPCIÓN en traducción automática del curso');
+ console.error('[AdminWorkshopsService] EXCEPCIÓN en traducción automática del curso');
         console.error('[AdminWorkshopsService] Tipo de error:', translationError?.constructor?.name || typeof translationError);
         if (translationError instanceof Error) {
           console.error('[AdminWorkshopsService] Mensaje:', translationError.message);
@@ -373,7 +373,6 @@ export class AdminWorkshopsService {
 
       return data
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.createWorkshop:', error)
       throw error
     }
   }
@@ -466,7 +465,6 @@ export class AdminWorkshopsService {
         .single()
 
       if (error) {
-        // console.error('Error updating workshop:', error)
         throw error
       }
 
@@ -485,7 +483,6 @@ export class AdminWorkshopsService {
 
       return data
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.updateWorkshop:', error)
       throw error
     }
   }
@@ -532,9 +529,9 @@ export class AdminWorkshopsService {
             supabase.from('lesson_feedback').delete().in('lesson_id', lessonIds),
             supabase.from('lesson_time_estimates').delete().in('lesson_id', lessonIds),
             supabase.from('lesson_tracking').delete().in('lesson_id', lessonIds),
-            // Eliminar preguntas comunes de LIA asociadas a lecciones
+            // Eliminar preguntas comunes de SofLIA asociadas a lecciones
             supabase.from('lia_common_questions').delete().in('lesson_id', lessonIds),
-            // Eliminar conversaciones de LIA asociadas a lecciones
+            // Eliminar conversaciones de SofLIA asociadas a lecciones
             supabase.from('lia_conversations').delete().in('lesson_id', lessonIds),
             // Eliminar progreso de usuario
             supabase.from('user_lesson_progress').delete().in('lesson_id', lessonIds)
@@ -549,7 +546,7 @@ export class AdminWorkshopsService {
           if (deleteLessonsError) throw deleteLessonsError
         }
 
-        // 6. Eliminar conversaciones de LIA asociadas a módulos (si las hay, aunque suelen estar ligadas a lecciones)
+        // 6. Eliminar conversaciones de SofLIA asociadas a módulos (si las hay, aunque suelen estar ligadas a lecciones)
         await supabase.from('lia_conversations').delete().in('module_id', moduleIds)
         // Eliminar progreso de módulos
         await supabase.from('user_module_progress').delete().in('module_id', moduleIds)
@@ -622,7 +619,6 @@ export class AdminWorkshopsService {
         .order('display_name')
 
       if (error) {
-        // console.error('Error fetching instructors:', error)
         throw error
       }
 
@@ -633,7 +629,6 @@ export class AdminWorkshopsService {
           'Instructor sin nombre'
       }))
     } catch (error) {
-      // console.error('Error in AdminWorkshopsService.getInstructors:', error)
       throw error
     }
   }

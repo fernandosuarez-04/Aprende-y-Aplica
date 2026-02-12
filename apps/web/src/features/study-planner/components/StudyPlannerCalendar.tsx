@@ -318,7 +318,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
         
         // Mostrar advertencia si PostgREST aún no reconoce la tabla
         if (customData.warning) {
-          console.warn('âš ï¸', customData.warning);
+          console.warn('[WARN]', customData.warning);
         }
         
         customEvents = (customData.events || []).map((event: any) => ({
@@ -338,7 +338,7 @@ export function StudyPlannerCalendar({ showOnlyPlanEvents = false }: StudyPlanne
       } else if (customEventsResponse.status === 503) {
         // Si el servicio no está disponible (tabla no reconocida por PostgREST)
         const errorData = await customEventsResponse.json().catch(() => ({}));
-        console.warn('âš ï¸ Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
+        console.warn('[WARN] Tabla user_calendar_events no disponible:', errorData.hint || errorData.error);
         customEvents = []; // Continuar con array vacío
       }
       

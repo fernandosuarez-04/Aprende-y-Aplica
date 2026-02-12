@@ -1,7 +1,7 @@
-/**
+﻿/**
  * ContextBuilderService
  * 
- * Servicio principal que orquesta la construcción de contexto para LIA.
+ * Servicio principal que orquesta la construcción de contexto para SofLIA.
  * Coordina múltiples providers y combina sus fragmentos de contexto
  * de manera eficiente y priorizada.
  */
@@ -96,7 +96,7 @@ export class ContextBuilderService {
   }
 
   /**
-   * Construye el contexto completo para LIA
+   * Construye el contexto completo para SofLIA
    * @param options - Opciones de construcción
    * @returns Contexto combinado como string
    */

@@ -20,11 +20,11 @@ interface Organization {
  */
 export function canUseCustomLogin(organization: Organization | null): boolean {
   if (!organization) {
-    console.log('🔒 [canUseCustomLogin] No organization provided');
+ console.log(' [canUseCustomLogin] No organization provided');
     return false;
   }
 
-  console.log('🔒 [canUseCustomLogin] Checking organization:', {
+ console.log(' [canUseCustomLogin] Checking organization:', {
     id: organization.id,
     name: organization.name,
     slug: organization.slug,
@@ -35,31 +35,31 @@ export function canUseCustomLogin(organization: Organization | null): boolean {
 
   // La organización debe estar activa
   if (!organization.is_active) {
-    console.log('🔒 [canUseCustomLogin] DENIED: Organization is not active');
+ console.log(' [canUseCustomLogin] DENIED: Organization is not active');
     return false;
   }
 
   // Debe tener un slug válido
   if (!organization.slug || organization.slug.trim() === '') {
-    console.log('🔒 [canUseCustomLogin] DENIED: No valid slug');
+ console.log(' [canUseCustomLogin] DENIED: No valid slug');
     return false;
   }
 
   // ✅ SOLO plan Enterprise puede usar login personalizado
   // Los planes Team y Business usan el auth normal (/auth)
   if (organization.subscription_plan !== 'enterprise') {
-    console.log('🔒 [canUseCustomLogin] DENIED: Not enterprise plan, is:', organization.subscription_plan);
+ console.log(' [canUseCustomLogin] DENIED: Not enterprise plan, is:', organization.subscription_plan);
     return false;
   }
 
   // La suscripción debe estar activa o en trial
   const activeStatuses = ['active', 'trial'];
   if (!activeStatuses.includes(organization.subscription_status)) {
-    console.log('🔒 [canUseCustomLogin] DENIED: Subscription status not active/trial, is:', organization.subscription_status);
+ console.log(' [canUseCustomLogin] DENIED: Subscription status not active/trial, is:', organization.subscription_status);
     return false;
   }
 
-  console.log('🔒 [canUseCustomLogin] ALLOWED: All checks passed');
+ console.log(' [canUseCustomLogin] ALLOWED: All checks passed');
   return true;
 }
 

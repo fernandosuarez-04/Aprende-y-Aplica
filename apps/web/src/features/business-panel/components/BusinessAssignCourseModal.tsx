@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -57,7 +57,7 @@ export function BusinessAssignCourseModal({
   const [searchTerm, setSearchTerm] = useState('')
   const [alreadyAssignedUserIds, setAlreadyAssignedUserIds] = useState<Set<string>>(new Set())
   const [assignedUsersInfo, setAssignedUsersInfo] = useState<Map<string, AssignedUserInfo>>(new Map())
-  const [showLiaModal, setShowLiaModal] = useState(false)
+  const [showSofLIAModal, setShowSofLIAModal] = useState(false)
   const [isSuggesting, setIsSuggesting] = useState(false)
   const [suggestionReason, setSuggestionReason] = useState<string | null>(null)
 
@@ -83,15 +83,15 @@ export function BusinessAssignCourseModal({
     if (isOpen && courseId) {
       const fetchAssignedUsers = async () => {
         try {
-          console.log('🔍 Fetching assigned users for course:', courseId)
+ console.log(' Fetching assigned users for course:', courseId)
           const response = await fetch(`/api/business/courses/${courseId}/assigned-users`, {
             credentials: 'include'
           })
           if (response.ok) {
             const data = await response.json()
-            console.log('📊 Assigned users response:', data)
+ console.log(' Assigned users response:', data)
             if (data.success && data.user_ids) {
-              console.log('✅ Setting alreadyAssignedUserIds:', data.user_ids)
+ console.log(' Setting alreadyAssignedUserIds:', data.user_ids)
               setAlreadyAssignedUserIds(new Set(data.user_ids))
               // Guardar info detallada sobre origen de asignación
               if (data.assigned_users) {
@@ -100,11 +100,11 @@ export function BusinessAssignCourseModal({
                   infoMap.set(u.user_id, u)
                 })
                 setAssignedUsersInfo(infoMap)
-                console.log('✅ Setting assignedUsersInfo:', data.assigned_users)
+ console.log(' Setting assignedUsersInfo:', data.assigned_users)
               }
             }
           } else {
-            console.error('❌ Response not OK:', response.status, await response.text())
+ console.error(' Response not OK:', response.status, await response.text())
           }
         } catch (err) {
           console.error('Error fetching assigned users:', err)
@@ -196,26 +196,26 @@ export function BusinessAssignCourseModal({
     }
   }
 
-  const handleLiaSelection = (deadline: string, start: string, selectedApproach: string) => {
+  const handleSofLIASelection = (deadline: string, start: string, selectedApproach: string) => {
     setDueDate(deadline)
     setStartDate(start)
     setApproach(selectedApproach)
-    setShowLiaModal(false)
+    setShowSofLIAModal(false)
   }
 
-  const handleSuggestLiaDate = async () => {
+  const handleSuggestSofLIADate = async () => {
     setIsSuggesting(true)
     setSuggestionReason(null)
     try {
       const today = new Date().toLocaleDateString('es-MX')
 
-      const response = await fetch('/api/lia/chat', {
+      const response = await fetch('/api/SofLIA/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{
             role: 'user',
-            content: `Actúa como un planificador de formación experto (LIA).
+            content: `Actúa como un planificador de formación experto (SofLIA).
             Estoy asignando el curso "${courseTitle}" (ID: ${courseId}).
             Analiza la duración típica y complejidad de un curso con este título.
             Sugiere una fecha límite realista (deadline) contando desde hoy (${today}), asumiendo un ritmo de estudio profesional (2-3 horas semanales).
@@ -245,11 +245,11 @@ export function BusinessAssignCourseModal({
             }
           }
         } catch (e) {
-          console.error('Error parseando JSON de LIA:', e)
+          console.error('Error parseando JSON de SofLIA:', e)
         }
       }
     } catch (err) {
-      console.error('Error obteniendo sugerencia de LIA:', err)
+      console.error('Error obteniendo sugerencia de SofLIA:', err)
     } finally {
       setIsSuggesting(false)
     }
@@ -263,7 +263,7 @@ export function BusinessAssignCourseModal({
     setCustomMessage('')
     setError(null)
     setSearchTerm('')
-    setShowLiaModal(false)
+    setShowSofLIAModal(false)
     onClose()
   }
 
@@ -279,7 +279,7 @@ export function BusinessAssignCourseModal({
   return (
     <>
       <AnimatePresence>
-        {!showLiaModal && (
+        {!showSofLIAModal && (
           <div className="fixed inset-0 flex items-center justify-center p-4" style={{ zIndex: 99999 }}>
             {/* Backdrop */}
             <motion.div
@@ -617,7 +617,7 @@ export function BusinessAssignCourseModal({
                         {!dueDate && (
                           <motion.button
                             type="button"
-                            onClick={handleSuggestLiaDate}
+                            onClick={handleSuggestSofLIADate}
                             disabled={isSuggesting}
                             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all hover:opacity-80"
                             style={{
@@ -635,7 +635,7 @@ export function BusinessAssignCourseModal({
                             ) : (
                               <>
                                 <Sparkles className="w-3 h-3" />
-                                <span>{t('assignCourse.buttons.suggestLia', 'Sugerir con LIA')}</span>
+                                <span>{t('assignCourse.buttons.suggestSofLIA', 'Sugerir con SofLIA')}</span>
                               </>
                             )}
                           </motion.button>

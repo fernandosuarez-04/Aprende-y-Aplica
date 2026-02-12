@@ -24,7 +24,7 @@ export class LanguageDetectionService {
     }
 
     if (!this.OPENAI_API_KEY) {
-      console.warn('[LanguageDetectionService] ⚠️ OPENAI_API_KEY no configurada, usando detección básica');
+      console.warn('[LanguageDetectionService] OPENAI_API_KEY no configurada, usando detección básica');
       return this.detectLanguageBasic(text);
     }
 
@@ -76,7 +76,7 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error(`[LanguageDetectionService] ❌ Error de OpenAI API: ${response.status}`, errorData);
+        console.error(`[LanguageDetectionService] [ERROR] Error de OpenAI API: ${response.status}`, errorData);
         // Fallback a detección básica
         return this.detectLanguageBasic(text);
       }
@@ -84,7 +84,7 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
       const data = await response.json();
       const responseTime = Date.now() - startTime;
       
-      // ✅ Registrar uso de OpenAI para detección de idioma
+      // Registrar uso de OpenAI para detección de idioma
       if (data.usage) {
         await trackOpenAICall(calculateOpenAIMetadata(
           data.usage,
@@ -102,11 +102,11 @@ ${text.substring(0, 1000)}${text.length > 1000 ? '...' : ''}`;
 
         return detectedLang as DetectableLanguage;
       } else {
-        console.warn(`[LanguageDetectionService] ⚠️ Idioma detectado no válido: "${detectedLang}", usando detección básica`);
+        console.warn(`[LanguageDetectionService] [WARN] Idioma detectado no válido: "${detectedLang}", usando detección básica`);
         return this.detectLanguageBasic(text);
       }
     } catch (error) {
-      console.error('[LanguageDetectionService] ❌ Error detectando idioma con OpenAI:', error);
+ console.error('[LanguageDetectionService] Error detectando idioma con OpenAI:', error);
       // Fallback a detección básica
       return this.detectLanguageBasic(text);
     }

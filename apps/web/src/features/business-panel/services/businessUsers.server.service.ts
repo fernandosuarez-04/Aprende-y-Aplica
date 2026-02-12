@@ -1,4 +1,4 @@
-import 'server-only'
+﻿import 'server-only'
 
 import { createClient as createClientServer } from '../../../lib/supabase/server'
 import { createClient as createBrowserClient } from '@supabase/supabase-js'
@@ -10,12 +10,12 @@ function createServiceClient() {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-  console.log('🔧 [createServiceClient] URL exists:', !!supabaseUrl)
-  console.log('🔧 [createServiceClient] Service key exists:', !!supabaseServiceKey)
-  console.log('🔧 [createServiceClient] Service key length:', supabaseServiceKey?.length || 0)
+ console.log(' [createServiceClient] URL exists:', !!supabaseUrl)
+ console.log(' [createServiceClient] Service key exists:', !!supabaseServiceKey)
+ console.log(' [createServiceClient] Service key length:', supabaseServiceKey?.length || 0)
 
   if (!supabaseUrl || !supabaseServiceKey) {
-    console.error('❌ Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+ console.error(' Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
     throw new Error('Configuración de Supabase incompleta')
   }
 
@@ -32,7 +32,7 @@ export class BusinessUsersServerService {
     const supabase = createServiceClient()
 
     try {
-      console.log('🔍 [BusinessUsersServerService] Getting users for org:', organizationId)
+ console.log(' [BusinessUsersServerService] Getting users for org:', organizationId)
 
       // 🚀 OPTIMIZACIÓN: Una sola query con JOIN
       // Antes: 2 queries secuenciales (~600ms)
@@ -70,11 +70,11 @@ export class BusinessUsersServerService {
         .order('joined_at', { ascending: false })
 
       if (orgUsersError) {
-        console.error('❌ Error fetching organization_users with join:', orgUsersError)
+ console.error(' Error fetching organization_users with join:', orgUsersError)
         throw orgUsersError
       }
 
-      console.log('🔍 [BusinessUsersServerService] organization_users found:', orgUsersData?.length || 0)
+ console.log(' [BusinessUsersServerService] organization_users found:', orgUsersData?.length || 0)
 
       if (!orgUsersData || orgUsersData.length === 0) {
         return []
@@ -95,10 +95,10 @@ export class BusinessUsersServerService {
           }
         })
 
-      console.log('🔍 [BusinessUsersServerService] Final users count:', users.length)
+ console.log(' [BusinessUsersServerService] Final users count:', users.length)
       return users
     } catch (error) {
-      console.error('💥 Error in BusinessUsersServerService.getOrganizationUsers:', error)
+ console.error(' Error in BusinessUsersServerService.getOrganizationUsers:', error)
       throw error
     }
   }
@@ -120,7 +120,6 @@ export class BusinessUsersServerService {
 
       // 
       if (error) {
-        // console.error('Error fetching organization stats:', error)
         throw error
       }
 
@@ -137,7 +136,6 @@ export class BusinessUsersServerService {
       // 
       return stats
     } catch (error) {
-      // console.error('Error in BusinessUsersService.getOrganizationStats:', error)
       throw error
     }
   }
@@ -198,7 +196,6 @@ export class BusinessUsersServerService {
 
       // 
       if (userError) {
-        // console.error('Error creating user:', userError)
         throw userError
       }
 
@@ -220,7 +217,6 @@ export class BusinessUsersServerService {
 
       // 
       if (orgUserError) {
-        // console.error('Error adding user to organization:', orgUserError)
         // Rollback: eliminar usuario si falla agregarlo a la organización
         await supabase.from('users').delete().eq('id', newUser.id)
         throw orgUserError
@@ -252,9 +248,9 @@ export class BusinessUsersServerService {
       // 
       return businessUser
     } catch (error) {
-      console.error('❌ [createOrganizationUser] Error completo:', error)
+ console.error(' [createOrganizationUser] Error completo:', error)
       if (error && typeof error === 'object') {
-        console.error('❌ [createOrganizationUser] Error details:', JSON.stringify(error, null, 2))
+ console.error(' [createOrganizationUser] Error details:', JSON.stringify(error, null, 2))
       }
       throw error
     }
@@ -380,7 +376,6 @@ export class BusinessUsersServerService {
         joined_at: orgUserData?.joined_at
       }
     } catch (error) {
-      // console.error('Error in BusinessUsersService.updateOrganizationUser:', error)
       throw error
     }
   }
@@ -407,17 +402,17 @@ export class BusinessUsersServerService {
         throw new Error('Usuario no pertenece a tu organización')
       }
 
-      console.log('🗑️ [deleteOrganizationUser] Iniciando eliminación en cascada COMPLETA para usuario:', userId)
+ console.log(' [deleteOrganizationUser] Iniciando eliminación en cascada COMPLETA para usuario:', userId)
 
       // Helper function para eliminar de una tabla
       const deleteFromTable = async (tableName: string, column: string = 'user_id') => {
         try {
           const { error } = await supabase.from(tableName).delete().eq(column, userId)
           if (error && error.code !== '42P01' && error.code !== 'PGRST116') {
-            console.warn(`⚠️ Error eliminando de ${tableName}:`, error.message)
+ console.warn(` Error eliminando de ${tableName}:`, error.message)
           }
         } catch (e) {
-          console.warn(`⚠️ Excepción eliminando de ${tableName}:`, e)
+ console.warn(` Excepción eliminando de ${tableName}:`, e)
         }
       }
 
@@ -425,14 +420,14 @@ export class BusinessUsersServerService {
       // PASO 1: Eliminar datos dependientes primero (orden de dependencias)
       // ============================================
 
-      // 1. LIA - Primero feedback, luego activity completions, luego conversaciones
-      console.log('🔄 Eliminando datos de LIA...')
+      // 1. SofLIA - Primero feedback, luego activity completions, luego conversaciones
+ console.log(' Eliminando datos de SofLIA...')
       await deleteFromTable('lia_user_feedback')
       await deleteFromTable('lia_activity_completions')
       await deleteFromTable('lia_conversations')
 
       // 2. Certificados y ledger (certificate_ledger depende de user_course_certificates)
-      console.log('🔄 Eliminando certificados...')
+ console.log(' Eliminando certificados...')
       // Primero obtener los certificate_ids del usuario para eliminar del ledger
       const { data: certs } = await supabase
         .from('user_course_certificates')
@@ -446,42 +441,42 @@ export class BusinessUsersServerService {
       await deleteFromTable('user_course_certificates')
 
       // 3. Quiz submissions (dependen de enrollments)
-      console.log('🔄 Eliminando quiz submissions...')
+ console.log(' Eliminando quiz submissions...')
       await deleteFromTable('user_quiz_submissions')
 
       // 4. Progreso de lecciones y tracking (dependen de enrollments)
-      console.log('🔄 Eliminando progreso...')
+ console.log(' Eliminando progreso...')
       await deleteFromTable('lesson_tracking')
       await deleteFromTable('user_lesson_progress')
       await deleteFromTable('daily_progress')
 
       // 5. Notas de lecciones
-      console.log('🔄 Eliminando notas de lecciones...')
+ console.log(' Eliminando notas de lecciones...')
       await deleteFromTable('user_lesson_notes')
 
       // 6. Sesiones de estudio (dependen de study_plans)
-      console.log('🔄 Eliminando sesiones de estudio...')
+ console.log(' Eliminando sesiones de estudio...')
       await deleteFromTable('study_sessions')
 
       // 7. Calendar sync history (depende de study_plans)
-      console.log('🔄 Eliminando calendar sync...')
+ console.log(' Eliminando calendar sync...')
       await deleteFromTable('calendar_sync_history')
 
       // 8. Study plans
-      console.log('🔄 Eliminando planes de estudio...')
+ console.log(' Eliminando planes de estudio...')
       await deleteFromTable('study_plans')
 
       // 9. Inscripciones a cursos
-      console.log('🔄 Eliminando enrollments...')
+ console.log(' Eliminando enrollments...')
       await deleteFromTable('user_course_enrollments')
 
       // 10. Asignaciones de cursos de organización
-      console.log('🔄 Eliminando asignaciones de cursos...')
+ console.log(' Eliminando asignaciones de cursos...')
       await deleteFromTable('organization_course_assignments')
       await deleteFromTable('organization_course_assignments', 'assigned_by')
 
       // 11. Curso preguntas, respuestas y reacciones
-      console.log('🔄 Eliminando Q&A de cursos...')
+ console.log(' Eliminando Q&A de cursos...')
       await deleteFromTable('course_question_reactions')
       await deleteFromTable('course_question_responses')
       await deleteFromTable('course_questions')
@@ -489,7 +484,7 @@ export class BusinessUsersServerService {
       await deleteFromTable('lesson_feedback')
 
       // 12. Notificaciones y preferencias
-      console.log('🔄 Eliminando notificaciones...')
+ console.log(' Eliminando notificaciones...')
       await deleteFromTable('notification_email_queue')
       await deleteFromTable('notification_push_subscriptions')
       await deleteFromTable('notification_stats')
@@ -497,13 +492,13 @@ export class BusinessUsersServerService {
       await deleteFromTable('user_notifications')
 
       // 13. Calendario
-      console.log('🔄 Eliminando calendario...')
+ console.log(' Eliminando calendario...')
       await deleteFromTable('user_calendar_events')
       await deleteFromTable('calendar_subscription_tokens')
       await deleteFromTable('calendar_integrations')
 
       // 14. SCORM
-      console.log('🔄 Eliminando SCORM...')
+ console.log(' Eliminando SCORM...')
       // Obtener attempt_ids para eliminar objectives e interactions primero
       const { data: scormAttempts } = await supabase
         .from('scorm_attempts')
@@ -518,20 +513,20 @@ export class BusinessUsersServerService {
       await deleteFromTable('scorm_attempts')
 
       // 15. Transacciones y pagos (eliminar transacciones primero, luego payment_methods)
-      console.log('🔄 Eliminando transacciones...')
+ console.log(' Eliminando transacciones...')
       await deleteFromTable('transactions')
       await deleteFromTable('subscriptions')
       await deleteFromTable('payment_methods')
 
       // 16. OAuth y autenticación
-      console.log('🔄 Eliminando auth data...')
+ console.log(' Eliminando auth data...')
       await deleteFromTable('oauth_accounts')
       await deleteFromTable('password_reset_tokens')
       await deleteFromTable('refresh_tokens')
       await deleteFromTable('user_session')
 
       // 17. Work teams - feedback y mensajes primero
-      console.log('🔄 Eliminando datos de equipos...')
+ console.log(' Eliminando datos de equipos...')
       await deleteFromTable('work_team_feedback', 'from_user_id')
       await deleteFromTable('work_team_feedback', 'to_user_id')
       await deleteFromTable('work_team_messages', 'sender_id')
@@ -544,7 +539,7 @@ export class BusinessUsersServerService {
       await supabase.from('work_teams').update({ created_by: null }).eq('created_by', userId)
 
       // 18. User perfil y respuestas (respuestas depende de user_perfil)
-      console.log('🔄 Eliminando perfil...')
+ console.log(' Eliminando perfil...')
       // Primero obtener user_perfil_id para eliminar respuestas
       const { data: userPerfil } = await supabase
         .from('user_perfil')
@@ -558,30 +553,30 @@ export class BusinessUsersServerService {
       await deleteFromTable('user_perfil')
 
       // 19. Reportes de problemas
-      console.log('🔄 Eliminando reportes...')
+ console.log(' Eliminando reportes...')
       await deleteFromTable('reportes_problemas')
       await deleteFromTable('reportes_problemas', 'admin_asignado')
 
       // 20. Admin dashboard
-      console.log('🔄 Eliminando admin dashboard data...')
+ console.log(' Eliminando admin dashboard data...')
       await deleteFromTable('admin_dashboard_layouts')
       await deleteFromTable('admin_dashboard_preferences')
 
       // 21. Study preferences y streaks
-      console.log('🔄 Eliminando preferencias de estudio...')
+ console.log(' Eliminando preferencias de estudio...')
       await deleteFromTable('study_preferences')
       await deleteFromTable('user_streaks')
 
       // 22. Activity logs
-      console.log('🔄 Eliminando activity logs...')
+ console.log(' Eliminando activity logs...')
       await deleteFromTable('user_activity_log')
 
       // 23. Progreso de tours
-      console.log('🔄 Eliminando tour progress...')
+ console.log(' Eliminando tour progress...')
       await deleteFromTable('user_tour_progress')
 
       // 24. Warnings y moderación
-      console.log('🔄 Eliminando warnings y moderación...')
+ console.log(' Eliminando warnings y moderación...')
       await deleteFromTable('user_warnings')
       await deleteFromTable('ai_moderation_logs')
 
@@ -589,7 +584,7 @@ export class BusinessUsersServerService {
       // await deleteFromTable('audit_logs')
 
       // 26. Datos restantes que no estaban en la lista original
-      console.log('🔄 Eliminando datos adicionales...')
+ console.log(' Eliminando datos adicionales...')
       await deleteFromTable('user_favorites')
       await deleteFromTable('notes')
 
@@ -599,12 +594,12 @@ export class BusinessUsersServerService {
       await deleteFromTable('community_comments')
       await deleteFromTable('community_posts')
 
-      console.log('✅ [deleteOrganizationUser] Todos los datos relacionados eliminados exitosamente')
+ console.log(' [deleteOrganizationUser] Todos los datos relacionados eliminados exitosamente')
 
       // ============================================
       // PASO 2: Eliminar de organization_users
       // ============================================
-      console.log('🔄 Eliminando de organization_users...')
+ console.log(' Eliminando de organization_users...')
       
       // Eliminar también donde el usuario invitó a otros
       await supabase.from('organization_users').update({ invited_by: null }).eq('invited_by', userId)
@@ -616,27 +611,27 @@ export class BusinessUsersServerService {
         .eq('user_id', userId)
 
       if (deleteError) {
-        console.error('❌ Error eliminando de organization_users:', deleteError)
+ console.error(' Error eliminando de organization_users:', deleteError)
         throw deleteError
       }
 
       // ============================================
       // PASO 3: Eliminar el usuario de la tabla users
       // ============================================
-      console.log('🔄 Eliminando usuario de la tabla users...')
+ console.log(' Eliminando usuario de la tabla users...')
       const { error: deleteUserError } = await supabase
         .from('users')
         .delete()
         .eq('id', userId)
 
       if (deleteUserError) {
-        console.error('❌ Error eliminando de users:', deleteUserError)
+ console.error(' Error eliminando de users:', deleteUserError)
         throw new Error(`No se pudo eliminar el usuario: ${deleteUserError.message}`)
       }
 
-      console.log('✅ [deleteOrganizationUser] Usuario eliminado completamente:', userId)
+ console.log(' [deleteOrganizationUser] Usuario eliminado completamente:', userId)
     } catch (error) {
-      console.error('❌ Error in BusinessUsersService.deleteOrganizationUser:', error)
+ console.error(' Error in BusinessUsersService.deleteOrganizationUser:', error)
       throw error
     }
   }

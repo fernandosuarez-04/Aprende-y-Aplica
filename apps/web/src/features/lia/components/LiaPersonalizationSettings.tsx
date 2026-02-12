@@ -38,7 +38,7 @@ const BASE_STYLES: { value: BaseStyle; label: string; description: string }[] = 
 
 export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizationSettingsProps) {
   const { settings, loading, error, updateSettings, resetSettings } = useLiaPersonalization();
-  
+
   const [formData, setFormData] = useState<LiaPersonalizationSettingsInput>({
     base_style: 'professional',
     is_friendly: true,
@@ -147,7 +147,7 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
           <div className="flex items-center gap-3">
             <Settings className="w-6 h-6 text-[#0A2540] dark:text-[#00D4B3]" />
             <h2 className="text-2xl font-bold text-[#0A2540] dark:text-white">
-              Personalización de LIA
+              Personalización de SofLIA
             </h2>
           </div>
           <button
@@ -173,11 +173,10 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
                 <motion.div
                   initial={{ opacity: 0, y: -10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className={`p-4 rounded-lg ${
-                    saveMessage.type === 'success'
+                  className={`p-4 rounded-lg ${saveMessage.type === 'success'
                       ? 'bg-green-500/10 border border-green-500/20 text-green-500'
                       : 'bg-red-500/10 border border-red-500/20 text-red-500'
-                  }`}
+                    }`}
                 >
                   {saveMessage.text}
                 </motion.div>
@@ -186,7 +185,7 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
               {/* Estilo y Tono Base */}
               <Section
                 title="Estilo y tono base"
-                description="Configura el estilo y tono que LIA usa al responder"
+                description="Configura el estilo y tono que SofLIA usa al responder"
                 icon={Sparkles}
                 isExpanded={expandedSections.style}
                 onToggle={() => toggleSection('style')}
@@ -290,7 +289,7 @@ export function LiaPersonalizationSettings({ isOpen, onClose }: LiaPersonalizati
               {/* Avanzado */}
               <Section
                 title="Avanzado"
-                description="Funciones avanzadas de LIA"
+                description="Funciones avanzadas de SofLIA"
                 icon={Settings}
                 isExpanded={expandedSections.advanced}
                 onToggle={() => toggleSection('advanced')}

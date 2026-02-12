@@ -72,7 +72,6 @@ export class PurchasedCoursesService {
         .order('purchased_at', { ascending: false });
 
       if (error) {
-        // console.error('Error fetching purchased courses:', error);
         throw error;
       }
 
@@ -113,7 +112,6 @@ export class PurchasedCoursesService {
 
       return purchasedCourses;
     } catch (error) {
-      // console.error('Error in PurchasedCoursesService.getUserPurchasedCourses:', error);
       throw error;
     }
   }
@@ -134,13 +132,11 @@ export class PurchasedCoursesService {
         .single();
 
       if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-        // console.error('Error checking purchase:', error);
         return false;
       }
 
       return !!data;
     } catch (error) {
-      // console.error('Error in PurchasedCoursesService.isCoursePurchased:', error);
       return false;
     }
   }
@@ -274,7 +270,6 @@ export class PurchasedCoursesService {
         average_progress: enrollments_with_progress > 0 ? total_progress / enrollments_with_progress : 0
       };
     } catch (error) {
-      // console.error('Error in PurchasedCoursesService.getUserLearningStats:', error);
       throw error;
     }
   }

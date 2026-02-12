@@ -1,7 +1,7 @@
-/**
- * LIA Analytics Logger
+﻿/**
+ * SofLIA Analytics Logger
  * 
- * Sistema de logging para interacciones con LIA que permite:
+ * Sistema de logging para interacciones con SofLIA que permite:
  * - Rastrear conversaciones completas
  * - Analizar mensajes individuales
  * - Calcular métricas de uso y calidad
@@ -12,7 +12,7 @@
  */
 
 import { createClient } from '../supabase/server';
-import type { CourseLessonContext } from '../../core/types/lia.types';
+import type { CourseLessonContext } from '../../core/types/SofLIA.types';
 
 // ============================================================================
 // TIPOS
@@ -45,10 +45,10 @@ export interface ActivityProgress {
 }
 
 // ============================================================================
-// CLASE PRINCIPAL: LiaLogger
+// CLASE PRINCIPAL: SofLIALogger
 // ============================================================================
 
-export class LiaLogger {
+export class SofLIALogger {
   private userId: string;
   private conversationId: string | null = null;
   private messageSequence: number = 0; // Contador de secuencia de mensajes
@@ -58,7 +58,7 @@ export class LiaLogger {
   }
 
   /**
-   * Inicia una nueva conversación con LIA
+   * Inicia una nueva conversación con SofLIA
    * IMPORTANTE: Limita a máximo 5 conversaciones por usuario por contexto
    * Elimina automáticamente las conversaciones más antiguas si se excede el límite
    */
@@ -113,7 +113,7 @@ export class LiaLogger {
       .single();
 
     if (error) {
-      console.error('[LiaLogger] Error starting conversation:', error);
+      console.error('[SofLIALogger] Error starting conversation:', error);
       throw error;
     }
 
@@ -166,7 +166,7 @@ export class LiaLogger {
         this.messageSequence = 0;
         return ''; // Retornar vacío sin loggear error
       }
-      console.error('[LiaLogger] Error logging message:', error);
+      console.error('[SofLIALogger] Error logging message:', error);
       throw error;
     }
 
@@ -220,7 +220,6 @@ export class LiaLogger {
       .eq('conversation_id', this.conversationId);
 
     if (error) {
-      // console.error('Error ending conversation:', error);
       throw error;
     }
 
@@ -254,7 +253,6 @@ export class LiaLogger {
       .single();
 
     if (error) {
-      // console.error('Error starting activity:', error);
       throw error;
     }
 
@@ -300,7 +298,6 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      // console.error('Error updating activity progress:', error);
       throw error;
     }
   }
@@ -342,7 +339,6 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      // console.error('Error completing activity:', error);
       throw error;
     }
   }
@@ -362,13 +358,12 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      // console.error('Error abandoning activity:', error);
       throw error;
     }
   }
 
   /**
-   * Registra feedback del usuario sobre un mensaje de LIA
+   * Registra feedback del usuario sobre un mensaje de SofLIA
    */
   async logFeedback(
     messageId: string,
@@ -394,7 +389,6 @@ export class LiaLogger {
       } as any);
 
     if (error) {
-      // console.error('Error logging feedback:', error);
       throw error;
     }
   }
@@ -424,7 +418,7 @@ export class LiaLogger {
       .eq('completion_id', completionId);
 
     if (error) {
-      console.error('[LiaLogger] Error incrementing redirections:', error);
+      console.error('[SofLIALogger] Error incrementing redirections:', error);
     }
   }
 
@@ -460,7 +454,7 @@ export class LiaLogger {
       .single();
 
     if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
-      console.error('[LiaLogger] Error recovering message sequence:', error);
+      console.error('[SofLIALogger] Error recovering message sequence:', error);
     }
 
     this.messageSequence = data?.message_sequence || 0;
@@ -492,7 +486,6 @@ export async function getUserConversationStats(userId: string) {
     .order('started_at', { ascending: false });
 
   if (error) {
-    // console.error('Error fetching user stats:', error);
     return null;
   }
 
@@ -512,7 +505,6 @@ export async function getActivityPerformance(activityId: string) {
     .single();
 
   if (error) {
-    // console.error('Error fetching activity performance:', error);
     return null;
   }
 
@@ -533,7 +525,6 @@ export async function getCommonQuestionsForLesson(lessonId: string, limit: numbe
     .limit(limit);
 
   if (error) {
-    // console.error('Error fetching common questions:', error);
     return null;
   }
 
@@ -541,9 +532,9 @@ export async function getCommonQuestionsForLesson(lessonId: string, limit: numbe
 }
 
 /**
- * Calcula métricas agregadas de LIA para el dashboard de admin
+ * Calcula métricas agregadas de SofLIA para el dashboard de admin
  */
-export async function getLiaGlobalMetrics(startDate: Date, endDate: Date) {
+export async function getSofLIAGlobalMetrics(startDate: Date, endDate: Date) {
   const supabase = await createClient();
 
   // Total de conversaciones

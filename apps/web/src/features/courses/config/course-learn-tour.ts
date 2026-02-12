@@ -1,4 +1,4 @@
-import { VoiceGuideStep } from '../../../core/components/ContextualVoiceGuide';
+﻿import { VoiceGuideStep } from '../../../core/components/ContextualVoiceGuide';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -34,9 +34,9 @@ export function useCourseLearnTourSteps(): VoiceGuideStep[] {
     },
     {
       id: 5,
-      title: t('tour.steps.lia.title'),
-      description: t('tour.steps.lia.description'),
-      speech: t('tour.steps.lia.speech')
+      title: t('tour.steps.SofLIA.title'),
+      description: t('tour.steps.SofLIA.description'),
+      speech: t('tour.steps.SofLIA.speech')
     },
     {
       id: 6,
@@ -81,9 +81,9 @@ export const COURSE_LEARN_TOUR_STEPS: VoiceGuideStep[] = [
   },
   {
     id: 5,
-    title: 'LIA está aquí para ayudarte',
-    description: 'Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a LIA. Te ayudará en todo momento.',
-    speech: 'Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a LIA. Te ayudará en todo momento.'
+    title: 'SofLIA está aquí para ayudarte',
+    description: 'Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a SofLIA. Te ayudará en todo momento.',
+    speech: 'Si tienes dudas sobre el contenido, las actividades o cualquier tema del curso, pregúntale a SofLIA. Te ayudará en todo momento.'
   },
   {
     id: 6,
@@ -94,7 +94,7 @@ export const COURSE_LEARN_TOUR_STEPS: VoiceGuideStep[] = [
   {
     id: 7,
     title: '¡Listo para aprender!',
-    description: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.',
-    speech: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, LIA siempre estará disponible para ayudarte.'
+    description: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, SofLIA siempre estará disponible para ayudarte.',
+    speech: 'Ahora estás preparado para comenzar tu viaje de aprendizaje. Recuerda, SofLIA siempre estará disponible para ayudarte.'
   }
 ];

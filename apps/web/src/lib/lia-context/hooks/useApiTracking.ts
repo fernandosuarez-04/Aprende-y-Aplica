@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 /**
  * useApiTracking
  * 
- * Hook para rastrear llamadas a API y proporcionar contexto a LIA.
+ * Hook para rastrear llamadas a API y proporcionar contexto a SofLIA.
  * Intercepta fetch y opcionalmente XMLHttpRequest para capturar:
  * - URLs de endpoints
  * - Métodos HTTP
@@ -43,7 +43,7 @@ const DEFAULT_OPTIONS: UseApiTrackingOptions = {
   maxCalls: 50,
   includePatterns: [/\/api\//], // Solo rastrear llamadas a /api/
   excludePatterns: [
-    /\/api\/lia\/chat/, // No rastrear llamadas al chat de LIA (evitar recursión)
+    /\/api\/SofLIA\/chat/, // No rastrear llamadas al chat de SofLIA (evitar recursión)
     /\/_next\//, // No rastrear recursos de Next.js
     /\/favicon/, // No rastrear favicon
   ],
@@ -124,7 +124,7 @@ export function useApiTracking(options: UseApiTrackingOptions = {}) {
   }, [apiCalls]);
 
   /**
-   * Obtiene resumen de llamadas para LIA
+   * Obtiene resumen de llamadas para SofLIA
    */
   const getApiSummary = useCallback(() => {
     const errors = getErrorCalls();
@@ -151,9 +151,9 @@ export function useApiTracking(options: UseApiTrackingOptions = {}) {
   }, [apiCalls, getErrorCalls, getRecentCalls]);
 
   /**
-   * Obtiene llamadas en formato para LIA
+   * Obtiene llamadas en formato para SofLIA
    */
-  const getCallsForLia = useCallback(() => {
+  const getCallsForSofLIA = useCallback(() => {
     return apiCalls.slice(0, 10).map(call => ({
       endpoint: new URL(call.url, window.location.origin).pathname,
       method: call.method,
@@ -253,10 +253,10 @@ export function useApiTracking(options: UseApiTrackingOptions = {}) {
     getErrorCalls,
     /** Obtiene llamadas recientes */
     getRecentCalls,
-    /** Obtiene resumen para LIA */
+    /** Obtiene resumen para SofLIA */
     getApiSummary,
-    /** Obtiene llamadas en formato para LIA */
-    getCallsForLia,
+    /** Obtiene llamadas en formato para SofLIA */
+    getCallsForSofLIA,
     /** Agrega una llamada manualmente */
     addApiCall,
   };

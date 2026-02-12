@@ -1,4 +1,4 @@
-export const LEGAL_DOCUMENTS = {
+﻿export const LEGAL_DOCUMENTS = {
   terms: {
     title: 'Términos y Condiciones de Uso',
     icon: 'FileText',
@@ -18,7 +18,7 @@ export const LEGAL_DOCUMENTS = {
           'Contenido educativo interactivo, incluyendo videos, lecciones, materiales de estudio y recursos multimedia',
           'Sistema de evaluación y certificaciones verificables',
           'Comunidad de aprendizaje con foros, preguntas y respuestas, y colaboración entre usuarios',
-          'Asistente virtual de IA (LIA) para apoyo educativo',
+          'Asistente virtual de IA (SofLIA) para apoyo educativo',
           'Planificador de estudios integrado con calendarios externos',
           'Gestión de equipos y reportes de progreso para organizaciones',
           'Sistema de noticias y artículos educativos',
@@ -95,7 +95,7 @@ export const LEGAL_DOCUMENTS = {
       {
         number: 14,
         title: 'Indemnización',
-        content: 'Usted acepta indemnizar, defender y mantener indemnes a SOFLIA, sus afiliados, directores, empleados, agentes y licenciantes de y contra todas y cada una de las reclamaciones, daños, obligaciones, pérdidas, responsabilidades, costos o deudas, y gastos (incluidos pero no limitados a honorarios de abogados) que surjan de: (a) su uso e ingreso a la Plataforma, (b) su violación de cualquier término de estos Términos, (c) su violación de cualquier derecho de un tercero, incluidos sin limitación derechos de propiedad intelectual o privacidad, o (d) cualquier reclamación de que su Contenido del Usuario causó daño a un tercero.',
+        content: 'Usted acepta indemnizar, defender y mantener indemnes a SOFLIA, sus afiSofLIAdos, directores, empleados, agentes y licenciantes de y contra todas y cada una de las reclamaciones, daños, obligaciones, pérdidas, responsabilidades, costos o deudas, y gastos (incluidos pero no limitados a honorarios de abogados) que surjan de: (a) su uso e ingreso a la Plataforma, (b) su violación de cualquier término de estos Términos, (c) su violación de cualquier derecho de un tercero, incluidos sin limitación derechos de propiedad intelectual o privacidad, o (d) cualquier reclamación de que su Contenido del Usuario causó daño a un tercero.',
       },
       {
         number: 15,
@@ -133,7 +133,7 @@ export const LEGAL_DOCUMENTS = {
           'Información de Perfil: Foto de perfil, biografía, ubicación, cargo o rol profesional, y preferencias de privacidad',
           'Información de Autenticación: Credenciales de inicio de sesión (email y contraseña cifrada), tokens de sesión, e información de autenticación social (Google, Microsoft) cuando utiliza estos métodos',
           'Información Académica y de Progreso: Cursos inscritos, lecciones completadas, calificaciones, certificados obtenidos, tiempo de estudio, notas y marcadores, progreso en evaluaciones, habilidades desarrolladas, y estadísticas de aprendizaje',
-          'Información de Uso de la Plataforma: Páginas visitadas, tiempo de permanencia, clics, búsquedas realizadas, interacciones con el asistente de IA (LIA), mensajes en comunidades, publicaciones, comentarios, y otras actividades en la plataforma',
+          'Información de Uso de la Plataforma: Páginas visitadas, tiempo de permanencia, clics, búsquedas realizadas, interacciones con el asistente de IA (SofLIA), mensajes en comunidades, publicaciones, comentarios, y otras actividades en la plataforma',
           'Información de Dispositivo: Dirección IP, tipo de navegador, sistema operativo, tipo de dispositivo, y cookies',
           'Información de Organización (para usuarios B2B): Si es parte de una organización, recopilamos información sobre su organización, equipo, asignaciones de cursos, reportes de progreso, y configuraciones corporativas',
         ],
@@ -168,14 +168,14 @@ export const LEGAL_DOCUMENTS = {
       },
       {
         number: 5,
-        title: 'Asistente Virtual LIA',
-        content: 'SOFLIA incluye un asistente virtual de inteligencia artificial llamado LIA que utiliza tecnología de Google Gemini. Respecto a LIA:',
+        title: 'Asistente Virtual SofLIA',
+        content: 'SOFLIA incluye un asistente virtual de inteligencia artificial llamado SofLIA que utiliza tecnología de Google Gemini. Respecto a SofLIA:',
         list: [
-          'LIA procesa sus consultas para proporcionar asistencia educativa, recomendaciones de cursos y apoyo en su aprendizaje',
-          'Las conversaciones con LIA pueden ser almacenadas para mejorar la calidad del servicio y personalizar futuras interacciones',
-          'LIA tiene acceso al contexto de su progreso educativo dentro de la plataforma para brindar respuestas relevantes',
-          'No compartimos el contenido de sus conversaciones con LIA con terceros para fines publicitarios o de marketing',
-          'Puede solicitar la eliminación de su historial de conversaciones con LIA en cualquier momento',
+          'SofLIA procesa sus consultas para proporcionar asistencia educativa, recomendaciones de cursos y apoyo en su aprendizaje',
+          'Las conversaciones con SofLIA pueden ser almacenadas para mejorar la calidad del servicio y personalizar futuras interacciones',
+          'SofLIA tiene acceso al contexto de su progreso educativo dentro de la plataforma para brindar respuestas relevantes',
+          'No compartimos el contenido de sus conversaciones con SofLIA con terceros para fines publicitarios o de marketing',
+          'Puede solicitar la eliminación de su historial de conversaciones con SofLIA en cualquier momento',
         ],
       },
       {

@@ -81,7 +81,7 @@ interface ChatRequest {
 }
 
 // Instrucciones base mínimas para LIA (sin prompt maestro gigante)
-const BASE_LIA_INSTRUCTION = `Eres LIA, coach inteligente de estudios.
+const BASE_LIA_INSTRUCTION = `Eres SofLIA, coach inteligente de estudios.
 TU OBJETIVO: Maximizar el cumplimiento del plan de estudios del usuario.
 TU SUPERPODER: Proactividad. No esperes a que te pregunten. Si ves un problema, propón una solución.
 
@@ -916,7 +916,7 @@ Debes mencionar esto al usuario de forma proactiva y preguntarle:
 
     });
   } else {
-    console.warn(`⚠️ [CHAT DEBUG] No hay NINGUNA sesión en el plan ${plan.id}`);
+    console.warn(` [CHAT DEBUG] No hay NINGUNA sesión en el plan ${plan.id}`);
   }
 
   const { data: sessions, error: sessionsError } = await supabase

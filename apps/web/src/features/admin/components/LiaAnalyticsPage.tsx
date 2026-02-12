@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useCallback } from "react";
 import {
@@ -95,7 +95,7 @@ export function LiaAnalyticsPage() {
       // Agregar timestamp para evitar cache y forzar datos frescos
       const timestamp = Date.now();
       const response = await fetch(
-        `/api/admin/lia-analytics?period=${period}&provider=${provider}&_t=${timestamp}`,
+        `/api/admin/SofLIA-analytics?period=${period}&provider=${provider}&_t=${timestamp}`,
         {
           cache: "no-store",
           headers: {
@@ -144,7 +144,7 @@ export function LiaAnalyticsPage() {
     link.setAttribute("href", url);
     link.setAttribute(
       "download",
-      `lia-analytics-${period}-${new Date().toISOString().split("T")[0]}.csv`
+      `SofLIA-analytics-${period}-${new Date().toISOString().split("T")[0]}.csv`
     );
     link.style.visibility = "hidden";
     document.body.appendChild(link);
@@ -162,7 +162,7 @@ export function LiaAnalyticsPage() {
               <div className="p-2 bg-indigo-500/20 rounded-xl">
                 <CpuChipIcon className="w-8 h-8 text-indigo-500" />
               </div>
-              LIA Analytics Dashboard
+              SofLIA Analytics Dashboard
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-2">
               Monitorea el uso, costos y rendimiento del asistente de IA

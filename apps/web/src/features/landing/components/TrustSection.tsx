@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import { motion } from 'framer-motion';
@@ -157,7 +157,7 @@ export function TrustSection() {
           <div className="text-center">
             <p className="text-3xl lg:text-4xl font-bold text-[#00D4B3]">24/7</p>
             <p className="text-sm text-[#6C757D] dark:text-white/50">
-              {t('landing.trust.stats.lia', 'Asistente LIA')}
+              {t('landing.trust.stats.SofLIA', 'Asistente SofLIA')}
             </p>
           </div>
           <div className="text-center">

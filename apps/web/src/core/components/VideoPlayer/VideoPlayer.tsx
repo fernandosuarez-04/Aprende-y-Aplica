@@ -117,23 +117,9 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
   lessonId,
   trackingId
 }, ref) => {
-  // 🐛 DEBUG: SYNC log (runs immediately, before any hooks)
-  console.log('[VideoPlayer] 🔄 RENDERING with props:', {
-    videoProvider,
-    lessonId,
-    trackingId,
-    hasLessonId: !!lessonId
-  });
 
-  // 🐛 DEBUG: Log props received (async, after first render)
-  useEffect(() => {
-    console.log('[VideoPlayer] useEffect Props received:', {
-      videoProvider,
-      lessonId,
-      trackingId,
-      hasLessonId: !!lessonId
-    });
-  }, [videoProvider, lessonId, trackingId]);
+
+
 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -160,10 +146,7 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
   const videoUrl = useMemo(() => {
     if (!videoProvider || !videoProviderId) return '';
     const url = generateVideoUrl(videoProvider, videoProviderId);
-    // Debug: Log the generated URL in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log('[VideoPlayer] Generated URL:', { videoProvider, videoProviderId, url });
-    }
+
     return url;
   }, [videoProvider, videoProviderId]);
 
@@ -209,7 +192,6 @@ export const VideoPlayer = forwardRef<CustomVideoPlayerRef, VideoPlayerProps>(({
 
   // Manejar errores del iframe
   const handleIframeError = () => {
-    // console.error('VideoPlayer iframe error');
     setIsLoading(false);
     setError('Error al cargar el video');
   };

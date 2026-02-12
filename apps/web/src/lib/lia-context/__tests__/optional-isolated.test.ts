@@ -1,5 +1,5 @@
-/**
- * Tests AISLADOS para las funcionalidades opcionales del sistema de contexto de LIA
+﻿/**
+ * Tests AISLADOS para las funcionalidades opcionales del sistema de contexto de SofLIA
  * 
  * Estos tests no dependen de Supabase ni imports problemáticos
  */
@@ -489,21 +489,21 @@ function testContextMetricsService() {
 }
 
 // ============================================================================
-// TEST: LIA COMPONENT UTILITIES
+// TEST: SofLIA COMPONENT UTILITIES
 // ============================================================================
 
 import { 
   liaComponent, 
-  liaMarker, 
-  liaModal, 
-  liaForm, 
-  liaDataTable,
-  liaErrorBoundary,
+  SofLIAMarker, 
+  SofLIAModal, 
+  SofLIAForm, 
+  SofLIADataTable,
+  SofLIAErrorBoundary,
   LIA_DATA_ATTRIBUTES
-} from '../utils/lia-component';
+} from '../utils/SofLIA-component';
 
 function testLiaComponentUtilities() {
-  console.log('\nðŸ§© TEST: LIA COMPONENT UTILITIES\n');
+  console.log('\nðŸ§© TEST: SofLIA COMPONENT UTILITIES\n');
   let passed = 0;
   let failed = 0;
 
@@ -531,60 +531,60 @@ function testLiaComponentUtilities() {
     failed++;
   }
 
-  // Test 3: liaMarker simple
-  const marker = liaMarker('Button', 'disabled');
+  // Test 3: SofLIAMarker simple
+  const marker = SofLIAMarker('Button', 'disabled');
   if (marker[LIA_DATA_ATTRIBUTES.COMPONENT] === 'Button' && 
       marker[LIA_DATA_ATTRIBUTES.STATE] === 'disabled') {
-    console.log('✅ liaMarker genera nombre y estado');
+    console.log('✅ SofLIAMarker genera nombre y estado');
     passed++;
   } else {
-    console.log('âŒ liaMarker no funciona correctamente');
+    console.log('âŒ SofLIAMarker no funciona correctamente');
     failed++;
   }
 
-  // Test 4: liaModal
-  const modalOpen = liaModal('ConfirmDialog', true);
-  const modalClosed = liaModal('ConfirmDialog', false);
+  // Test 4: SofLIAModal
+  const modalOpen = SofLIAModal('ConfirmDialog', true);
+  const modalClosed = SofLIAModal('ConfirmDialog', false);
   if (modalOpen[LIA_DATA_ATTRIBUTES.STATE] === 'open' &&
       modalClosed[LIA_DATA_ATTRIBUTES.STATE] === 'closed') {
-    console.log('✅ liaModal maneja estado open/closed');
+    console.log('✅ SofLIAModal maneja estado open/closed');
     passed++;
   } else {
-    console.log('âŒ liaModal no maneja estados correctamente');
+    console.log('âŒ SofLIAModal no maneja estados correctamente');
     failed++;
   }
 
-  // Test 5: liaForm
-  const form = liaForm('LoginForm', { step: 2, hasErrors: true });
+  // Test 5: SofLIAForm
+  const form = SofLIAForm('LoginForm', { step: 2, hasErrors: true });
   if (form[LIA_DATA_ATTRIBUTES.STATE]?.includes('step-2') &&
       form[LIA_DATA_ATTRIBUTES.STATE]?.includes('has-errors') &&
       form[LIA_DATA_ATTRIBUTES.FEATURE] === 'form') {
-    console.log('✅ liaForm genera estado y feature');
+    console.log('✅ SofLIAForm genera estado y feature');
     passed++;
   } else {
-    console.log('âŒ liaForm no genera correctamente');
+    console.log('âŒ SofLIAForm no genera correctamente');
     failed++;
   }
 
-  // Test 6: liaDataTable
-  const table = liaDataTable('UsersTable', { itemCount: 50, page: 2, hasFilters: true });
+  // Test 6: SofLIADataTable
+  const table = SofLIADataTable('UsersTable', { itemCount: 50, page: 2, hasFilters: true });
   if (table[LIA_DATA_ATTRIBUTES.STATE]?.includes('items-50') &&
       table[LIA_DATA_ATTRIBUTES.STATE]?.includes('page-2') &&
       table[LIA_DATA_ATTRIBUTES.STATE]?.includes('filtered')) {
-    console.log('✅ liaDataTable genera estado correcto');
+    console.log('✅ SofLIADataTable genera estado correcto');
     passed++;
   } else {
-    console.log('âŒ liaDataTable no genera estado correcto');
+    console.log('âŒ SofLIADataTable no genera estado correcto');
     failed++;
   }
 
-  // Test 7: liaErrorBoundary
-  const errorBoundary = liaErrorBoundary('AppBoundary');
+  // Test 7: SofLIAErrorBoundary
+  const errorBoundary = SofLIAErrorBoundary('AppBoundary');
   if (errorBoundary[LIA_DATA_ATTRIBUTES.ERROR_BOUNDARY] === 'true') {
-    console.log('✅ liaErrorBoundary marca error boundary');
+    console.log('✅ SofLIAErrorBoundary marca error boundary');
     passed++;
   } else {
-    console.log('âŒ liaErrorBoundary no marca correctamente');
+    console.log('âŒ SofLIAErrorBoundary no marca correctamente');
     failed++;
   }
 
@@ -608,8 +608,8 @@ function testLiaComponentUtilities() {
   }
 
   // Test 9: LIA_DATA_ATTRIBUTES constantes
-  if (LIA_DATA_ATTRIBUTES.COMPONENT === 'data-lia-component' &&
-      LIA_DATA_ATTRIBUTES.STATE === 'data-lia-state') {
+  if (LIA_DATA_ATTRIBUTES.COMPONENT === 'data-SofLIA-component' &&
+      LIA_DATA_ATTRIBUTES.STATE === 'data-SofLIA-state') {
     console.log('✅ Constantes de atributos correctas');
     passed++;
   } else {
@@ -632,23 +632,23 @@ function testLiaComponentUtilities() {
     failed++;
   }
 
-  // Test 11: liaDataTable con loading
-  const loadingTable = liaDataTable('DataGrid', { isLoading: true });
+  // Test 11: SofLIADataTable con loading
+  const loadingTable = SofLIADataTable('DataGrid', { isLoading: true });
   if (loadingTable[LIA_DATA_ATTRIBUTES.STATE]?.includes('loading')) {
-    console.log('✅ liaDataTable soporta estado loading');
+    console.log('✅ SofLIADataTable soporta estado loading');
     passed++;
   } else {
-    console.log('âŒ liaDataTable no soporta loading');
+    console.log('âŒ SofLIADataTable no soporta loading');
     failed++;
   }
 
-  // Test 12: liaForm con submitting
-  const submittingForm = liaForm('PaymentForm', { isSubmitting: true });
+  // Test 12: SofLIAForm con submitting
+  const submittingForm = SofLIAForm('PaymentForm', { isSubmitting: true });
   if (submittingForm[LIA_DATA_ATTRIBUTES.STATE]?.includes('submitting')) {
-    console.log('✅ liaForm soporta estado submitting');
+    console.log('✅ SofLIAForm soporta estado submitting');
     passed++;
   } else {
-    console.log('âŒ liaForm no soporta submitting');
+    console.log('âŒ SofLIAForm no soporta submitting');
     failed++;
   }
 
@@ -745,7 +745,7 @@ function testPageContextServiceNewPages() {
 
 async function runAllTests() {
   console.log('='.repeat(60));
-  console.log('ðŸ§ª TESTS DE FUNCIONALIDADES OPCIONALES DE LIA (AISLADOS)');
+  console.log('ðŸ§ª TESTS DE FUNCIONALIDADES OPCIONALES DE SofLIA (AISLADOS)');
   console.log('='.repeat(60));
 
   const results = {

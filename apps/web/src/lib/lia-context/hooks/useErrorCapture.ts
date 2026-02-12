@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 /**
  * useErrorCapture
  * 
  * Hook para capturar errores de consola y excepciones no manejadas.
- * Proporciona información útil para LIA cuando el usuario reporta bugs.
+ * Proporciona información útil para SofLIA cuando el usuario reporta bugs.
  * 
  * Características:
  * - Intercepta console.error
@@ -91,7 +91,7 @@ export function useErrorCapture(options: UseErrorCaptureOptions = {}) {
   }, []);
 
   /**
-   * Obtiene un resumen de los errores para LIA
+   * Obtiene un resumen de los errores para SofLIA
    */
   const getErrorSummary = useCallback(() => {
     if (errors.length === 0) {
@@ -116,9 +116,9 @@ export function useErrorCapture(options: UseErrorCaptureOptions = {}) {
   }, [errors]);
 
   /**
-   * Obtiene errores en formato para enviar a LIA
+   * Obtiene errores en formato para enviar a SofLIA
    */
-  const getErrorsForLia = useCallback(() => {
+  const getErrorsForSofLIA = useCallback(() => {
     return errors.slice(0, 10).map(e => ({
       type: e.type,
       message: e.message,
@@ -263,8 +263,8 @@ export function useErrorCapture(options: UseErrorCaptureOptions = {}) {
     clearErrors,
     /** Obtiene un resumen de errores */
     getErrorSummary,
-    /** Obtiene errores en formato para LIA */
-    getErrorsForLia,
+    /** Obtiene errores en formato para SofLIA */
+    getErrorsForSofLIA,
     /** Agrega un error manualmente */
     addError,
   };

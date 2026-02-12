@@ -59,7 +59,6 @@ export function ShoppingCart({ className = '' }: ShoppingCartProps) {
           }
         } catch (error) {
           // Si falla, no hacer nada (el carrito se mantiene)
-          // console.error('Error verificando cursos comprados:', error);
         }
       };
 

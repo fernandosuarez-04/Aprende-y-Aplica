@@ -1,10 +1,10 @@
-/**
- * Tests para el Sistema de Contexto Dinámico de LIA - Fase 1
+﻿/**
+ * Tests para el Sistema de Contexto Dinámico de SofLIA - Fase 1
  * 
  * Este archivo contiene tests para verificar el funcionamiento del
  * PageContextService y el sistema de metadata de páginas.
  * 
- * Para ejecutar: npx ts-node apps/web/src/lib/lia-context/__tests__/page-context.test.ts
+ * Para ejecutar: npx ts-node apps/web/src/lib/SofLIA-context/__tests__/page-context.test.ts
  */
 
 import { PageContextService } from '../services/page-context.service';
@@ -14,7 +14,7 @@ import { PAGE_METADATA, getRegisteredRoutes, hasPageMetadata } from '../config/p
 // TESTS
 // ============================================================================
 
-console.log('\n🧪 === TESTS DEL SISTEMA DE CONTEXTO DINÁMICO DE LIA ===\n');
+console.log('\n🧪 === TESTS DEL SISTEMA DE CONTEXTO DINÁMICO DE SofLIA ===\n');
 
 let passed = 0;
 let failed = 0;

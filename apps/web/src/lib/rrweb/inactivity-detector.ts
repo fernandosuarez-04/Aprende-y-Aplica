@@ -41,7 +41,7 @@ function handleActivity() {
   
   if (!isActive) {
     isActive = true;
-    console.log('[InactivityDetector] 👤 Usuario activo');
+ console.log('[InactivityDetector] Usuario activo');
   }
 }
 
@@ -71,16 +71,16 @@ export function startInactivityDetector(
     
     if (isActive && timeSinceActivity > finalConfig.inactivityThreshold) {
       isActive = false;
-      console.log('[InactivityDetector] 💤 Usuario inactivo');
+ console.log('[InactivityDetector] Usuario inactivo');
       callbacks?.onInactive?.();
     } else if (!isActive && timeSinceActivity <= finalConfig.inactivityThreshold) {
       isActive = true;
-      console.log('[InactivityDetector] 👤 Usuario activo de nuevo');
+ console.log('[InactivityDetector] Usuario activo de nuevo');
       callbacks?.onActive?.();
     }
   }, finalConfig.checkInterval);
   
-  console.log('[InactivityDetector] ✅ Detector iniciado');
+ console.log('[InactivityDetector] Detector iniciado');
 }
 
 /**
@@ -99,7 +99,7 @@ export function stopInactivityDetector(): void {
   }
   
   isDetectorRunning = false;
-  console.log('[InactivityDetector] 🛑 Detector detenido');
+ console.log('[InactivityDetector] Detector detenido');
 }
 
 /**

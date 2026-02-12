@@ -155,7 +155,7 @@ export function trimSessionToSize(session: RecordingSession, maxSize: number = T
     endTime: trimmedEvents[trimmedEvents.length - 1]?.timestamp || session.endTime
   };
   
-  console.log(`[SessionCompressor] Sesión recortada: ${events.length} → ${trimmedEvents.length} eventos`);
+ console.log(`[SessionCompressor] Sesión recortada: ${events.length} ${trimmedEvents.length} eventos`);
   
   return trimmedSession;
 }

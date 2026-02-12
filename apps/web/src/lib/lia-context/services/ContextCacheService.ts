@@ -1,5 +1,5 @@
-/**
- * Servicio de caché básico para contexto de LIA
+﻿/**
+ * Servicio de caché básico para contexto de SofLIA
  * Usa Map nativo con TTL (Time To Live) para almacenar datos temporalmente
  */
 

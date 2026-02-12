@@ -21,7 +21,7 @@ export class SubscriptionService {
       const { createClient } = await import('@/lib/supabase/server')
       const supabase = await createClient()
 
-      console.log('🔍 [SubscriptionService] Checking subscription for user:', userId)
+ console.log(' [SubscriptionService] Checking subscription for user:', userId)
 
       // Obtener la organización del usuario (primero de users, luego de organization_users)
       let organizationId: string | null = null
@@ -35,9 +35,9 @@ export class SubscriptionService {
 
       if (!userError && user?.organization_id) {
         organizationId = user.organization_id
-        console.log('✅ [SubscriptionService] Found organization_id from users table:', organizationId)
+ console.log(' [SubscriptionService] Found organization_id from users table:', organizationId)
       } else {
-        console.log('⚠️ [SubscriptionService] No organization_id in users table, checking organization_users...')
+ console.log(' [SubscriptionService] No organization_id in users table, checking organization_users...')
 
         // Método 2: Buscar en la tabla organization_users
         const { data: orgUser, error: orgUserError } = await supabase
@@ -49,12 +49,12 @@ export class SubscriptionService {
 
         if (!orgUserError && orgUser?.organization_id) {
           organizationId = orgUser.organization_id
-          console.log('✅ [SubscriptionService] Found organization_id from organization_users table:', organizationId)
+ console.log(' [SubscriptionService] Found organization_id from organization_users table:', organizationId)
         }
       }
 
       if (!organizationId) {
-        console.log('❌ [SubscriptionService] No organization found for user')
+ console.log(' [SubscriptionService] No organization found for user')
         return false
       }
 
@@ -66,12 +66,12 @@ export class SubscriptionService {
         .single()
 
       if (orgError || !organization) {
-        console.log('❌ [SubscriptionService] Organization not found:', orgError?.message)
+ console.log(' [SubscriptionService] Organization not found:', orgError?.message)
         // Si no hay organización, intentar verificar en la tabla subscriptions
         return await this.checkSubscriptionTable(userId, organizationId)
       }
 
-      console.log('📊 [SubscriptionService] Organization info:', {
+ console.log(' [SubscriptionService] Organization info:', {
         name: organization.name,
         plan: organization.subscription_plan,
         status: organization.subscription_status,
@@ -81,7 +81,7 @@ export class SubscriptionService {
 
       // Verificar que la organización esté activa
       if (!organization.is_active) {
-        console.log('❌ [SubscriptionService] Organization is not active')
+ console.log(' [SubscriptionService] Organization is not active')
         return false
       }
 
@@ -90,7 +90,7 @@ export class SubscriptionService {
       const validPlans = ['team', 'business', 'enterprise']
 
       if (!plan || !validPlans.includes(plan)) {
-        console.log('⚠️ [SubscriptionService] Invalid plan, checking subscriptions table...')
+ console.log(' [SubscriptionService] Invalid plan, checking subscriptions table...')
         // Si el plan no es válido, verificar en la tabla subscriptions
         return await this.checkSubscriptionTable(userId, organizationId)
       }
@@ -100,7 +100,7 @@ export class SubscriptionService {
       const activeStatuses = ['active', 'trial']
 
       if (!status || !activeStatuses.includes(status)) {
-        console.log('❌ [SubscriptionService] Subscription status is not active:', status)
+ console.log(' [SubscriptionService] Subscription status is not active:', status)
         return false
       }
 
@@ -110,15 +110,15 @@ export class SubscriptionService {
         const now = new Date()
 
         if (endDate < now) {
-          console.log('❌ [SubscriptionService] Subscription has expired:', endDate)
+ console.log(' [SubscriptionService] Subscription has expired:', endDate)
           return false
         }
       }
 
-      console.log('✅ [SubscriptionService] User has active subscription!')
+ console.log(' [SubscriptionService] User has active subscription!')
       return true
     } catch (error) {
-      console.error('💥 [SubscriptionService] Error checking subscription:', error)
+ console.error(' [SubscriptionService] Error checking subscription:', error)
       return false
     }
   }

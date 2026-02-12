@@ -70,7 +70,6 @@ export function CertificateTemplatePreview({
   // Debug: Log cuando cambian los props de firma
   useEffect(() => {
     if (isOpen) {
-      // console.log('CertificateTemplatePreview - Signature props updated:', {
       //   instructorSignatureUrl,
       //   instructorSignatureName,
       //   instructorDisplayName,

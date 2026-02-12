@@ -77,7 +77,7 @@ export class ContentTranslationService {
       this.cache.set(cacheKey, translations);
       return translations;
     } catch (error) {
-      console.error(`[ContentTranslationService] ❌ Error loading translations for ${entityType}:${entityId}:`, error);
+      console.error(`[ContentTranslationService] [ERROR] Error loading translations for ${entityType}:${entityId}:`, error);
       return {};
     }
   }
@@ -233,31 +233,21 @@ export class ContentTranslationService {
     try {
       // Validar que tenemos traducciones para guardar
       if (!translations || Object.keys(translations).length === 0) {
-        console.warn(`[ContentTranslationService] ⚠️ No hay traducciones para guardar para ${entityType}:${entityId}:${language}`);
+        console.warn(`[ContentTranslationService] [WARN] No hay traducciones para guardar para ${entityType}:${entityId}:${language}`);
         return false;
       }
 
       // Verificar tamaño total de las traducciones (Supabase tiene límites)
       const translationsJson = JSON.stringify(translations);
       const translationsSize = new Blob([translationsJson]).size;
-      console.log(`[ContentTranslationService] Tamaño de traducciones para ${entityType}:${entityId}:${language}:`, {
-        sizeBytes: translationsSize,
-        sizeKB: (translationsSize / 1024).toFixed(2),
-        sizeMB: (translationsSize / (1024 * 1024)).toFixed(2),
-        fieldCount: Object.keys(translations).length,
-        fields: Object.keys(translations)
-      });
+
 
       // Supabase JSONB tiene un límite de ~1GB, pero en la práctica es mejor mantenerlo bajo
       if (translationsSize > 10 * 1024 * 1024) { // 10MB
-        console.warn(`[ContentTranslationService] ⚠️ Traducciones muy grandes (${(translationsSize / (1024 * 1024)).toFixed(2)}MB) para ${entityType}:${entityId}:${language}`);
+        console.warn(`[ContentTranslationService] [WARN] Traducciones muy grandes (${(translationsSize / (1024 * 1024)).toFixed(2)}MB) para ${entityType}:${entityId}:${language}`);
       }
 
-      console.log(`[ContentTranslationService] Guardando traducción para ${entityType}:${entityId}:${language}`, {
-        fields: Object.keys(translations),
-        hasClient: !!supabaseClient,
-        userId
-      });
+
 
       // IMPORTANTE: Siempre usar SERVICE_ROLE_KEY para guardar traducciones
       // Esto bypassa RLS y permite escribir independientemente de los permisos del usuario
@@ -266,11 +256,11 @@ export class ContentTranslationService {
       const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
       
       if (!supabaseUrl || !supabaseServiceKey) {
-        console.error('[ContentTranslationService] ❌ No se puede crear cliente: faltan variables de entorno');
+ console.error('[ContentTranslationService] No se puede crear cliente: faltan variables de entorno');
         console.error('[ContentTranslationService] Requerido:', {
           hasSupabaseUrl: !!supabaseUrl,
           hasServiceKey: !!supabaseServiceKey,
-          supabaseUrl: supabaseUrl ? '✅' : '❌',
+          supabaseUrl: supabaseUrl ? 'OK' : 'MISSING',
           serviceKey: supabaseServiceKey ? `${supabaseServiceKey.substring(0, 7)}...` : '❌'
         });
         return false;
@@ -292,13 +282,7 @@ export class ContentTranslationService {
         updated_at: new Date().toISOString()
       };
 
-      console.log(`[ContentTranslationService] Datos a insertar/actualizar:`, {
-        entity_type: upsertData.entity_type,
-        entity_id: upsertData.entity_id,
-        language_code: upsertData.language_code,
-        translations_keys: Object.keys(upsertData.translations),
-        created_by: upsertData.created_by
-      });
+
 
       
       const { data, error } = await supabase
@@ -309,7 +293,7 @@ export class ContentTranslationService {
         .select();
 
       if (error) {
-        console.error(`[ContentTranslationService] ❌ Error guardando traducción para ${entityType}:${entityId}:${language}:`, error);
+        console.error(`[ContentTranslationService] [ERROR] Error guardando traducción para ${entityType}:${entityId}:${language}:`, error);
         console.error(`[ContentTranslationService] Detalles del error:`, {
           message: error.message,
           details: error.details,
@@ -326,7 +310,7 @@ export class ContentTranslationService {
 
       return true;
     } catch (error) {
-      console.error(`[ContentTranslationService] ❌ Excepción al guardar traducción para ${entityType}:${entityId}:${language}:`, error);
+      console.error(`[ContentTranslationService] [ERROR] Excepción al guardar traducción para ${entityType}:${entityId}:${language}:`, error);
       if (error instanceof Error) {
         console.error(`[ContentTranslationService] Stack trace:`, error.stack);
       }

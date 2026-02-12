@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -201,14 +201,13 @@ export function OnboardingAgent() {
       const modelId = 'eleven_turbo_v2_5';
 
       // Debug: mostrar valores (comentado para reducir logs)
-      // console.log('ElevenLabs Config (OPTIMIZED):', { 
       //   apiKey: apiKey.substring(0, 15) + '...', 
       //   voiceId,
       //   modelId
       // });
 
       if (!apiKey || !voiceId) {
-        console.warn('⚠️ ElevenLabs credentials not found, using fallback Web Speech API');
+        console.warn('[WARN] ElevenLabs credentials not found, using fallback Web Speech API');
         
         // Fallback a Web Speech API
         const utterance = new SpeechSynthesisUtterance(text);
@@ -441,7 +440,7 @@ export function OnboardingAgent() {
               <div className="relative flex flex-col items-center flex-shrink-0">
                 {/* Esfera central con anillos - Más pequeña para pantallas pequeñas */}
                 <div className="relative w-28 h-28 sm:w-36 sm:h-36 md:w-44 md:h-44 mb-1.5 sm:mb-2 md:mb-3">
-                  {/* Esfera central con foto de LIA - Más compacta */}
+                  {/* Esfera central con foto de SofLIA - Más compacta */}
                   <motion.div
                     className="absolute inset-8 sm:inset-10 md:inset-12 rounded-full bg-gradient-to-br from-blue-500 via-purple-500 to-cyan-500 p-1 overflow-hidden"
                     animate={{ 
@@ -459,11 +458,11 @@ export function OnboardingAgent() {
                       boxShadow: { duration: 1.2, repeat: Infinity, ease: 'easeInOut' }
                     }}
                   >
-                    {/* Foto de LIA */}
+                    {/* Foto de SofLIA */}
                     <div className="relative w-full h-full rounded-full overflow-hidden bg-white/10 backdrop-blur-sm">
                       <Image
-                        src="/lia-avatar.png"
-                        alt="LIA"
+                        src="/SofLIA-avatar.png"
+                        alt="SofLIA"
                         fill
                         sizes="256px"
                         className="object-cover"

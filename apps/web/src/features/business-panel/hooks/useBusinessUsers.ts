@@ -29,11 +29,9 @@ export function useBusinessUsers() {
       
       // Si no hay datos, mostrar mensaje informativo pero no error
       if (usersData.length === 0) {
-        // console.info('No users found in organization')
       }
     } catch (err) {
       // Solo setear error en casos críticos, no bloquear UI
-      // console.error('Error loading users:', err)
       setUsers([])
       setStats({
         total: 0,

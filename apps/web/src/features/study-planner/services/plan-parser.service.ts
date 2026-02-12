@@ -1,4 +1,4 @@
-
+﻿
 export interface ParsedLesson {
   lessonTitle: string;
   durationMinutes: number;
@@ -14,11 +14,11 @@ export interface ParsedSchedule {
 }
 
 /**
- * Parsea la respuesta de texto de LIA/Generador para extraer una estructura de calendario estructurada.
+ * Parsea la respuesta de texto de SofLIA/Generador para extraer una estructura de calendario estructurada.
  * Soporta formatos con emojis (📅, ⏰) y Markdown (**Negrita**).
  * Es robusto para detectar múltiples días y bloques horarios.
  */
-export function parseLiaResponseToSchedules(text: string): ParsedSchedule[] {
+export function parseSofLIAResponseToSchedules(text: string): ParsedSchedule[] {
   const schedules: ParsedSchedule[] = [];
   const lines = text.split('\n');
 
@@ -49,9 +49,7 @@ export function parseLiaResponseToSchedules(text: string): ParsedSchedule[] {
         endTime: normalizeTime(currentEndTime || currentStartTime),
         lessons: [...currentLessons]
       });
-      // console.log(`[Parser] Flushed block: ${currentDate} ${currentStartTime} with ${currentLessons.length} lessons`);
     } else {
-        // console.log(`[Parser] Ignored empty block or missing data: Date=${currentDate} Time=${currentStartTime} Lessons=${currentLessons.length}`);
     }
   };
 

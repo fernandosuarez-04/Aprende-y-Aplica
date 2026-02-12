@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -114,14 +114,14 @@ export function LiaDeadlineSuggestionModal({
 
       if (!response.ok) {
         const data = await response.json()
-        throw new Error(data.error || t('liaSuggestion.error'))
+        throw new Error(data.error || t('SofLIASuggestion.error'))
       }
 
       const data = await response.json()
       setSuggestions(data.suggestions)
       setStep('suggestions')
     } catch (err) {
-      setError(err instanceof Error ? err.message : t('liaSuggestion.error'))
+      setError(err instanceof Error ? err.message : t('SofLIASuggestion.error'))
     } finally {
       setIsLoading(false)
     }
@@ -190,7 +190,7 @@ export function LiaDeadlineSuggestionModal({
               </motion.div>
               <div>
                 <h2 className="text-xl font-bold" style={{ color: textColor }}>
-                  {t('liaSuggestion.title')}
+                  {t('SofLIASuggestion.title')}
                 </h2>
                 <p className="text-sm" style={{ color: `${textColor}60` }}>
                   {courseTitle}
@@ -233,10 +233,10 @@ export function LiaDeadlineSuggestionModal({
               >
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold mb-2" style={{ color: textColor }}>
-                    {t('liaSuggestion.steps.approach.title')}
+                    {t('SofLIASuggestion.steps.approach.title')}
                   </h3>
                   <p className="text-sm" style={{ color: `${textColor}60` }}>
-                    {t('liaSuggestion.steps.approach.subtitle')}
+                    {t('SofLIASuggestion.steps.approach.subtitle')}
                   </p>
                 </div>
 
@@ -262,13 +262,13 @@ export function LiaDeadlineSuggestionModal({
                           </div>
                           <div className="flex-1">
                             <h4 className="text-lg font-bold mb-1" style={{ color: textColor }}>
-                              {t(`liaSuggestion.approaches.${approach}.title`)}
+                              {t(`SofLIASuggestion.approaches.${approach}.title`)}
                             </h4>
                             <p className="text-sm mb-2" style={{ color: `${textColor}70` }}>
-                              {t(`liaSuggestion.approaches.${approach}.subtitle`)}
+                              {t(`SofLIASuggestion.approaches.${approach}.subtitle`)}
                             </p>
                             <p className="text-xs" style={{ color: `${textColor}50` }}>
-                              Ideal para: {t(`liaSuggestion.approaches.${approach}.ideal`)}
+                              Ideal para: {t(`SofLIASuggestion.approaches.${approach}.ideal`)}
                             </p>
                           </div>
                           <ArrowRight
@@ -293,17 +293,17 @@ export function LiaDeadlineSuggestionModal({
               >
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold mb-2" style={{ color: textColor }}>
-                    {t('liaSuggestion.steps.suggestions.title')}
+                    {t('SofLIASuggestion.steps.suggestions.title')}
                   </h3>
                   <p className="text-sm" style={{ color: `${textColor}60` }}>
-                    {t('liaSuggestion.steps.suggestions.subtitle')}
+                    {t('SofLIASuggestion.steps.suggestions.subtitle')}
                   </p>
                 </div>
 
                 {isLoading ? (
                   <div className="flex flex-col items-center justify-center py-12">
                     <Loader2 className="w-12 h-12 animate-spin mb-4" style={{ color: primaryColor }} />
-                    <p style={{ color: `${textColor}60` }}>{t('liaSuggestion.steps.suggestions.calculating')}</p>
+                    <p style={{ color: `${textColor}60` }}>{t('SofLIASuggestion.steps.suggestions.calculating')}</p>
                   </div>
                 ) : (
                   <div className="grid gap-4">
@@ -330,13 +330,13 @@ export function LiaDeadlineSuggestionModal({
                             <div className="flex-1">
                               <div className="flex items-center justify-between mb-2">
                                 <h4 className="text-lg font-bold" style={{ color: textColor }}>
-                                  {t(`liaSuggestion.approaches.${suggestion.approach}.title`)}
+                                  {t(`SofLIASuggestion.approaches.${suggestion.approach}.title`)}
                                 </h4>
                                 <span
                                   className="px-3 py-1 rounded-full text-xs font-medium"
                                   style={{ backgroundColor: `${config.color}20`, color: config.color }}
                                 >
-                                  {suggestion.estimated_completion_rate} {t('liaSuggestion.details.completedRate')}
+                                  {suggestion.estimated_completion_rate} {t('SofLIASuggestion.details.completedRate')}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-4 mb-3">
@@ -362,10 +362,10 @@ export function LiaDeadlineSuggestionModal({
                               </p>
 
                               <p className="text-xs" style={{ color: `${textColor}50` }}>
-                                {t('liaSuggestion.details.studyPace')}: {
+                                {t('SofLIASuggestion.details.studyPace')}: {
                                   suggestion.duration_days <= 7
-                                    ? `${(suggestion.hours_per_week / 7).toFixed(1)} ${t('liaSuggestion.details.hoursPerDay', 'horas/día')}`
-                                    : `${suggestion.hours_per_week} ${t('liaSuggestion.details.hoursPerWeek')}`
+                                    ? `${(suggestion.hours_per_week / 7).toFixed(1)} ${t('SofLIASuggestion.details.hoursPerDay', 'horas/día')}`
+                                    : `${suggestion.hours_per_week} ${t('SofLIASuggestion.details.hoursPerWeek')}`
                                 }
                               </p>
                             </div>
@@ -388,10 +388,10 @@ export function LiaDeadlineSuggestionModal({
               >
                 <div className="text-center mb-6">
                   <h3 className="text-2xl font-bold mb-2" style={{ color: textColor }}>
-                    {t('liaSuggestion.steps.confirm.title')}
+                    {t('SofLIASuggestion.steps.confirm.title')}
                   </h3>
                   <p className="text-sm" style={{ color: `${textColor}60` }}>
-                    {t('liaSuggestion.steps.confirm.subtitle')}
+                    {t('SofLIASuggestion.steps.confirm.subtitle')}
                   </p>
                 </div>
 
@@ -413,7 +413,7 @@ export function LiaDeadlineSuggestionModal({
                     </div>
                     <div>
                       <h4 className="text-lg font-bold mb-1" style={{ color: textColor }}>
-                        {t('liaSuggestion.details.focus')} {t(`liaSuggestion.approaches.${selectedSuggestion.approach}.title`)}
+                        {t('SofLIASuggestion.details.focus')} {t(`SofLIASuggestion.approaches.${selectedSuggestion.approach}.title`)}
                       </h4>
                       <p className="text-sm" style={{ color: `${textColor}60` }}>
                         {selectedSuggestion.description}
@@ -424,7 +424,7 @@ export function LiaDeadlineSuggestionModal({
                   <div className="grid grid-cols-2 gap-4 mb-6">
                     <div>
                       <p className="text-xs mb-1" style={{ color: `${textColor}50` }}>
-                        {t('liaSuggestion.details.dueDate')}
+                        {t('SofLIASuggestion.details.dueDate')}
                       </p>
                       <p className="text-sm font-medium" style={{ color: textColor }}>
                         {new Date(selectedSuggestion.deadline_date).toLocaleDateString('es-ES', {
@@ -436,7 +436,7 @@ export function LiaDeadlineSuggestionModal({
                     </div>
                     <div>
                       <p className="text-xs mb-1" style={{ color: `${textColor}50` }}>
-                        {t('liaSuggestion.details.estimatedDuration')}
+                        {t('SofLIASuggestion.details.estimatedDuration')}
                       </p>
                       <p className="text-sm font-medium" style={{ color: textColor }}>
                         {formatDuration(selectedSuggestion.duration_days)}
@@ -444,19 +444,19 @@ export function LiaDeadlineSuggestionModal({
                     </div>
                     <div>
                       <p className="text-xs mb-1" style={{ color: `${textColor}50` }}>
-                        {t('liaSuggestion.details.studyPace')}
+                        {t('SofLIASuggestion.details.studyPace')}
                       </p>
 
                       <p className="text-sm font-medium" style={{ color: textColor }}>
                         {selectedSuggestion.duration_days <= 7
-                          ? `${(selectedSuggestion.hours_per_week / 7).toFixed(1)} ${t('liaSuggestion.details.hoursPerDay', 'horas/día')}`
-                          : `${selectedSuggestion.hours_per_week} ${t('liaSuggestion.details.hoursPerWeek')}`
+                          ? `${(selectedSuggestion.hours_per_week / 7).toFixed(1)} ${t('SofLIASuggestion.details.hoursPerDay', 'horas/día')}`
+                          : `${selectedSuggestion.hours_per_week} ${t('SofLIASuggestion.details.hoursPerWeek')}`
                         }
                       </p>
                     </div>
                     <div>
                       <p className="text-xs mb-1" style={{ color: `${textColor}50` }}>
-                        {t('liaSuggestion.details.completionRate')}
+                        {t('SofLIASuggestion.details.completionRate')}
                       </p>
                       <p className="text-sm font-medium" style={{ color: textColor }}>
                         {selectedSuggestion.estimated_completion_rate}
@@ -467,16 +467,16 @@ export function LiaDeadlineSuggestionModal({
                   {/* Start Date Selector */}
                   <div>
                     <label className="block text-sm font-medium mb-2" style={{ color: textColor }}>
-                      {t('liaSuggestion.details.startDate')}
+                      {t('SofLIASuggestion.details.startDate')}
                     </label>
                     <PremiumDatePicker
                       value={startDate}
                       onChange={setStartDate}
                       minDate={new Date()}
-                      placeholder={t('liaSuggestion.details.startDate')}
+                      placeholder={t('SofLIASuggestion.details.startDate')}
                     />
                     <p className="text-xs mt-2" style={{ color: `${textColor}50` }}>
-                      {t('liaSuggestion.details.defaultDate')}
+                      {t('SofLIASuggestion.details.defaultDate')}
                     </p>
                   </div>
                 </div>
@@ -489,10 +489,10 @@ export function LiaDeadlineSuggestionModal({
                   <CheckCircle className="w-5 h-5 flex-shrink-0" style={{ color: accentColor }} />
                   <div>
                     <p className="text-sm font-medium mb-1" style={{ color: textColor }}>
-                      {t('liaSuggestion.details.completionTime', { days: selectedSuggestion.duration_days })}
+                      {t('SofLIASuggestion.details.completionTime', { days: selectedSuggestion.duration_days })}
                     </p>
                     <p className="text-xs" style={{ color: `${textColor}60` }}>
-                      {t('liaSuggestion.details.notification')}
+                      {t('SofLIASuggestion.details.notification')}
                     </p>
                   </div>
                 </div>
@@ -511,7 +511,7 @@ export function LiaDeadlineSuggestionModal({
                 style={{ color: textColor }}
               >
                 <ArrowLeft className="w-4 h-4" />
-                {t('liaSuggestion.buttons.back')}
+                {t('SofLIASuggestion.buttons.back')}
               </motion.button>
             )}
 
@@ -523,7 +523,7 @@ export function LiaDeadlineSuggestionModal({
                 className="ml-auto px-8 py-3 rounded-xl font-medium !text-white flex items-center gap-2"
                 style={{ backgroundColor: primaryColor, color: '#FFFFFF' }}
               >
-                {t('liaSuggestion.buttons.confirm')}
+                {t('SofLIASuggestion.buttons.confirm')}
                 <CheckCircle className="w-4 h-4" />
               </motion.button>
             )}

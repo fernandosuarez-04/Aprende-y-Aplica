@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { Step } from 'react-joyride';
 import React from 'react';
@@ -68,9 +68,9 @@ export const businessPanelJoyrideSteps: Step[] = [
     }
   },
   {
-    target: '#tour-lia-button',
-    title: 'Asistente LIA',
-    content: 'Tu asistente inteligente siempre está disponible. LIA puede ayudarte a resolver dudas sobre la plataforma, generar ideas para planes de carrera y sugerir cursos basados en roles.',
+    target: '#tour-SofLIA-button',
+    title: 'Asistente SofLIA',
+    content: 'Tu asistente inteligente siempre está disponible. SofLIA puede ayudarte a resolver dudas sobre la plataforma, generar ideas para planes de carrera y sugerir cursos basados en roles.',
     placement: 'top',
     disableBeacon: true,
     data: {

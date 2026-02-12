@@ -1,7 +1,7 @@
-/**
+﻿/**
  * BaseContextProvider
  * 
- * Clase base abstracta para todos los providers de contexto de LIA.
+ * Clase base abstracta para todos los providers de contexto de SofLIA.
  * Los providers son responsables de construir fragmentos de contexto
  * específicos para diferentes situaciones (bugs, páginas, usuarios, etc.)
  */

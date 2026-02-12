@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useRef } from 'react';
 import { motion, useInView, useScroll, useTransform } from 'framer-motion';
@@ -26,7 +26,7 @@ import {
   Calendar
 } from 'lucide-react';
 
-export default function ConocerLiaPage() {
+export default function ConocerSofLIAPage() {
   const heroRef = useRef<HTMLElement>(null);
   const capabilitiesRef = useRef<HTMLElement>(null);
   const metaphorsRef = useRef<HTMLElement>(null);
@@ -54,46 +54,46 @@ export default function ConocerLiaPage() {
 
   const capabilitiesY = useTransform(capabilitiesScroll, [0, 1], [50, -50]);
 
-  // Metáforas centrales de LIA
+  // Metáforas centrales de SofLIA
   const metaphors = [
     {
       icon: Cpu,
       title: 'Sistema Operativo de Aprendizaje',
-      description: 'LIA es la capa que organiza, coordina y conecta todas las aplicaciones de formación, contenidos y experiencias. SOFLIA piensa, LIA te acompaña.',
+      description: 'SofLIA es la capa que organiza, coordina y conecta todas las aplicaciones de formación, contenidos y experiencias. SOFLIA piensa, SofLIA te acompaña.',
       color: '#00D4B3',
       gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
     },
     {
       icon: Brain,
       title: 'Cerebro Extendido',
-      description: 'LIA amplía tu capacidad de memoria, razonamiento y acceso a conocimiento. El núcleo de IA procesa datos; LIA es la voz que explica y orienta.',
+      description: 'SofLIA amplía tu capacidad de memoria, razonamiento y acceso a conocimiento. El núcleo de IA procesa datos; SofLIA es la voz que explica y orienta.',
       color: '#10B981',
       gradient: 'from-[#10B981] to-[#10B981]/80'
     },
     {
       icon: Navigation,
       title: 'Copiloto de Aprendizaje',
-      description: 'Nadie recorre la ruta de desarrollo solo. LIA es tu copiloto visible que te ayuda a decidir el próximo paso y te propone rutas personalizadas.',
+      description: 'Nadie recorre la ruta de desarrollo solo. SofLIA es tu copiloto visible que te ayuda a decidir el próximo paso y te propone rutas personalizadas.',
       color: '#F59E0B',
       gradient: 'from-[#F59E0B] to-[#F59E0B]/80'
     },
     {
       icon: Network,
       title: 'Sistema Nervioso del Talento',
-      description: 'LIA conecta señales dispersas (datos, capacidades, necesidades) y las transforma en acción coordinada. Detecta patrones y te interpreta las señales.',
+      description: 'SofLIA conecta señales dispersas (datos, capacidades, necesidades) y las transforma en acción coordinada. Detecta patrones y te interpreta las señales.',
       color: '#0A2540',
       gradient: 'from-[#0A2540] to-[#0A2540]/80'
     },
     {
       icon: Layers,
       title: 'Infraestructura de Conocimiento',
-      description: 'LIA es la puerta de acceso a la infraestructura donde se almacena, organiza y actualiza el conocimiento crítico. Orquesta y ensambla tu aprendizaje.',
+      description: 'SofLIA es la puerta de acceso a la infraestructura donde se almacena, organiza y actualiza el conocimiento crítico. Orquesta y ensambla tu aprendizaje.',
       color: '#00D4B3',
       gradient: 'from-[#00D4B3] to-[#00D4B3]/80'
     }
   ];
 
-  // Capacidades de LIA
+  // Capacidades de SofLIA
   const capabilities = [
     {
       icon: MessageSquare,
@@ -104,19 +104,19 @@ export default function ConocerLiaPage() {
     {
       icon: BookOpen,
       title: 'Resúmenes y Explicaciones',
-      description: '¿Necesitas un resumen para recordar lo que acabas de aprender? LIA resume y explica fragmentos de tus clases favoritas.',
+      description: '¿Necesitas un resumen para recordar lo que acabas de aprender? SofLIA resume y explica fragmentos de tus clases favoritas.',
       examples: ['Resúmenes de clases', 'Explicaciones paso a paso', 'Síntesis de conceptos']
     },
     {
       icon: CheckCircle2,
       title: 'Corrección de Ejercicios',
-      description: 'Revisa tus ejercicios con LIA. Resuelve tus dudas y pide ayuda para entender las partes con las que tienes dificultades.',
+      description: 'Revisa tus ejercicios con SofLIA. Resuelve tus dudas y pide ayuda para entender las partes con las que tienes dificultades.',
       examples: ['Revisa tu código', 'Corrige ejercicios', 'Explica errores']
     },
     {
       icon: Target,
       title: 'Respuestas Personalizadas',
-      description: 'Estudia con LIA de tu propia manera, de forma personalizada. Pregunta lo que consideres necesario y profundiza en el conocimiento.',
+      description: 'Estudia con SofLIA de tu propia manera, de forma personalizada. Pregunta lo que consideres necesario y profundiza en el conocimiento.',
       examples: ['Adaptado a tu nivel', 'Respuestas contextualizadas', 'Aprendizaje personalizado']
     }
   ];
@@ -126,25 +126,25 @@ export default function ConocerLiaPage() {
     {
       icon: Sparkles,
       title: 'Tono Cálido pero Profesional',
-      description: 'LIA habla de "nosotros" (equipo) más que de "yo máquina". Siempre justifica sus recomendaciones y adapta la complejidad según tu perfil.',
+      description: 'SofLIA habla de "nosotros" (equipo) más que de "yo máquina". Siempre justifica sus recomendaciones y adapta la complejidad según tu perfil.',
       color: '#00D4B3'
     },
     {
       icon: Users,
       title: 'Anticipa y Sugiere',
-      description: 'LIA no impone ni regaña. Anticipa tus necesidades, sugiere próximos pasos y explica el porqué de cada recomendación.',
+      description: 'SofLIA no impone ni regaña. Anticipa tus necesidades, sugiere próximos pasos y explica el porqué de cada recomendación.',
       color: '#10B981'
     },
     {
       icon: Clock,
       title: 'Disponible 24/7',
-      description: 'LIA está siempre disponible para ayudarte. Estudia las 24 horas, los 7 días de la semana, cuando y donde quieras.',
+      description: 'SofLIA está siempre disponible para ayudarte. Estudia las 24 horas, los 7 días de la semana, cuando y donde quieras.',
       color: '#F59E0B'
     },
     {
       icon: TrendingUp,
       title: 'Transparencia Total',
-      description: 'LIA es transparente sobre lo que sabe, lo que infiere y lo que aún necesita que definas. Sin límites ocultos.',
+      description: 'SofLIA es transparente sobre lo que sabe, lo que infiere y lo que aún necesita que definas. Sin límites ocultos.',
       color: '#0A2540'
     }
   ];
@@ -268,7 +268,7 @@ export default function ConocerLiaPage() {
             >
               Conoce a{' '}
               <span className="text-[#00D4B3]">
-                LIA
+                SofLIA
               </span>
             </motion.h1>
 
@@ -279,7 +279,7 @@ export default function ConocerLiaPage() {
               animate={heroInView ? { opacity: 1, y: 0 } : {}}
               transition={{ delay: 0.3, duration: 0.6 }}
             >
-              Tu asistente inteligente de aprendizaje. LIA te guía, responde tus preguntas y te ayuda a dominar la inteligencia artificial.
+              Tu asistente inteligente de aprendizaje. SofLIA te guía, responde tus preguntas y te ayuda a dominar la inteligencia artificial.
             </motion.p>
 
             <motion.p
@@ -289,11 +289,11 @@ export default function ConocerLiaPage() {
               animate={heroInView ? { opacity: 1 } : {}}
               transition={{ delay: 0.5, duration: 0.6 }}
             >
-              "SOFLIA piensa, LIA te acompaña"
+              "SOFLIA piensa, SofLIA te acompaña"
             </motion.p>
           </motion.div>
 
-          {/* LIA Visual - Circular Design */}
+          {/* SofLIA Visual - Circular Design */}
           <motion.div
             className="flex justify-center mb-16"
             initial={{ opacity: 0, scale: 0.8 }}
@@ -335,8 +335,8 @@ export default function ConocerLiaPage() {
                 transition={{ duration: 0.3 }}
               >
                 <Image
-                  src="/lia-avatar.png"
-                  alt="LIA - Asistente Inteligente"
+                  src="/SofLIA-avatar.png"
+                  alt="SofLIA - Asistente Inteligente"
                   width={320}
                   height={320}
                   className="w-full h-full object-cover rounded-full"
@@ -365,14 +365,14 @@ export default function ConocerLiaPage() {
               className="text-4xl lg:text-6xl font-bold mb-6 text-[#0A2540] dark:text-white"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
-              LIA: Tu{' '}
+              SofLIA: Tu{' '}
               <span className="text-[#00D4B3]">Sabiduría Aumentada</span>
             </h2>
             <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA es más que un asistente. Es la interfaz humana que traduce la inteligencia de SOFLIA en conversaciones, acciones y decisiones cotidianas.
+              SofLIA es más que un asistente. Es la interfaz humana que traduce la inteligencia de SOFLIA en conversaciones, acciones y decisiones cotidianas.
             </p>
           </motion.div>
 
@@ -444,7 +444,7 @@ export default function ConocerLiaPage() {
         </div>
       </section>
 
-      {/* Capacidades de LIA Section */}
+      {/* Capacidades de SofLIA Section */}
       <section
         ref={capabilitiesRef}
         className="py-32 relative bg-gradient-to-b from-white to-[#F8F9FA] dark:from-[#0F1419] dark:to-[#0A0D12]"
@@ -462,14 +462,14 @@ export default function ConocerLiaPage() {
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 900 }}
             >
               ¿Qué puede hacer{' '}
-              <span className="text-[#00D4B3]">LIA</span>
+              <span className="text-[#00D4B3]">SofLIA</span>
               {' '}por ti?
             </h2>
             <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              Explora todas las capacidades que LIA tiene para ayudarte en tu aprendizaje
+              Explora todas las capacidades que SofLIA tiene para ayudarte en tu aprendizaje
             </p>
           </motion.div>
 
@@ -549,7 +549,7 @@ export default function ConocerLiaPage() {
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA genera planes de estudio personalizados adaptados a tu perfil profesional, disponibilidad y objetivos de aprendizaje
+              SofLIA genera planes de estudio personalizados adaptados a tu perfil profesional, disponibilidad y objetivos de aprendizaje
             </p>
           </motion.div>
 
@@ -559,7 +559,7 @@ export default function ConocerLiaPage() {
               {
                 icon: Target,
                 title: 'Generación Automática con IA',
-                description: 'LIA crea tu plan de estudios considerando tu rol profesional, perfil completo, cursos adquiridos y progreso actual. Todo adaptado a tu disponibilidad y preferencias.',
+                description: 'SofLIA crea tu plan de estudios considerando tu rol profesional, perfil completo, cursos adquiridos y progreso actual. Todo adaptado a tu disponibilidad y preferencias.',
                 color: '#00D4B3',
                 features: [
                   'Análisis de tu perfil profesional',
@@ -571,7 +571,7 @@ export default function ConocerLiaPage() {
               {
                 icon: Clock,
                 title: 'Gestión Inteligente de Tiempo',
-                description: 'LIA calcula tiempos mínimos por lección, considera duración de videos, actividades y materiales. Valida que tu plan sea realista y alcanzable.',
+                description: 'SofLIA calcula tiempos mínimos por lección, considera duración de videos, actividades y materiales. Valida que tu plan sea realista y alcanzable.',
                 color: '#10B981',
                 features: [
                   'Cálculo preciso de tiempos',
@@ -583,7 +583,7 @@ export default function ConocerLiaPage() {
               {
                 icon: Navigation,
                 title: 'Rutas Personalizadas',
-                description: 'LIA propone rutas de aprendizaje basadas en tu nivel, área profesional y objetivos. Te sugiere el siguiente paso más adecuado para ti.',
+                description: 'SofLIA propone rutas de aprendizaje basadas en tu nivel, área profesional y objetivos. Te sugiere el siguiente paso más adecuado para ti.',
                 color: '#F59E0B',
                 features: [
                   'Rutas adaptadas a tu nivel',
@@ -595,7 +595,7 @@ export default function ConocerLiaPage() {
               {
                 icon: TrendingUp,
                 title: 'Seguimiento de Progreso',
-                description: 'LIA monitorea tu avance, detecta patrones de estudio y ajusta tu plan dinámicamente. Te ayuda a mantener rachas y cumplir objetivos.',
+                description: 'SofLIA monitorea tu avance, detecta patrones de estudio y ajusta tu plan dinámicamente. Te ayuda a mantener rachas y cumplir objetivos.',
                 color: '#0A2540',
                 features: [
                   'Monitoreo continuo',
@@ -607,7 +607,7 @@ export default function ConocerLiaPage() {
               {
                 icon: Calendar,
                 title: 'Integración con Calendarios',
-                description: 'LIA sincroniza tu plan de estudios con tus calendarios externos. Respeta tus compromisos y encuentra los mejores momentos para estudiar.',
+                description: 'SofLIA sincroniza tu plan de estudios con tus calendarios externos. Respeta tus compromisos y encuentra los mejores momentos para estudiar.',
                 color: '#00D4B3',
                 features: [
                   'Sincronización automática',
@@ -619,7 +619,7 @@ export default function ConocerLiaPage() {
               {
                 icon: Brain,
                 title: 'Mejores Prácticas de Estudio',
-                description: 'LIA aplica técnicas comprobadas como repetición espaciada, práctica distribuida y recall activo para maximizar tu retención y aprendizaje.',
+                description: 'SofLIA aplica técnicas comprobadas como repetición espaciada, práctica distribuida y recall activo para maximizar tu retención y aprendizaje.',
                 color: '#10B981',
                 features: [
                   'Repetición espaciada',
@@ -684,7 +684,7 @@ export default function ConocerLiaPage() {
         </div>
       </section>
 
-      {/* Personalidad de LIA Section */}
+      {/* Personalidad de SofLIA Section */}
       <section
         ref={featuresRef}
         className="py-32 relative bg-gradient-to-b from-white to-[#F8F9FA] dark:from-[#0F1419] dark:to-[#0A0D12]"
@@ -703,13 +703,13 @@ export default function ConocerLiaPage() {
             >
               La{' '}
               <span className="text-[#00D4B3]">Personalidad</span>
-              {' '}de LIA
+              {' '}de SofLIA
             </h2>
             <p
               className="text-xl lg:text-2xl max-w-3xl mx-auto text-[#6C757D] dark:text-white/80"
               style={{ fontFamily: 'Inter, sans-serif', fontWeight: 400 }}
             >
-              LIA no es solo tecnología, es tu compañero de aprendizaje con una personalidad única
+              SofLIA no es solo tecnología, es tu compañero de aprendizaje con una personalidad única
             </p>
           </motion.div>
 
@@ -781,7 +781,7 @@ export default function ConocerLiaPage() {
                 ease: 'easeInOut'
               }}
             >
-              ¿Listo para comenzar con LIA?
+              ¿Listo para comenzar con SofLIA?
             </motion.h2>
             <p
               className="text-xl lg:text-2xl mb-12 text-white/90"
@@ -796,7 +796,7 @@ export default function ConocerLiaPage() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.98 }}
               >
-                Comienza con LIA
+                Comienza con SofLIA
               </motion.button>
             </Link>
           </motion.div>

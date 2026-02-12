@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
@@ -11,7 +11,7 @@ import { useLiaCourse } from '../context/LiaCourseContext';
 import { useLiaCourseChat } from '../../../core/hooks/useLiaCourseChat';
 
 // Tipos necesarios
-interface CourseLiaProps {
+interface CourseSofLIAProps {
   lessonId?: string;
   lessonTitle?: string;
   courseSlug?: string;
@@ -93,20 +93,20 @@ function parseMarkdownContent(text: string, onLinkClick: (url: string) => void, 
 
 // Botón Flotante - Solo visible en tablets/desktop (md:), en móviles se integra en la barra inferior
 function CourseLiaFloatingButton() {
-  const { isOpen, toggleLia } = useLiaCourse();
+  const { isOpen, toggleSofLIA } = useLiaCourse();
   
   return (
     <AnimatePresence>
       {!isOpen && (
         <motion.button
-          id="tour-lia-course-button"
+          id="tour-SofLIA-course-button"
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}
           transition={{ type: 'spring', stiffness: 400, damping: 20 }}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={toggleLia}
+          onClick={toggleSofLIA}
           className="hidden md:flex" // Oculto en móviles, visible en md+
           style={{
             position: 'fixed',
@@ -125,11 +125,11 @@ function CourseLiaFloatingButton() {
             padding: 0,
             overflow: 'hidden'
           }}
-          aria-label="Abrir asistente LIA"
+          aria-label="Abrir asistente SofLIA"
         >
           <img
-            src="/lia-avatar.png"
-            alt="LIA"
+            src="/SofLIA-avatar.png"
+            alt="SofLIA"
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />
         </motion.button>
@@ -139,8 +139,8 @@ function CourseLiaFloatingButton() {
 }
 
 // Panel Principal
-function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors, transcriptContent, summaryContent, lessonContent, onSaveNote }: CourseLiaProps) {
-  const { isOpen, closeLia, currentActivity, registerLiaChat } = useLiaCourse();
+function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors, transcriptContent, summaryContent, lessonContent, onSaveNote }: CourseSofLIAProps) {
+  const { isOpen, closeSofLIA, currentActivity, registerSofLIAChat } = useLiaCourse();
   const prevActivityIdRef = useRef<string | null>(null);
   const { user } = useAuth();
   const router = useRouter();
@@ -177,17 +177,17 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
   };
 
   const initialMessage = user?.first_name
-    ? `¡Hola ${user.first_name}! 👋 Soy LIA, tu tutora del curso. Estoy aquí para ayudarte con "${lessonTitle || 'esta lección'}". ¿Tienes alguna duda?`
-    : `¡Hola! 👋 Soy LIA, tu tutora del curso. Estoy aquí para ayudarte con "${lessonTitle || 'esta lección'}". ¿Tienes alguna duda?`;
+    ? `¡Hola ${user.first_name}! 👋 Soy SofLIA, tu tutora del curso. Estoy aquí para ayudarte con "${lessonTitle || 'esta lección'}". ¿Tienes alguna duda?`
+    : `¡Hola! 👋 Soy SofLIA, tu tutora del curso. Estoy aquí para ayudarte con "${lessonTitle || 'esta lección'}". ¿Tienes alguna duda?`;
 
-  const liaChat = useLiaCourseChat(initialMessage);
-  const { messages, isLoading, sendMessage, clearHistory } = liaChat;
+  const SofLIAChat = useLiaCourseChat(initialMessage);
+  const { messages, isLoading, sendMessage, clearHistory } = SofLIAChat;
 
   // Registrar esta instancia en el contexto para acceso global (modales, etc.)
   useEffect(() => {
-    registerLiaChat(liaChat);
-    return () => registerLiaChat(null);
-  }, [liaChat, registerLiaChat]);
+    registerSofLIAChat(SofLIAChat);
+    return () => registerSofLIAChat(null);
+  }, [SofLIAChat, registerSofLIAChat]);
   
   const [inputValue, setInputValue] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -218,7 +218,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
 
   const handleLinkClick = useCallback((url: string) => {
     if (url.startsWith('/')) {
-      // closeLia(); // Opcional: cerrar al navegar
+      // closeSofLIA(); // Opcional: cerrar al navegar
       router.push(url);
     } else if (url.startsWith('http')) {
       window.open(url, '_blank', 'noopener,noreferrer');
@@ -237,7 +237,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
     }
   }, [isOpen]);
 
-  // 🚀 EFECTO: Detectar inicio de actividad y detonar bienvenida de LIA
+  // 🚀 EFECTO: Detectar inicio de actividad y detonar bienvenida de SofLIA
   useEffect(() => {
     if (isOpen && currentActivity && currentActivity.id !== prevActivityIdRef.current) {
       prevActivityIdRef.current = currentActivity.id;
@@ -260,13 +260,13 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
             }
          };
 
-         // Prompt interno oculto para forzar a LIA a hablar primero
+         // Prompt interno oculto para forzar a SofLIA a hablar primero
          const systemTrigger = `[SYSTEM_EVENT: USER_STARTED_ACTIVITY]
          Actividad: "${currentActivity.title}"
          Descripción: "${currentActivity.description}"
          
-         Instrucción para LIA:
-         El usuario acaba de hacer clic en "Interactuar con Lia" para esta actividad.
+         Instrucción para SofLIA:
+         El usuario acaba de hacer clic en "Interactuar con SofLIA" para esta actividad.
          1. Salúdalo por su nombre y menciona explícitamente que estás lista para guiarlo en "${currentActivity.title}".
          2. Explica brevemente el objetivo (1 frase).
          3. Haz la primera pregunta o da la primera instrucción para empezar.
@@ -322,7 +322,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           animate={animationAnimate}
           exit={animationExit}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          id="tour-lia-panel"
+          id="tour-SofLIA-panel"
           style={{
             position: 'fixed',
             top: `${NAVBAR_HEIGHT}px`,
@@ -347,11 +347,11 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: `1px solid ${themeColors.borderColor}`, backgroundColor: themeColors.headerBg }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
               <div style={{ position: 'relative' }}>
-                <img src="/lia-avatar.png" alt="LIA" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${themeColors.accentColor}` }} />
+                <img src="/SofLIA-avatar.png" alt="SofLIA" style={{ width: '40px', height: '40px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${themeColors.accentColor}` }} />
                 <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '14px', height: '14px', backgroundColor: '#22c55e', borderRadius: '50%', border: `2px solid ${themeColors.panelBg}` }} />
               </div>
               <div>
-                <h2 className="lia-header-title" style={{ color: themeColors.textPrimary, fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>LIA</h2>
+                <h2 className="SofLIA-header-title" style={{ color: themeColors.textPrimary, fontSize: '16px', fontWeight: 600, margin: 0, lineHeight: 1.2 }}>SofLIA</h2>
               </div>
             </div>
             
@@ -364,7 +364,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                 <Trash2 style={{ width: '18px', height: '18px' }} color={isLightTheme ? '#ef4444' : '#f87171'} />
               </button>
               
-              <button onClick={closeLia} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <button onClick={closeSofLIA} style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'transparent', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <X style={{ width: '18px', height: '18px' }} color={isLightTheme ? '#1E293B' : themeColors.textSecondary} />
               </button>
             </div>
@@ -375,7 +375,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
             {messages.map((message) => (
               <div key={message.id} style={{ display: 'flex', flexDirection: 'column', alignItems: message.role === 'user' ? 'flex-end' : 'flex-start' }}>
                 <div style={{ maxWidth: '85%', padding: '12px 16px', borderRadius: '16px', backgroundColor: message.role === 'user' ? '#0A2540' : themeColors.messageBubbleAssistant }}>
-                  <p className={message.role === 'user' ? 'lia-msg-user-text' : 'lia-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
+                  <p className={message.role === 'user' ? 'SofLIA-msg-user-text' : 'SofLIA-msg-assistant-text'} style={{ fontSize: '14px', lineHeight: 1.5, margin: 0, whiteSpace: 'pre-wrap' }}>
                     {message.role === 'assistant' ? parseMarkdownContent(message.content, handleLinkClick, isDarkMode) : message.content}
                   </p>
                   {message.role === 'assistant' && (
@@ -404,9 +404,9 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
             {isLoading && (
                <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
                  <div style={{ padding: '12px 16px', borderRadius: '16px', backgroundColor: themeColors.messageBubbleAssistant, display: 'flex', gap: '6px' }}>
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'liaPulse 1s infinite' }} />
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'liaPulse 1s infinite 0.2s' }} />
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'liaPulse 1s infinite 0.4s' }} />
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'SofLIAPulse 1s infinite' }} />
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'SofLIAPulse 1s infinite 0.2s' }} />
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: themeColors.accentColor, animation: 'SofLIAPulse 1s infinite 0.4s' }} />
                  </div>
                </div>
             )}
@@ -424,8 +424,8 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
                  onKeyDown={handleKeyDown}
                  placeholder="Pregunta sobre la lección..."
                  style={{ flex: 1, backgroundColor: 'transparent', border: 'none', outline: 'none', color: themeColors.textPrimary, fontSize: '14px' }}
-                 id="lia-course-chat-input"
-                 className="lia-input-reset lia-chat-input"
+                 id="SofLIA-course-chat-input"
+                 className="SofLIA-input-reset SofLIA-chat-input"
                />
                <button 
                  onClick={handleSendMessage} 
@@ -452,10 +452,10 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
           </div>
           {/* CSS con máxima especificidad para garantizar visibilidad */}
           <style>{`
-            @keyframes liaPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
+            @keyframes SofLIAPulse { 0%, 100% { opacity: 0.4; transform: scale(1); } 50% { opacity: 1; transform: scale(1.2); } }
             
-            /* Corrección DEFINITIVA para el input de LIA usando ID para máxima especificidad */
-            #lia-course-chat-input {
+            /* Corrección DEFINITIVA para el input de SofLIA usando ID para máxima especificidad */
+            #SofLIA-course-chat-input {
               background-color: transparent !important;
               border: none !important;
               box-shadow: none !important;
@@ -465,40 +465,40 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
               -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
             
-            #lia-course-chat-input::placeholder {
+            #SofLIA-course-chat-input::placeholder {
               color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
               opacity: 1 !important;
               -webkit-text-fill-color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
             }
 
             /* Eliminar borde blanco superior del panel */
-            #tour-lia-panel {
+            #tour-SofLIA-panel {
               border-top: 0 !important;
               border-top-width: 0 !important;
             }
             
-            /* Header de LIA */
-            .lia-header-title {
+            /* Header de SofLIA */
+            .SofLIA-header-title {
               color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
 
             /* Clases forzadas para texto de mensajes */
-            .lia-msg-user-text {
+            .SofLIA-msg-user-text {
               color: white !important;
               -webkit-text-fill-color: white !important;
             }
-            .lia-msg-assistant-text {
+            .SofLIA-msg-assistant-text {
               color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
               -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
             
             /* Input forzado */
-            .lia-chat-input {
+            .SofLIA-chat-input {
               color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
               caret-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
               -webkit-text-fill-color: ${isLightTheme ? '#1E293B' : themeColors.textPrimary} !important;
             }
-            .lia-chat-input::placeholder {
+            .SofLIA-chat-input::placeholder {
               color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
               opacity: 1 !important;
               -webkit-text-fill-color: ${isLightTheme ? '#64748B' : themeColors.textSecondary} !important;
@@ -506,19 +506,19 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
 
             /* OVERRIDE DE EMERGENCIA SI SE DETECTA FONDO CLARO */
             ${forceDarkText ? `
-              .lia-msg-assistant-text, 
-              .lia-chat-input, 
-              #lia-course-chat-input {
+              .SofLIA-msg-assistant-text, 
+              .SofLIA-chat-input, 
+              #SofLIA-course-chat-input {
                  color: #0F172A !important;
                  caret-color: #0F172A !important;
                  -webkit-text-fill-color: #0F172A !important;
               }
-              .lia-chat-input::placeholder,
-              #lia-course-chat-input::placeholder {
+              .SofLIA-chat-input::placeholder,
+              #SofLIA-course-chat-input::placeholder {
                  color: #64748B !important;
                  -webkit-text-fill-color: #64748B !important;
               }
-              .lia-header-title {
+              .SofLIA-header-title {
                  color: #0F172A !important;
               }
             ` : ''}
@@ -529,7 +529,7 @@ function CourseLiaPanelContent({ lessonId, lessonTitle, courseSlug, customColors
   );
 }
 
-export function CourseLia(props: CourseLiaProps) {
+export function CourseSofLIA(props: CourseSofLIAProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;

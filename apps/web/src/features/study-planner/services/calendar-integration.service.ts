@@ -118,13 +118,6 @@ export class CalendarIntegrationService {
       // Construir redirect_uri de forma consistente
       const redirectUri = REDIRECT_URI;
 
-      console.log('[Calendar Integration] Intercambiando código por tokens:', {
-        clientId: GOOGLE_CLIENT_ID ? `${GOOGLE_CLIENT_ID.substring(0, 20)}...` : 'NO CONFIGURADO',
-        redirectUri,
-        hasClientSecret: !!GOOGLE_CLIENT_SECRET,
-        codeLength: authCode.length
-      });
-
       // Intercambiar código por tokens
       const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
         method: 'POST',
@@ -168,7 +161,7 @@ export class CalendarIntegrationService {
 
         // Si tenemos email esperado, verificar que coincida
         if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
-          console.warn('[Calendar Integration] âš ï¸ El email del calendario no coincide con el usuario de la app:', {
+          console.warn('[WARN] [Calendar Integration] El email del calendario no coincide con el usuario de la app:', {
             emailApp: expectedEmail,
             emailCalendar: calendarUserEmail
           });
@@ -181,14 +174,14 @@ export class CalendarIntegrationService {
 
       // CREAR CALENDARIO SECUNDARIO: Al conectar por primera vez, crear el calendario de la plataforma
       if (integration) {
-        console.log('[Calendar Integration] Creando calendario secundario de la plataforma...');
+        
         const secondaryCalendarId = await this.getOrCreatePlatformCalendar(tokens.access_token);
 
         if (secondaryCalendarId) {
           await this.saveSecondaryCalendarId(userId, secondaryCalendarId);
-          console.log('[Calendar Integration] ✅ Calendario secundario creado y guardado:', secondaryCalendarId);
+          
         } else {
-          console.warn('[Calendar Integration] âš ï¸ No se pudo crear el calendario secundario, se usará el principal');
+          console.warn('[WARN] [Calendar Integration] No se pudo crear el calendario secundario, se usará el principal');
         }
       }
 
@@ -303,7 +296,7 @@ export class CalendarIntegrationService {
       }
 
       const data = await response.json();
-      console.log('[Calendar] Calendario secundario creado:', data.id);
+      
       return data.id;
     } catch (error) {
       console.error('[Calendar] Error creando calendario secundario:', error);
@@ -320,7 +313,7 @@ export class CalendarIntegrationService {
     let calendarId = await this.findPlatformCalendar(accessToken);
 
     if (calendarId) {
-      console.log('[Calendar] Calendario secundario existente encontrado:', calendarId);
+      
       return calendarId;
     }
 
@@ -439,7 +432,7 @@ export class CalendarIntegrationService {
     if (error) {
       console.error('[Calendar] Error guardando secondary_calendar_id:', error);
     } else {
-      console.log('[Calendar] secondary_calendar_id guardado:', calendarId);
+      
     }
   }
 
@@ -545,7 +538,7 @@ export class CalendarIntegrationService {
 
         // Si tenemos email esperado, verificar que coincida
         if (expectedEmail && expectedEmail.toLowerCase() !== calendarUserEmail.toLowerCase()) {
-          console.warn('[Calendar Integration] âš ï¸ El email del calendario Microsoft no coincide con el usuario de la app:', {
+          console.warn('[WARN] [Calendar Integration] El email del calendario Microsoft no coincide con el usuario de la app:', {
             emailApp: expectedEmail,
             emailCalendar: calendarUserEmail
           });
@@ -1343,7 +1336,7 @@ export class CalendarIntegrationService {
     }
   ): Promise<{ id: string } | null> {
     try {
-      console.log('[Calendar] Creando evento en Microsoft Calendar:', event.title);
+      
 
       const response = await fetch('https://graph.microsoft.com/v1.0/me/events', {
         method: 'POST',
@@ -1378,7 +1371,7 @@ export class CalendarIntegrationService {
       }
 
       const data = await response.json();
-      console.log('[Calendar] Evento de Microsoft creado exitosamente:', data.id);
+      
       return { id: data.id };
     } catch (error) {
       console.error('[Calendar] Error creando evento en Microsoft:', error);

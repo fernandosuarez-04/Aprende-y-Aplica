@@ -59,9 +59,9 @@ export async function GET(request: NextRequest): Promise<NextResponse<UserContex
     });
 
   } catch (error) {
-    console.error('❌ [user-context] Error COMPLETO:', error);
-    console.error('❌ [user-context] Error stack:', error instanceof Error ? error.stack : 'No stack');
-    console.error('❌ [user-context] Error message:', error instanceof Error ? error.message : String(error));
+ console.error(' [user-context] Error COMPLETO:', error);
+ console.error(' [user-context] Error stack:', error instanceof Error ? error.stack : 'No stack');
+ console.error(' [user-context] Error message:', error instanceof Error ? error.message : String(error));
 
     return NextResponse.json(
       {

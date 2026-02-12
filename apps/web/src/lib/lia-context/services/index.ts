@@ -1,5 +1,5 @@
-/**
- * Exportaciones de servicios de contexto de LIA
+﻿/**
+ * Exportaciones de servicios de contexto de SofLIA
  */
 
 export { PageContextService } from './page-context.service';

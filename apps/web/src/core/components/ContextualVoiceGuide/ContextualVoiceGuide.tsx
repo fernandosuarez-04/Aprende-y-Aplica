@@ -277,14 +277,13 @@ export function ContextualVoiceGuide({
       const modelId = 'eleven_turbo_v2_5';
 
       // Debug: mostrar valores (comentado para reducir logs)
-      // console.log('ElevenLabs Config (OPTIMIZED):', { 
       //   apiKey: apiKey.substring(0, 15) + '...', 
       //   voiceId,
       //   modelId
       // });
 
       if (!apiKey || !voiceId) {
-        console.warn('âš ï¸ ElevenLabs credentials not found, using fallback Web Speech API');
+ console.warn(' ElevenLabs credentials not found, using fallback Web Speech API');
         
         // Fallback a Web Speech API
         const utterance = new SpeechSynthesisUtterance(text);
@@ -409,7 +408,6 @@ export function ContextualVoiceGuide({
 
           // Ignorar transcripciones demasiado cortas
           if (norm.length < 2) {
-            console.warn('Transcripción demasiado corta, ignorando.');
             setIsListening(false);
             return;
           }
@@ -430,14 +428,12 @@ export function ContextualVoiceGuide({
             // Revalidar normalizado y evitar duplicados rápidos
             const now = Date.now();
             if (lastTranscriptRef.current.text === norm && now - lastTranscriptRef.current.ts < 3000) {
-              console.warn('Resultado duplicado detectado (post-debounce), ignorando.');
               setIsListening(false);
               return;
             }
 
             // Si ya estamos procesando otra pregunta, ignorar esta
             if (processingRef.current) {
-              console.warn('Reconocimiento produjo resultado pero ya hay procesamiento en curso, ignorando.');
               setIsListening(false);
               return;
             }
@@ -594,7 +590,6 @@ export function ContextualVoiceGuide({
       const lastText = lastUserMsg.content || '';
       const recent = now - (lastTranscriptRef.current.ts || 0) < 5000;
       if (recent && (lastText === question || lastText.includes(question) || question.includes(lastText))) {
-        console.warn('Pregunta similar ya procesada recientemente, ignorando.');
         processingRef.current = false;
         setIsProcessing(false);
         return;
@@ -662,7 +657,7 @@ export function ContextualVoiceGuide({
       await speakText(liaResponse);
 
     } catch (error) {
-      console.error('âŒ Error procesando pregunta:', error);
+ console.error(' Error procesando pregunta:', error);
       const errorMessage = t('onboarding.voice.errorProcessing');
       try { await speakText(errorMessage); } catch(e) { /* ignore */ }
     } finally {

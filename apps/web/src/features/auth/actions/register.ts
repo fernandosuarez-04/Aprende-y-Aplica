@@ -220,18 +220,18 @@ export async function registerAction(formData: FormData) {
       .single()
 
     if (error) {
-      console.error('❌ [registerAction] Error creating user profile:', error)
+ console.error(' [registerAction] Error creating user profile:', error)
       // Limpiar cuenta de auth en caso de error
       // Nota: Esto requeriría service role key, por ahora solo logueamos
       return { error: 'Error al crear perfil de usuario' }
     }
 
-    console.log('✅ [registerAction] Usuario creado:', { id: userId, cargo_rol: cargoRol });
+ console.log(' [registerAction] Usuario creado:', { id: userId, cargo_rol: cargoRol });
 
     // Si viene de registro personalizado de organización, crear relación en organization_users
     if (organizationId) {
       try {
-        console.log('🔄 [registerAction] Vinculando usuario a organización:', {
+ console.log(' [registerAction] Vinculando usuario a organización:', {
           organizationId,
           userId,
           role: invitedRole || 'member',
@@ -250,11 +250,11 @@ export async function registerAction(formData: FormData) {
           })
 
         if (orgUserError) {
-           console.error('❌ [registerAction] Error creating organization_users relation:', orgUserError)
+ console.error(' [registerAction] Error creating organization_users relation:', orgUserError)
            // Hacemos throw para que vaya al catch, pero no bloqueamos el registro exitoso del usuario
            throw orgUserError; 
         } else {
-           console.log('✅ [registerAction] Usuario vinculado exitosamente a la organización');
+ console.log(' [registerAction] Usuario vinculado exitosamente a la organización');
         }
 
         // Consumir la invitación según el tipo
@@ -296,7 +296,7 @@ export async function registerAction(formData: FormData) {
         }
       } catch (orgUserError) {
         // No fallar el registro si hay error creando la relación
-        console.error('⚠️ [registerAction] Error no crítico vinculando a organización:', orgUserError)
+ console.error(' [registerAction] Error no crítico vinculando a organización:', orgUserError)
       }
     }
 
@@ -314,7 +314,6 @@ export async function registerAction(formData: FormData) {
       } catch (profileError) {
         // No fallar el registro si hay error creando el perfil
         // El perfil se puede crear después cuando complete el cuestionario
-        // console.error('Error creating initial profile:', profileError)
       }
     }
 
@@ -324,7 +323,6 @@ export async function registerAction(formData: FormData) {
       userId: user.id
     }
   } catch (error) {
-    // console.error('Register error:', error)
     if (error instanceof z.ZodError) {
       return { error: error.errors[0].message }
     }

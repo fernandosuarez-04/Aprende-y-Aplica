@@ -308,14 +308,14 @@ async function deleteGoogleCalendarEvent(
       if (errorJson.error?.message?.includes('insufficient authentication scopes') ||
           errorJson.error?.message?.includes('Insufficient Permission') ||
           response.status === 403) {
-        console.warn('⚠️ Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
+ console.warn(' Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
         return; // No lanzar error, solo loguear
       }
     } catch {
       // Si no se puede parsear, verificar el texto del error
       if (errorText.includes('insufficient authentication scopes') || 
           errorText.includes('Insufficient Permission')) {
-        console.warn('⚠️ Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
+ console.warn(' Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
         return; // No lanzar error, solo loguear
       }
     }

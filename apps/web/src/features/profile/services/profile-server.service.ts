@@ -55,7 +55,6 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        // console.error('Error fetching profile:', error)
         throw new Error(`Error al obtener perfil: ${error.message}`)
       }
 
@@ -87,7 +86,6 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      // console.error('Error in ProfileServerService.getProfile:', error)
       throw error
     }
   }
@@ -114,7 +112,6 @@ export class ProfileServerService {
         .single()
 
       if (error) {
-        // console.error('Error updating profile:', error)
         throw new Error(`Error al actualizar perfil: ${error.message}`)
       }
 
@@ -147,7 +144,6 @@ export class ProfileServerService {
         })
       } catch (notificationError) {
         // No lanzar error para no afectar el flujo principal
-        // console.error('Error creando notificación de actualización de perfil:', notificationError)
       }
 
       return {
@@ -174,7 +170,6 @@ export class ProfileServerService {
         email_verified: data.email_verified || false
       }
     } catch (error) {
-      // console.error('Error in ProfileServerService.updateProfile:', error)
       throw error
     }
   }
@@ -196,7 +191,6 @@ export class ProfileServerService {
         .eq('enrollment_status', 'completed')
 
       if (completedError) {
-        // console.error('Error fetching completed courses:', completedError)
       }
 
       // Obtener lecciones completadas
@@ -207,7 +201,6 @@ export class ProfileServerService {
         .eq('is_completed', true)
 
       if (lessonsError) {
-        // console.error('Error fetching completed lessons:', lessonsError)
       }
 
       // Obtener certificados obtenidos
@@ -217,7 +210,6 @@ export class ProfileServerService {
         .eq('user_id', userId)
 
       if (certificatesError) {
-        // console.error('Error fetching certificates:', certificatesError)
       }
 
       // Obtener cursos en progreso
@@ -228,7 +220,6 @@ export class ProfileServerService {
         .eq('enrollment_status', 'active')
 
       if (inProgressError) {
-        // console.error('Error fetching courses in progress:', inProgressError)
       }
 
       return {
@@ -238,7 +229,6 @@ export class ProfileServerService {
         coursesInProgress: inProgressCount || 0
       }
     } catch (error) {
-      // console.error('Error in ProfileServerService.getUserStats:', error)
       // Retornar valores por defecto en caso de error
       return {
         completedCourses: 0,
@@ -283,7 +273,6 @@ export class ProfileServerService {
         .order('created_at', { ascending: false })
 
       if (error) {
-        // console.error('Error fetching subscriptions:', error)
         return []
       }
 
@@ -304,7 +293,6 @@ export class ProfileServerService {
         course_title: sub.courses?.title || null
       }))
     } catch (error) {
-      // console.error('Error in ProfileServerService.getUserSubscriptions:', error)
       return []
     }
   }

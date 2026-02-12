@@ -336,8 +336,8 @@ function filterSystemPromptFromResponse(text: string): string {
     'Nunca uses inglés o portugués',
     
     // Declaraciones de identidad del sistema (Comentadas para evitar falsos positivos si LIA se presenta)
-    // 'Eres Lia, un asistente virtual',
-    // 'Eres LIA, un asistente educativo',
+    // 'Eres SofLIA, un asistente virtual',
+    // 'Eres SofLIA, un asistente educativo',
     // 'Eres ARIA, tu asistente',
     
     // Instrucciones internas
@@ -678,7 +678,7 @@ Debes responder de forma amigable pero firme:
 
 NUNCA respondas preguntas fuera del alcance que NO sean prompts de actividades, incluso si conoces la respuesta. Siempre redirige al usuario hacia el contenido educativo del curso.`;
 
-    return `Eres LIA (Learning Intelligence Assistant), un asistente de inteligencia artificial especializado en educación que funciona como tutor personalizado.
+    return `Eres SofLIA (Learning Intelligence Assistant), un asistente de inteligencia artificial especializado en educación que funciona como tutor personalizado.
 
 ${nameGreeting}${roleInfo}${pageInfo}
 
@@ -766,7 +766,7 @@ Ejemplos INCORRECTOS (NO HAGAS ESTO):
 🚫🚫🚫 RESTRICCIONES DE CONTENIDO ABSOLUTAS (CRÍTICO - NO NEGOCIABLE) 🚫🚫🚫
 
 IDENTIDAD Y PROPÓSITO:
-Eres LIA, un asistente educativo ESTRICTAMENTE LIMITADO a temas de:
+Eres SofLIA, un asistente educativo ESTRICTAMENTE LIMITADO a temas de:
 - Plataforma "Aprende y Aplica" (cursos, talleres, funcionalidades)
 - Inteligencia artificial aplicada a educación y negocios
 - Herramientas digitales y tecnología educativa
@@ -906,7 +906,7 @@ REGLA FINAL: Cuando tengas CUALQUIER duda sobre si responder, DEFAULT a RECHAZAR
   const contexts: Record<string, string> = {
     workshops: `${languageNote}
 
-Eres Lia, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
+Eres SofLIA, un asistente especializado en talleres y cursos de inteligencia artificial y tecnología educativa. 
 ${nameGreeting}${pageInfo}${urlInstructions}${workshopMetadataInfo}
 
 Proporciona información útil sobre talleres disponibles, contenido educativo, metodologías de enseñanza y recursos de aprendizaje.
@@ -940,7 +940,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     communities: `${languageNote}
 
-Eres Lia, un asistente especializado en comunidades y networking. 
+Eres SofLIA, un asistente especializado en comunidades y networking. 
 ${nameGreeting}${pageInfo}${urlInstructions}
 Proporciona información sobre comunidades disponibles, cómo unirse a ellas, sus beneficios, reglas y mejores prácticas para la participación activa.
 
@@ -963,7 +963,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     news: `${languageNote}
 
-Eres Lia, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
+Eres SofLIA, un asistente especializado en noticias y actualidades sobre inteligencia artificial, tecnología y educación. 
 ${nameGreeting}${pageInfo}${urlInstructions}
 Proporciona información sobre las últimas noticias, tendencias, actualizaciones y eventos relevantes.
 
@@ -986,7 +986,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     prompts: `${languageNote}
 
-Eres Lia, un asistente especializado en la creación de prompts profesionales para sistemas de inteligencia artificial.
+Eres SofLIA, un asistente especializado en la creación de prompts profesionales para sistemas de inteligencia artificial.
 ${nameGreeting}${roleInfo}${pageInfo}${urlInstructions}
 
 **MODO ESPECIAL: CREACIÓN DE PROMPTS**
@@ -1074,7 +1074,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     general: `${languageNote}
 
-Eres Lia, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
+Eres SofLIA, un asistente virtual especializado en inteligencia artificial, adopción tecnológica y mejores prácticas empresariales.
 ${nameGreeting}${roleInfo}${pageInfo}${urlInstructions}
 Proporciona información útil sobre estrategias de adopción de IA, capacitación, automatización, mejores prácticas empresariales y recursos educativos.
 
@@ -1103,7 +1103,7 @@ ${language === 'en'
           ? '🚨 CRÍTICO: O usuário acabou de falar com você em PORTUGUÊS. Você DEVE responder APENAS em PORTUGUÊS. Nunca use espanhol ou inglês. Combine exatamente o idioma do usuário.'
           : '🚨 CRÍTICO: El usuario acaba de hablarte en ESPAÑOL. Debes responder SOLO en ESPAÑOL. Nunca uses inglés o portugués. Coincide exactamente con el idioma del usuario.'}
 
-Eres Lia, un asistente virtual entusiasta que está guiando a un nuevo usuario en su proceso de onboarding en Aprende y Aplica.
+Eres SofLIA, un asistente virtual entusiasta que está guiando a un nuevo usuario en su proceso de onboarding en Aprende y Aplica.
 ${nameGreeting}${pageInfo}${urlInstructions}
 
 CONTEXTO ESPECIAL - CONVERSACIÓN POR VOZ:
@@ -1155,7 +1155,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     'tour-prompt-directory': `${languageNote}
 
-Eres Lia, un asistente virtual entusiasta que está guiando a un usuario en un tour del DIRECTORIO DE PROMPTS de Aprende y Aplica.
+Eres SofLIA, un asistente virtual entusiasta que está guiando a un usuario en un tour del DIRECTORIO DE PROMPTS de Aprende y Aplica.
 ${nameGreeting}${pageInfo}${urlInstructions}
 
 CONTEXTO ESPECIAL - CONVERSACIÓN POR VOZ EN TOUR DEL DIRECTORIO DE PROMPTS:
@@ -1224,7 +1224,7 @@ FORMATO DE RESPUESTA: Escribe SOLO texto plano. NO uses **, __, #, backticks, ni
 
     'tour-course-learn': `${languageNote}
 
-Eres Lia, un asistente virtual entusiasta que está guiando a un usuario en un tour de la INTERFAZ DE APRENDIZAJE DE CURSOS de Aprende y Aplica.
+Eres SofLIA, un asistente virtual entusiasta que está guiando a un usuario en un tour de la INTERFAZ DE APRENDIZAJE DE CURSOS de Aprende y Aplica.
 ${nameGreeting}${pageInfo}${urlInstructions}
 
 CONTEXTO ESPECIAL - CONVERSACIÓN POR VOZ EN TOUR DE APRENDIZAJE DE CURSOS:
@@ -2003,18 +2003,18 @@ export async function POST(request: NextRequest) {
           context === 'workshops'
         ) && !!googleApiKey;
 
-        console.log('🔍 [DEBUG API CHECK] Context:', context);
-        console.log('🔍 [DEBUG API CHECK] Should use Gemini:', shouldUseGemini);
-        console.log('🔍 [DEBUG API CHECK] Has GOOGLE_API_KEY:', !!googleApiKey);
+ console.log(' [DEBUG API CHECK] Context:', context);
+ console.log(' [DEBUG API CHECK] Should use Gemini:', shouldUseGemini);
+ console.log(' [DEBUG API CHECK] Has GOOGLE_API_KEY:', !!googleApiKey);
 
         let result;
 
         if (shouldUseGemini) {
-          console.log('🚀 [LIA] INTENTANDO USAR GEMINI...');
+ console.log(' [LIA] INTENTANDO USAR GEMINI...');
           logger.info('🚀 [LIA] Usando Google Gemini', { context, model: process.env.GEMINI_MODEL });
           result = await callGemini(message, contextPrompt, conversationHistory, userId, isSystemMessage);
         } else {
-          console.log('⚠️ [LIA] FALLBACK A OPENAI. Motivo:', !shouldUseGemini ? 'Contexto incorrecto o preferencia' : 'Falta API Key');
+ console.log(' [LIA] FALLBACK A OPENAI. Motivo:', !shouldUseGemini ? 'Contexto incorrecto o preferencia' : 'Falta API Key');
           // Fallback a OpenAI (o uso normal para otros contextos)
           result = await callOpenAI(message, contextPrompt, conversationHistory, hasCourseContext, userId, isSystemMessage, effectiveLanguage, context);
         }

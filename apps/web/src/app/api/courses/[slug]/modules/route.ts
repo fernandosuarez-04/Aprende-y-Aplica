@@ -121,9 +121,9 @@ export async function GET(
         .order('lesson_order_index', { ascending: true });
 
       if (lessonsError) {
-        console.error('[modules/route] ❌ Error obteniendo lecciones:', lessonsError);
+ console.error('[modules/route] Error obteniendo lecciones:', lessonsError);
       } else {
-        console.log('[modules/route] ✅ Lecciones obtenidas:', {
+ console.log('[modules/route] Lecciones obtenidas:', {
           count: lessonsData?.length || 0,
           lessons: lessonsData?.map(l => ({
             id: l.lesson_id,
@@ -290,7 +290,6 @@ export async function GET(
       cacheHeaders.semiStatic
     );
   } catch (error) {
-    // console.error('Error in modules API:', error);
     return NextResponse.json(
       {
         error: 'Error interno del servidor',

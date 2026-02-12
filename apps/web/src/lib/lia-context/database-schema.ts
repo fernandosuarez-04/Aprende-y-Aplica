@@ -1,4 +1,4 @@
-export const DATABASE_SCHEMA_CONTEXT = `
+﻿export const DATABASE_SCHEMA_CONTEXT = `
 ## ESQUEMA DE BASE DE DATOS DE SOFLIA
 Usa este esquema para entender la estructura de datos real de la plataforma, las relaciones entre entidades y los campos disponibles.
 Esto te servirá para responder preguntas técnicas o sobre disponibilidad de datos.
@@ -92,9 +92,9 @@ Esto te servirá para responder preguntas técnicas o sobre disponibilidad de da
 - due_date (Fecha límite)
 - status (assigned, in_progress, completed)
 
-### INTERACTIVIDAD Y LIA
+### INTERACTIVIDAD Y SofLIA
 
-**lia_conversations** (Historial de chat con LIA)
+**lia_conversations** (Historial de chat con SofLIA)
 - conversation_id (uuid, PK)
 - user_id (FK -> users)
 - context_type (course, dashboard, etc)

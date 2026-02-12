@@ -99,7 +99,6 @@ export async function middleware(request: NextRequest) {
           }
         }
       } catch (error) {
-        // console.error('Error verificando sesión en middleware:', error)
         // Continuar con flujo normal si hay error
       }
     }

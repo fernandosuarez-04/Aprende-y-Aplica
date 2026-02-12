@@ -1,4 +1,4 @@
-{
+﻿{
   "sidebar": {
     "dashboard": "Dashboard",
     "users": "Usuários",
@@ -256,11 +256,11 @@
         },
         "platformActivity": {
           "title": "Atividade na Plataforma",
-          "liaQueries": "Consultas LIA",
+          "SofLIAQueries": "Consultas SofLIA",
           "messages": "mensagens",
           "quizzesPassed": "Quizzes Aprovados",
           "average": "média",
-          "liaActivities": "Atividades LIA",
+          "liaActivities": "Atividades SofLIA",
           "total": "total"
         },
         "generalProgress": {
@@ -279,7 +279,7 @@
           "notStarted": "Não iniciado",
           "progress": "Progresso do curso",
           "time": "Tempo",
-          "lia": "LIA",
+          "SofLIA": "SofLIA",
           "quiz": "Quiz",
           "notes": "Notas"
         },
@@ -503,7 +503,7 @@
       "assign": "Atribuir Curso",
       "assigning": "Atribuindo...",
       "cancel": "Cancelar",
-      "suggestDate": "Sugerir com LIA",
+      "suggestDate": "Sugerir com SofLIA",
       "suggesting": "Sugerindo..."
     },
     "errors": {
@@ -526,8 +526,8 @@
     },
     "titleTeam": "Atribuir Curso à Equipe"
   },
-  "liaSuggestion": {
-    "title": "Sugestões do LIA",
+  "SofLIASuggestion": {
+    "title": "Sugestões do SofLIA",
     "error": "Erro ao obter sugestões",
     "steps": {
       "approach": {
@@ -588,7 +588,7 @@
     "feedbackType": "Tipo de Feedback",
     "content": "Conteúdo",
     "contentPlaceholder": "Escreva seu feedback aqui... (mínimo de 10 caracteres)",
-    "rating": "Avaliação (Opcional)",
+    "rating": "AvaSofLIAção (Opcional)",
     "anonymous": "Enviar anonimamente",
     "anonymousStatus": "🕵️ Enviando anonimamente",
     "preview": {
@@ -596,7 +596,7 @@
       "teamMember": "Membro da equipe"
     },
     "types": {
-      "peer_review": "Avaliação",
+      "peer_review": "AvaSofLIAção",
       "achievement": "Conquista",
       "suggestion": "Sugestão",
       "question": "Pergunta"

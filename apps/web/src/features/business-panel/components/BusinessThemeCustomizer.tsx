@@ -142,7 +142,6 @@ export function BusinessThemeCustomizer() {
     setSaveSuccess(null);
 
     try {
-      // console.log('ðŸ’¾ Guardando estilos:', { panelStyles, userDashboardStyles, loginStyles });
 
       const success = await updateStyles(
         panelStyles || undefined,
@@ -153,7 +152,6 @@ export function BusinessThemeCustomizer() {
       if (success) {
         setSaveSuccess('Estilos guardados correctamente');
         setTimeout(() => setSaveSuccess(null), 3000);
-        // console.log('✅ Estilos guardados exitosamente, refrescando...');
         // Refrescar estilos para asegurar que todos los componentes se actualicen
         await refetch();
       } else {
@@ -161,7 +159,6 @@ export function BusinessThemeCustomizer() {
         setTimeout(() => setSaveError(null), 3000);
       }
     } catch (err: any) {
-      // console.error('âŒ Error al guardar estilos:', err);
       setSaveError(err.message || 'Error al guardar estilos');
       setTimeout(() => setSaveError(null), 3000);
     } finally {

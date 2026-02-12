@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+﻿import type { Metadata } from 'next';
 import { Inter, Montserrat } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '../core/components/ThemeProvider';
@@ -31,8 +31,8 @@ const montserrat = Montserrat({
 
 export const metadata: Metadata = {
   title: 'SOFLIA',
-  description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
-  keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'LIA'],
+  description: 'Plataforma educativa de inteligencia artificial con asistente virtual SofLIA. Capacitación, comunidad y adopción de IA en el entorno laboral.',
+  keywords: ['educación', 'inteligencia artificial', 'chatbot', 'capacitación', 'IA', 'SofLIA'],
   authors: [{ name: 'Equipo SOFLIA' }],
   robots: 'index, follow',
   icons: {
@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: 'SOFLIA',
-    description: 'Plataforma educativa de inteligencia artificial con asistente virtual LIA',
+    description: 'Plataforma educativa de inteligencia artificial con asistente virtual SofLIA',
     type: 'website',
     locale: 'es_ES',
   },
@@ -80,7 +80,7 @@ export default function RootLayout({
                     e.message.includes('Loading CSS chunk') ||
                     (e.target && e.target.tagName === 'SCRIPT' && e.target.src && e.target.src.includes('_next/static/chunks'))
                   )) {
-                    console.warn('🔄 ChunkLoadError detectado, recargando página...', e.message);
+ console.warn(' ChunkLoadError detectado, recargando página...', e.message);
                     // Evitar recargas infinitas
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
@@ -91,7 +91,7 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+ console.error(' Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                     return true;
@@ -108,7 +108,7 @@ export default function RootLayout({
                     ) ||
                     e.reason.name === 'ChunkLoadError'
                   )) {
-                    console.warn('🔄 ChunkLoadError en promesa rechazada, recargando página...', e.reason);
+ console.warn(' ChunkLoadError en promesa rechazada, recargando página...', e.reason);
                     var reloadKey = 'chunk-reload-attempt';
                     var attempts = parseInt(sessionStorage.getItem(reloadKey) || '0', 10);
                     if (attempts < 2) {
@@ -118,7 +118,7 @@ export default function RootLayout({
                       }, 100);
                     } else {
                       sessionStorage.removeItem(reloadKey);
-                      console.error('âŒ Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
+ console.error(' Múltiples intentos de recarga fallidos. Por favor, recarga manualmente la página.');
                     }
                     e.preventDefault();
                   }
@@ -205,7 +205,7 @@ export default function RootLayout({
         {/* ðŸŽ¨ Splash Screens iOS */}
         <link rel="apple-touch-startup-image" href="/icon-512x512.png" />
       </head>
-      <body className={`${inter.className} antialiased bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`} suppressHydrationWarning>
+      <body className={`${inter.className} antiaSofLIAsed bg-[var(--color-bg-dark)] text-[var(--color-contrast)] transition-colors duration-300`} suppressHydrationWarning>
         <GlobalRecorderProvider>
           <SWRProvider>
             <I18nProvider>
@@ -221,7 +221,7 @@ export default function RootLayout({
                               {children}
                             </ContentWrapper>
                           </AuthSecurityGuard>
-                          {/* AI Chat Agent - Lia - Disponible en todas las páginas excepto lessons - Removed
+                          {/* AI Chat Agent - SofLIA - Disponible en todas las páginas excepto lessons - Removed
                         <ConditionalAIChatAgent /> */}
                           {/* Onboarding Agent - Asistente estilo JARVIS para primera visita */}
                           <OnboardingAgent />

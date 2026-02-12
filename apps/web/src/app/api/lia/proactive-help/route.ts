@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
     if (openaiApiKey) {
       const startTime = Date.now();
       const model = 'gpt-4-turbo-preview';
-      
+
       // Llamada real a OpenAI
       const openaiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
           messages: [
             {
               role: 'system',
-              content: `Eres LIA, una tutora virtual especializada en inteligencia artificial y aprendizaje personalizado. 
+              content: `Eres SofLIA, una tutora virtual especializada en inteligencia artificial y aprendizaje personalizado. 
               Tu tarea es ofrecer ayuda proactiva cuando detectas que un usuario tiene dificultades. 
               Sé empática, específica y constructiva. Ofrece pasos concretos y ejemplos prácticos.`
             },
@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
 
       const data = await openaiResponse.json();
       const responseTime = Date.now() - startTime;
-      
+
       // ✅ Registrar uso de OpenAI
       if (data.usage) {
         await trackOpenAICall(calculateOpenAIMetadata(
@@ -124,9 +124,9 @@ export async function POST(request: NextRequest) {
           responseTime
         ));
       }
-      
+
       liaResponse = data.choices[0]?.message?.content || 'Lo siento, no pude generar una respuesta.';
-      
+
       // Extraer sugerencias del response (LIA puede formatear con bullets)
       suggestions = extractSuggestions(liaResponse);
       resources = generateResources(analysis.patterns);
@@ -153,9 +153,9 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error en /api/lia/proactive-help:', error);
+    console.error(' Error en /api/lia/proactive-help:', error);
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         message: error instanceof Error ? error.message : 'Unknown error'
       },
@@ -202,7 +202,7 @@ ${activityId ? `Actividad ID: ${activityId}` : ''}
 
 # Tu tarea
 
-Como LIA, ofrece ayuda proactiva al usuario. Tu respuesta debe:
+Como SofLIA, ofrece ayuda proactiva al usuario. Tu respuesta debe:
 
 1. **Ser empática**: Reconoce que aprender puede ser desafiante
 2. **Ser específica**: Referencia los patrones detectados de forma natural
@@ -224,20 +224,20 @@ Ejemplo de tono: "Hola! He notado que llevas un rato trabajando en esta activida
  */
 function extractSuggestions(response: string): string[] {
   const suggestions: string[] = [];
-  
+
   // Buscar bullets o listas numeradas
   const bulletPattern = /[•\-*]\s*(.+)/g;
   const numberedPattern = /\d+\.\s*(.+)/g;
-  
+
   let match;
   while ((match = bulletPattern.exec(response)) !== null) {
     suggestions.push(match[1].trim());
   }
-  
+
   while ((match = numberedPattern.exec(response)) !== null) {
     suggestions.push(match[1].trim());
   }
-  
+
   return suggestions.slice(0, 5); // Máximo 5 sugerencias
 }
 
@@ -248,15 +248,15 @@ function extractNextSteps(response: string): string[] {
   // Similar a extractSuggestions pero busca secciones de "próximos pasos"
   const nextStepsSection = response.match(/pr[oó]ximos?\s+pasos?:(.+?)(?:\n\n|$)/is);
   if (!nextStepsSection) return [];
-  
+
   const steps: string[] = [];
   const bulletPattern = /[•\-*]\s*(.+)/g;
-  
+
   let match;
   while ((match = bulletPattern.exec(nextStepsSection[1])) !== null) {
     steps.push(match[1].trim());
   }
-  
+
   return steps;
 }
 
@@ -265,7 +265,7 @@ function extractNextSteps(response: string): string[] {
  */
 function generateResources(patterns: any[]): any[] {
   const resources: any[] = [];
-  
+
   patterns.forEach(pattern => {
     switch (pattern.type) {
       case 'failed_attempts':
@@ -291,7 +291,7 @@ function generateResources(patterns: any[]): any[] {
         break;
     }
   });
-  
+
   // Remover duplicados
   return Array.from(new Map(resources.map(r => [r.title, r])).values());
 }
@@ -304,7 +304,7 @@ function generateMockProactiveResponse(
   sessionContext: any
 ): ProactiveHelpResponse {
   const primaryPattern = analysis.patterns[0];
-  
+
   const responses: Record<string, ProactiveHelpResponse> = {
     inactivity: {
       success: true,

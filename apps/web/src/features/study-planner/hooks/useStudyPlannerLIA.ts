@@ -1,7 +1,7 @@
-/**
- * useStudyPlannerLIA Hook
+﻿/**
+ * useStudyPlannerSofLIA Hook
  * 
- * Hook personalizado para manejar el estado conversacional con LIA
+ * Hook personalizado para manejar el estado conversacional con SofLIA
  * en el planificador de estudios.
  */
 
@@ -75,7 +75,7 @@ export interface Message {
 }
 
 // Estado del hook
-export interface StudyPlannerLIAState {
+export interface StudyPlannerSofLIAState {
   currentPhase: StudyPlannerPhase;
   phaseData: PhaseData;
   messages: Message[];
@@ -87,7 +87,7 @@ export interface StudyPlannerLIAState {
 
 // Acciones disponibles
 export interface StudyPlannerLIAActions {
-  // Comunicación con LIA
+  // Comunicación con SofLIA
   sendMessage: (message: string) => Promise<void>;
   sendVoiceMessage: (transcript: string) => Promise<void>;
 
@@ -112,7 +112,7 @@ export interface StudyPlannerLIAActions {
   reset: () => void;
 }
 
-const initialState: StudyPlannerLIAState = {
+const initialState: StudyPlannerSofLIAState = {
   currentPhase: StudyPlannerPhase.WELCOME,
   phaseData: {},
   messages: [],
@@ -123,10 +123,10 @@ const initialState: StudyPlannerLIAState = {
 };
 
 /**
- * Hook para manejar la interacción con LIA en el planificador de estudios
+ * Hook para manejar la interacción con SofLIA en el planificador de estudios
  */
-export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActions {
-  const [state, setState] = useState<StudyPlannerLIAState>(initialState);
+export function useStudyPlannerSofLIA(): StudyPlannerSofLIAState & StudyPlannerLIAActions {
+  const [state, setState] = useState<StudyPlannerSofLIAState>(initialState);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Cargar contexto del usuario al iniciar
@@ -170,7 +170,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
     }
   }, []);
 
-  // Enviar mensaje a LIA
+  // Enviar mensaje a SofLIA
   const sendMessage = useCallback(async (message: string) => {
     if (!message.trim()) return;
 
@@ -231,12 +231,12 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
       });
 
       if (!response.ok) {
-        throw new Error('Error al comunicarse con LIA');
+        throw new Error('Error al comunicarse con SofLIA');
       }
 
       const data = await response.json();
 
-      // Agregar respuesta de LIA
+      // Agregar respuesta de SofLIA
       const assistantMessage: Message = {
         id: `assistant-${Date.now()}`,
         role: 'assistant',
@@ -261,7 +261,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
       console.error('Error enviando mensaje:', error);
       setState(prev => ({
         ...prev,
-        error: 'Error al comunicarse con LIA. Por favor, intenta de nuevo.',
+        error: 'Error al comunicarse con SofLIA. Por favor, intenta de nuevo.',
         isLoading: false,
       }));
     }
@@ -503,5 +503,5 @@ function getSessionType(maxMinutes: number): 'short' | 'medium' | 'long' {
   return 'long';
 }
 
-export default useStudyPlannerLIA;
+export default useStudyPlannerSofLIA;
 

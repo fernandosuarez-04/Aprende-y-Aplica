@@ -2,7 +2,7 @@
 
 import { create } from 'zustand';
 
-// ⚠️ SECURITY FIX: Este store ya NO usa persist para evitar que datos de usuarios
+// SECURITY FIX: Este store ya NO usa persist para evitar que datos de usuarios
 // se filtren entre sesiones. El usuario real se obtiene siempre del servidor via useAuth().
 // Este store solo se mantiene por compatibilidad con código legacy.
 
@@ -25,7 +25,7 @@ interface AuthState {
   setLoading: (loading: boolean) => void;
 }
 
-// ⚠️ NO usar este store para autenticación real
+// NO usar este store para autenticación real
 // Usar useAuth() de features/auth/hooks/useAuth.ts en su lugar
 export const useAuthStore = create<AuthState>()(
   (set) => ({
@@ -34,9 +34,9 @@ export const useAuthStore = create<AuthState>()(
     isLoading: false,
 
     login: async (_email: string, _password: string) => {
-      // ⚠️ DEPRECATED: No usar este método
+      // DEPRECATED: No usar este método
       // Usar el server action de login en features/auth/actions/login.ts
-      console.warn('⚠️ useAuthStore.login() está deprecated. Usar server action de login.');
+      console.warn('[WARN] useAuthStore.login() is deprecated. Use server action de login instead.');
       set({ isLoading: false });
     },
 
@@ -68,13 +68,13 @@ export const useAuthStore = create<AuthState>()(
   })
 );
 
-// ⚠️ SECURITY: Limpiar localStorage al cargar si hay datos residuales
+// SECURITY: Limpiar localStorage al cargar si hay datos residuales
 // Esto asegura que datos de sesiones anteriores no contaminen nuevas sesiones
 if (typeof window !== 'undefined') {
   // Limpiar el storage antiguo al inicializar
   const oldStorage = localStorage.getItem('auth-storage');
   if (oldStorage) {
-    console.warn('🔒 Security: Limpiando datos de auth residuales del localStorage');
+    console.warn('[WARN] Security: Limpiando datos de auth residuales del localStorage');
     localStorage.removeItem('auth-storage');
   }
 }

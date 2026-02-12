@@ -1,7 +1,7 @@
-/**
+﻿/**
  * PageContextService
  * 
- * Servicio para obtener y construir contexto de páginas para LIA.
+ * Servicio para obtener y construir contexto de páginas para SofLIA.
  * Proporciona información técnica sobre la página actual incluyendo
  * componentes, APIs, flujos de usuario y problemas comunes.
  * 
@@ -41,7 +41,7 @@ export class PageContextService {
   }
 
   /**
-   * Construye contexto de página formateado para incluir en el prompt de LIA
+   * Construye contexto de página formateado para incluir en el prompt de SofLIA
    * @param currentPage - Ruta actual del usuario
    * @returns String formateado con el contexto de la página
    */

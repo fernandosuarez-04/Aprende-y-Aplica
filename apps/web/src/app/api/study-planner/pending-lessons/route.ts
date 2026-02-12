@@ -82,12 +82,12 @@ export async function GET(request: NextRequest) {
       .maybeSingle();
 
     const isB2BUser = !!orgUser?.organization_id;
-    console.log(`📊 [pending-lessons] Usuario ${currentUser.id}: isB2B=${isB2BUser}`);
+ console.log(` [pending-lessons] Usuario ${currentUser.id}: isB2B=${isB2BUser}`);
 
     // 1b. Si es B2B, obtener asignaciones de organization_course_assignments
     if (isB2BUser) {
       const today = new Date().toISOString().split('T')[0]; // Formato YYYY-MM-DD
-      console.log(`📅 [B2B] Fecha actual para filtrado: ${today}`);
+ console.log(` [B2B] Fecha actual para filtrado: ${today}`);
 
       const { data: orgAssignments, error: orgAssignmentsError } = await supabase
         .from('organization_course_assignments')
@@ -106,15 +106,15 @@ export async function GET(request: NextRequest) {
         .neq('status', 'completed');
 
       if (orgAssignmentsError) {
-        console.error('⚠️ Error obteniendo org_assignments:', orgAssignmentsError);
+ console.error(' Error obteniendo org_assignments:', orgAssignmentsError);
       } else if (orgAssignments && orgAssignments.length > 0) {
-        console.log(`📦 [B2B] Encontradas ${orgAssignments.length} asignaciones directas (antes de filtrar por fecha)`);
+ console.log(` [B2B] Encontradas ${orgAssignments.length} asignaciones directas (antes de filtrar por fecha)`);
 
         // Filtrar asignaciones vencidas
         const validAssignments = orgAssignments.filter((assignment: any) => {
           // Si no tiene due_date, incluir (sin fecha límite)
           if (!assignment.due_date) {
-            console.log(`   ✅ Curso ${assignment.course_id}: sin fecha límite - INCLUIDO`);
+ console.log(` Curso ${assignment.course_id}: sin fecha límite - INCLUIDO`);
             return true;
           }
 
@@ -124,11 +124,11 @@ export async function GET(request: NextRequest) {
           todayDate.setHours(0, 0, 0, 0);
 
           const isValid = dueDate >= todayDate;
-          console.log(`   ${isValid ? '✅' : '❌'} Curso ${assignment.course_id}: due_date=${assignment.due_date} ${isValid ? '- INCLUIDO' : '- EXPIRADO (omitido)'}`);
+ console.log(` ${isValid ? '' : ''} Curso ${assignment.course_id}: due_date=${assignment.due_date} ${isValid ? '- INCLUIDO' : '- EXPIRADO (omitido)'}`);
           return isValid;
         });
 
-        console.log(`📦 [B2B] ${validAssignments.length} asignaciones válidas después de filtrar expiradas`);
+ console.log(` [B2B] ${validAssignments.length} asignaciones válidas después de filtrar expiradas`);
 
         for (const assignment of validAssignments) {
           const courseData = assignment.courses as any;
@@ -184,9 +184,9 @@ export async function GET(request: NextRequest) {
           .eq('status', 'active');
 
         if (hierarchyError) {
-          console.error('⚠️ Error obteniendo hierarchy_assignments:', hierarchyError);
+ console.error(' Error obteniendo hierarchy_assignments:', hierarchyError);
         } else if (hierarchyAssignments && hierarchyAssignments.length > 0) {
-          console.log(`📦 [B2B] Encontradas ${hierarchyAssignments.length} asignaciones jerárquicas (antes de filtrar por fecha)`);
+ console.log(` [B2B] Encontradas ${hierarchyAssignments.length} asignaciones jerárquicas (antes de filtrar por fecha)`);
 
           // Filtrar asignaciones jerárquicas vencidas
           const validHierarchyAssignments = hierarchyAssignments.filter((assignment: any) => {
@@ -199,12 +199,12 @@ export async function GET(request: NextRequest) {
             todayDate.setHours(0, 0, 0, 0);
             const isValid = dueDate >= todayDate;
             if (!isValid) {
-              console.log(`   ❌ Curso jerárquico ${assignment.course_id}: due_date=${assignment.due_date} - EXPIRADO (omitido)`);
+ console.log(` Curso jerárquico ${assignment.course_id}: due_date=${assignment.due_date} - EXPIRADO (omitido)`);
             }
             return isValid;
           });
 
-          console.log(`📦 [B2B] ${validHierarchyAssignments.length} asignaciones jerárquicas válidas`);
+ console.log(` [B2B] ${validHierarchyAssignments.length} asignaciones jerárquicas válidas`);
 
           for (const assignment of validHierarchyAssignments) {
             const exists = allCourseSources.some(c => c.course_id === assignment.course_id);
@@ -242,7 +242,7 @@ export async function GET(request: NextRequest) {
       .eq('enrollment_status', 'active');
 
     if (enrollmentsError) {
-      console.error('⚠️ Error obteniendo enrollments:', enrollmentsError);
+ console.error(' Error obteniendo enrollments:', enrollmentsError);
     } else if (enrollments && enrollments.length > 0) {
       for (const enrollment of enrollments) {
         const exists = allCourseSources.some(c => c.course_id === enrollment.course_id);
@@ -264,7 +264,7 @@ export async function GET(request: NextRequest) {
 
     // Si no hay cursos de ninguna fuente
     if (allCourseSources.length === 0) {
-      console.log(`⚠️ [pending-lessons] Usuario ${currentUser.id}: Sin cursos asignados ni enrollments`);
+ console.log(` [pending-lessons] Usuario ${currentUser.id}: Sin cursos asignados ni enrollments`);
       return NextResponse.json({
         success: true,
         totalPendingLessons: 0,
@@ -273,7 +273,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    console.log(`✅ [pending-lessons] Total de cursos encontrados: ${allCourseSources.length}`);
+ console.log(` [pending-lessons] Total de cursos encontrados: ${allCourseSources.length}`);
 
     // Filtrar por courseId si se especificó
     const coursesToProcess = courseIdParam
@@ -324,7 +324,7 @@ export async function GET(request: NextRequest) {
           .order('lesson_order_index', { ascending: true });
 
         if (lessonsError || !lessons) {
-          console.error(`❌ Error obteniendo lecciones del curso ${courseId}:`, lessonsError);
+ console.error(` Error obteniendo lecciones del curso ${courseId}:`, lessonsError);
           return null;
         }
 
@@ -338,14 +338,14 @@ export async function GET(request: NextRequest) {
           .in('lesson_id', lessonIds);
 
         if (progressError) {
-          console.error(`⚠️ Error consultando progreso para curso ${courseId}:`, progressError);
+ console.error(` Error consultando progreso para curso ${courseId}:`, progressError);
         }
 
         const completedLessonIds = new Set(
           (completedProgress || []).map((p: ProgressData) => p.lesson_id)
         );
 
-        console.log(`📊 [Progreso] Curso ${courseId}: ${completedLessonIds.size} lecciones completadas encontradas en user_lesson_progress`);
+ console.log(` [Progreso] Curso ${courseId}: ${completedLessonIds.size} lecciones completadas encontradas en user_lesson_progress`);
 
         // 2d. Filtrar solo lecciones PENDIENTES (no completadas)
         const pendingLessons = (lessons as LessonData[]).filter(
@@ -414,11 +414,11 @@ export async function GET(request: NextRequest) {
       }))
     );
 
-    console.log(`✅ [pending-lessons] Usuario ${currentUser.id}: ${totalPendingLessons} lecciones pendientes de ${validCourses.length} cursos`);
+ console.log(` [pending-lessons] Usuario ${currentUser.id}: ${totalPendingLessons} lecciones pendientes de ${validCourses.length} cursos`);
 
     // Log de ejemplo de las primeras lecciones (para debug)
     if (allPendingLessons.length > 0) {
-      console.log('📋 Primeras 5 lecciones pendientes:');
+ console.log(' Primeras 5 lecciones pendientes:');
       allPendingLessons.slice(0, 5).forEach((l, i) => {
         console.log(`   ${i + 1}. "${l.lessonTitle}" (${l.durationMinutes} min)`);
       });
@@ -433,7 +433,7 @@ export async function GET(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error en pending-lessons:', error);
+ console.error(' Error en pending-lessons:', error);
     return NextResponse.json(
       { error: 'Error interno del servidor', details: error instanceof Error ? error.message : String(error) },
       { status: 500 }

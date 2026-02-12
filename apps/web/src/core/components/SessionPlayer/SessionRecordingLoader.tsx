@@ -111,9 +111,7 @@ export function SessionRecordingLoader({
       if (isGzipped) {
         setLoadingState('decompressing');
         setProgress(60);
-        console.log('📦 Descomprimiendo archivo gzip...');
         jsonString = await decompressGzip(arrayBuffer);
-        console.log('✅ Archivo descomprimido');
       } else {
         const decoder = new TextDecoder('utf-8');
         jsonString = decoder.decode(arrayBuffer);
@@ -152,21 +150,15 @@ export function SessionRecordingLoader({
       // Verificar que haya snapshot inicial
       const hasSnapshot = parsedData.events.some((e: any) => e.type === 2);
       if (!hasSnapshot) {
-        console.warn('⚠️ La grabación no contiene snapshot inicial');
+        console.warn('[WARN] La grabacion no contiene snapshot inicial');
       }
-
-      console.log('📼 Grabación cargada:', {
-        eventos: parsedData.events.length,
-        duracion: parsedData.endTime - parsedData.startTime,
-        tieneSnapshot: hasSnapshot
-      });
 
       setSession(parsedData as RecordingSession);
       setLoadingState('ready');
       setProgress(100);
 
     } catch (err) {
-      console.error('❌ Error cargando grabación:', err);
+      console.error('[ERROR] Error cargando grabacion:', err);
       setError(err instanceof Error ? err.message : 'Error al cargar la grabación');
       setLoadingState('error');
     }

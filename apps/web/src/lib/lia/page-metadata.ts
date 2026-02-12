@@ -1,4 +1,4 @@
-// Roles del sistema
+﻿// Roles del sistema
 export type UserRole = 'usuario' | 'instructor' | 'administrador' | 'business' | 'business user' | null;
 
 // Estructura de metadatos de página
@@ -250,14 +250,14 @@ export const PAGE_METADATA: Record<string, PageMetadata> = {
   '/business-panel/courses': {
     path: '/business-panel/courses',
     title: 'Catálogo y Asignación de Cursos',
-    description: 'Ver el catálogo de cursos disponibles y asignarlos a usuarios individuales o equipos completos. Configurar fechas límite con ayuda de LIA.',
+    description: 'Ver el catálogo de cursos disponibles y asignarlos a usuarios individuales o equipos completos. Configurar fechas límite con ayuda de SofLIA.',
     category: 'negocios',
     keywords: ['cursos', 'asignar', 'catálogo', 'formación', 'capacitación', 'deadline', 'fecha límite'],
-    availableActions: ['Ver catálogo', 'Asignar curso a usuario', 'Asignar curso a equipo', 'Configurar fecha límite', 'Usar sugerencias de LIA'],
+    availableActions: ['Ver catálogo', 'Asignar curso a usuario', 'Asignar curso a equipo', 'Configurar fecha límite', 'Usar sugerencias de SofLIA'],
     relatedPages: ['/business-panel/hierarchy', '/business-panel/users', '/business-panel/analytics'],
-    features: ['Grid de cursos', 'Modal: Asignar Curso (con pestañas Usuarios/Equipos)', 'Modal: Sugerencias de Fecha LIA', 'Configuración de deadline'],
+    features: ['Grid de cursos', 'Modal: Asignar Curso (con pestañas Usuarios/Equipos)', 'Modal: Sugerencias de Fecha SofLIA', 'Configuración de deadline'],
     contentSections: ['Catálogo de cursos', 'Filtros', 'Indicadores de progreso'],
-    specialNotes: 'El botón "✨ Sugerir con IA" abre un modal donde LIA recomienda fechas límite según 3 enfoques: Rápido (⚡), Equilibrado (⚖️) o Largo (🌱).',
+    specialNotes: 'El botón "✨ Sugerir con IA" abre un modal donde SofLIA recomienda fechas límite según 3 enfoques: Rápido (⚡), Equilibrado (⚖️) o Largo (🌱).',
     isBusinessOnly: true,
     allowedRoles: ['business', 'administrador']
   },
@@ -418,10 +418,10 @@ export function getAvailablePages(userRole: UserRole | null = null): PageMetadat
 }
 
 /**
- * Función para obtener links disponibles formateados para LIA
+ * Función para obtener links disponibles formateados para SofLIA
  * Devuelve un string con todos los links disponibles según el rol
  */
-export function getAvailableLinksForLIA(userRole: UserRole | null = null): string {
+export function getAvailableLinksForSofLIA(userRole: UserRole | null = null): string {
   const availablePages = getAvailablePages(userRole);
   
   let linksText = '\n\nLINKS DISPONIBLES EN LA PLATAFORMA:\n';

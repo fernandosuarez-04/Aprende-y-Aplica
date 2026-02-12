@@ -1,5 +1,5 @@
-/**
- * Exportaciones de providers de contexto de LIA
+﻿/**
+ * Exportaciones de providers de contexto de SofLIA
  */
 
 export { BaseContextProvider } from './base';

@@ -62,7 +62,6 @@ export const PostAttachment = memo(function PostAttachment({
   const requiresUrl = ['image', 'video', 'document', 'youtube', 'link'].includes(attachmentType);
   
   if (requiresUrl && !hasValidUrl) {
-    // console.warn('PostAttachment: Missing or invalid URL for type:', attachmentType);
     return null;
   }
 
@@ -80,7 +79,6 @@ export const PostAttachment = memo(function PostAttachment({
           // Verificar que el base64 esté bien formateado
           const base64Regex = /^data:image\/(jpeg|jpg|png|gif|webp|svg\+xml);base64,/;
           if (!base64Regex.test(attachmentUrl)) {
-            // console.warn('🎨 [IMAGE] Base64 mal formateado:', attachmentUrl.substring(0, 100) + '...');
             return (
               <div className="w-full h-48 bg-slate-700 rounded-lg flex items-center justify-center">
                 <div className="text-center">
@@ -105,7 +103,6 @@ export const PostAttachment = memo(function PostAttachment({
               quality={85}
               sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 800px"
               onError={(e) => {
-                // console.error('🎨 [IMAGE] Error loading image:', isBase64 ? 'Base64 image failed to load' : attachmentUrl);
                 // En lugar de ocultar, mostrar un placeholder
                 e.currentTarget.style.display = 'none';
                 // Crear un placeholder
@@ -139,7 +136,6 @@ export const PostAttachment = memo(function PostAttachment({
         const isYouTubeUrl = attachmentUrl.includes('youtube.com/embed/') || attachmentUrl.includes('youtu.be/') || attachmentUrl.includes('youtube.com/watch');
         
         if (isYouTubeUrl) {
-          // console.log('🎥 [YOUTUBE] Detectado video de YouTube en caso video, renderizando como YouTube');
           
           // Extraer videoId de la URL
           let videoId = null;
@@ -215,7 +211,6 @@ export const PostAttachment = memo(function PostAttachment({
               className="w-full max-h-96 rounded-lg"
               poster={attachmentData?.thumbnail}
               onError={(e) => {
-                // console.error('Error loading video:', isVideoBase64 ? 'Base64 video failed to load' : attachmentUrl);
                 e.currentTarget.style.display = 'none';
               }}
             />
@@ -285,7 +280,6 @@ export const PostAttachment = memo(function PostAttachment({
         const embedUrl = videoId ? `https://www.youtube.com/embed/${videoId}` : null;
         
         // Debug: Log para ver qué datos tenemos
-        // console.log('🎥 [YOUTUBE DEBUG] Datos completos:', {
         //   attachmentUrl,
         //   attachmentData,
         //   videoId,
@@ -490,7 +484,6 @@ function InteractivePoll({
         }
       }
     } catch (error) {
-      // console.error('Error loading user vote:', error);
     }
   };
 
@@ -523,7 +516,6 @@ function InteractivePoll({
         alert(error.error || 'Error al votar');
       }
     } catch (error) {
-      // console.error('Error voting:', error);
       alert('Error al votar');
     } finally {
       setIsVoting(false);

@@ -27,7 +27,7 @@ export class AutoTranslationService {
     const isConfigured = !!this.OPENAI_API_KEY;
 
     if (!isConfigured) {
-      console.error('[AutoTranslationService] ❌ OPENAI_API_KEY no está configurada en las variables de entorno');
+      console.error('[AutoTranslationService] [ERROR] OPENAI_API_KEY no está configurada en las variables de entorno');
       console.error('[AutoTranslationService] Variables de entorno disponibles:', {
         hasOpenAIKey: !!process.env.OPENAI_API_KEY,
         hasOpenAIModel: !!process.env.OPENAI_MODEL,
@@ -57,8 +57,8 @@ export class AutoTranslationService {
     // Obtener idioma de origen (debe ser proporcionado explícitamente)
     const sourceLanguage = options.sourceLanguage;
     if (!sourceLanguage) {
-      console.error(`[AutoTranslationService] ❌ sourceLanguage no proporcionado en options. Options:`, options);
-      console.warn(`[AutoTranslationService] ⚠️ Asumiendo español por defecto, pero esto puede causar traducciones incorrectas`);
+      console.error(`[AutoTranslationService] [ERROR] sourceLanguage no proporcionado en options. Options:`, options);
+      console.warn(`[AutoTranslationService] [WARN] Asumiendo español por defecto, pero esto puede causar traducciones incorrectas`);
     }
     
     const finalSourceLanguage = sourceLanguage || 'es';
@@ -68,7 +68,7 @@ export class AutoTranslationService {
     }
 
     if (!this.isConfigured()) {
-      console.warn('[AutoTranslationService] ⚠️ OPENAI_API_KEY no configurada, retornando texto original sin traducir');
+      console.warn('[AutoTranslationService] [WARN] OPENAI_API_KEY no configurada, retornando texto original sin traducir');
       return text;
     }
 
@@ -132,14 +132,14 @@ Traducción:`;
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         const errorMessage = `OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`;
-        console.error(`[AutoTranslationService] ❌ ${errorMessage}`);
+        console.error(`[AutoTranslationService] [ERROR] ${errorMessage}`);
         throw new Error(errorMessage);
       }
 
       const data = await response.json();
       const responseTime = Date.now() - startTime;
       
-      // ✅ Registrar uso de OpenAI para traducción
+      // Registrar uso de OpenAI para traducción
       if (data.usage) {
         await trackOpenAICall(calculateOpenAIMetadata(
           data.usage,
@@ -153,13 +153,13 @@ Traducción:`;
       const translatedText = data.choices[0]?.message?.content?.trim() || text;
 
       if (translatedText === text) {
-        console.warn(`[AutoTranslationService] ⚠️ La traducción retornada es igual al texto original (posible error silencioso)`);
+        console.warn(`[AutoTranslationService] [WARN] La traducción retornada es igual al texto original (posible error silencioso)`);
       } else {
       }
       
       return translatedText;
     } catch (error) {
-      console.error(`[AutoTranslationService] ❌ Error traduciendo texto a ${targetLanguage}:`, error);
+      console.error(`[AutoTranslationService] [ERROR] Error traduciendo texto a ${targetLanguage}:`, error);
       if (error instanceof Error) {
         console.error(`[AutoTranslationService] Stack trace:`, error.stack);
       }
@@ -182,13 +182,7 @@ Traducción:`;
     // Traducir cada campo en paralelo para mejor rendimiento
     const translationPromises = fields.map(async (field) => {
       const value = obj[field];
-      console.log(`[AutoTranslationService] translateObject: Procesando campo "${field}"`, {
-        hasValue: value !== undefined && value !== null,
-        type: typeof value,
-        isString: typeof value === 'string',
-        isArray: Array.isArray(value),
-        stringLength: typeof value === 'string' ? value.length : 'N/A'
-      });
+
       
       // Solo traducir si el campo existe y tiene contenido
       if (value === null || value === undefined || value === '') {
@@ -228,10 +222,7 @@ Traducción:`;
     
     results.forEach(({ field, translated }) => {
       translations[field] = translated;
-      console.log(`[AutoTranslationService] translateObject: Campo "${field}" traducido`, {
-        original: typeof obj[field] === 'string' ? obj[field].substring(0, 50) : obj[field],
-        translated: typeof translated === 'string' ? translated.substring(0, 50) : translated
-      });
+
     });
 
     return translations;

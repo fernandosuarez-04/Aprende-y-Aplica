@@ -1,4 +1,4 @@
-{
+﻿{
   "loading": "Carregando dashboard...",
   "categories": {
     "errorTitle": "Erro ao carregar categorias",
@@ -7,7 +7,7 @@
   "courses": {
     "loading": "Carregando cursos...",
     "errorTitle": "Erro ao carregar cursos",
-    "noRatings": "Sem avaliações",
+    "noRatings": "Sem avaSofLIAções",
     "goToCourse": "Ir para o curso",
     "viewDetails": "Ver detalhes",
     "addToCart": "Adicionar ao carrinho",
@@ -41,7 +41,7 @@
     "introduccion-a-la-ia": "Introdução à IA"
   },
   "assistant": {
-    "initialMessage": "Olá! 👋 Sou a Lia, sua assistente de IA. Estou aqui para ajudar com informações sobre workshops, cursos e conteúdo educativo. Em que posso ajudar hoje?",
+    "initialMessage": "Olá! 👋 Sou a SofLIA, sua assistente de IA. Estou aqui para ajudar com informações sobre workshops, cursos e conteúdo educativo. Em que posso ajudar hoje?",
     "placeholder": "Pergunte sobre workshops, cursos..."
   },
   "sections": {

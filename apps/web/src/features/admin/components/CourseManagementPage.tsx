@@ -122,7 +122,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
           }
         }
       } catch (error) {
-        // console.error('Error loading instructor signature:', error)
       }
     }
     loadInstructorSignature()
@@ -178,7 +177,6 @@ export function CourseManagementPage({ courseId }: CourseManagementPageProps) {
             console.log('[CourseManagementPage] Student status by month:', data.charts?.student_status_by_month)
           }
         } catch (e) {
-          // console.error('Error cargando estadísticas:', e)
         } finally {
           setStatsLoading(false)
         }

@@ -23,7 +23,7 @@ function RecorderHookWrapper() {
         setHookUser(() => HookComponent);
       })
       .catch((error) => {
-        console.error('❌ Error cargando hook de grabación:', error);
+        console.error('[ERROR] Error cargando hook de grabacion:', error);
       });
   }, []);
 

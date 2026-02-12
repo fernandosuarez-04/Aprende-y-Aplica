@@ -1260,7 +1260,6 @@ function PersonalizationTab({
           }
         }
       } catch (err) {
-        // console.error('Error checking slug:', err)
       } finally {
         setIsCheckingSlug(false)
       }

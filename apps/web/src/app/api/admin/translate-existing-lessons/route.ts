@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
             status: 'translated',
             languages: translationResult.languages
           })
-          console.log(`[translate-existing-lessons] ✅ Lección ${lessonId} traducida exitosamente a: ${translationResult.languages.join(', ')}`)
+ console.log(`[translate-existing-lessons] Lección ${lessonId} traducida exitosamente a: ${translationResult.languages.join(', ')}`)
         } else {
           results.failed++
           results.details.push({
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
             error: Object.values(translationResult.errors || {}).join(', ') || 'Error desconocido',
             languages: translationResult.languages
           })
-          console.error(`[translate-existing-lessons] ❌ Error traduciendo lección ${lessonId}:`, translationResult.errors)
+ console.error(`[translate-existing-lessons] Error traduciendo lección ${lessonId}:`, translationResult.errors)
         }
       } catch (error) {
         results.failed++
@@ -150,7 +150,7 @@ export async function POST(request: NextRequest) {
           status: 'failed',
           error: error instanceof Error ? error.message : String(error)
         })
-        console.error(`[translate-existing-lessons] ❌ Excepción traduciendo lección ${lesson.lesson_id}:`, error)
+ console.error(`[translate-existing-lessons] Excepción traduciendo lección ${lesson.lesson_id}:`, error)
       }
     }
 

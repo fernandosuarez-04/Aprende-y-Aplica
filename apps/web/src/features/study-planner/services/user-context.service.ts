@@ -40,7 +40,7 @@ export class UserContextService {
       .maybeSingle();
 
     if (error) {
-      console.error('❌ [getUserType] Error de Supabase:', {
+      console.error('[ERROR] [getUserType] Error de Supabase:', {
         code: error.code,
         message: error.message,
         details: error.details,
@@ -52,13 +52,6 @@ export class UserContextService {
 
     // Si existe registro en organizations_users, es B2B
     const userType = data?.organization_id ? 'b2b' : 'b2c';
-
-    // Log para debugging
-    console.log(`[UserContextService] Detección de tipo de usuario:`, {
-      userId,
-      organization_id: data?.organization_id || null,
-      userType,
-    });
 
     return userType;
   }
@@ -230,16 +223,14 @@ export class UserContextService {
       .maybeSingle();
 
     if (orgUserError) {
-      console.error('❌ [getUserOrganization] Error buscando en organization_users:', orgUserError);
+      console.error('[ERROR] [getUserOrganization] Error buscando en organization_users:', orgUserError);
       return null;
     }
 
     if (!orgUserData?.organization_id) {
-      console.log(`[getUserOrganization] Usuario ${userId} no está en ninguna organización`);
       return null;
     }
 
-    console.log(`[getUserOrganization] Usuario ${userId} pertenece a org: ${orgUserData.organization_id}`);
 
     // Obtener información de la organización
     const { data, error } = await supabase
@@ -380,12 +371,10 @@ export class UserContextService {
 
       const isValid = dueDate >= today;
       if (!isValid) {
-        console.log(`⚠️ [B2B] Curso ${item.course_id} expirado (due_date: ${item.due_date}) - omitido`);
       }
       return isValid;
     });
 
-    console.log(`📦 [B2B] ${validData.length} de ${data.length} asignaciones válidas (después de filtrar expiradas)`);
 
     return validData.map((item) => {
       const course = item.courses as unknown as {
@@ -990,7 +979,6 @@ export class UserContextService {
     // Obtener tipo de usuario primero
     const userType = await this.getUserType(userId);
 
-    console.log(`[UserContextService] getFullUserContext - userType detectado: ${userType} para userId: ${userId}`);
 
     // Obtener datos en paralelo
     const [
@@ -1024,13 +1012,6 @@ export class UserContextService {
       calendarIntegration: calendarIntegration || undefined,
       learningRoutes: learningRoutes.length > 0 ? learningRoutes : undefined,
     };
-
-    console.log(`[UserContextService] getFullUserContext - Contexto construido:`, {
-      userType: context.userType,
-      hasOrganization: !!context.organization,
-      organizationName: context.organization?.name,
-      coursesCount: context.courses.length,
-    });
 
     return context;
   }

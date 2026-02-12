@@ -35,7 +35,7 @@ export async function translateCourseOnCreate(
   const openaiKey = process.env.OPENAI_API_KEY;
 
   if (!openaiKey) {
-    console.error('[CourseTranslation] ❌ OPENAI_API_KEY no está configurada. No se puede traducir.');
+    console.error('[CourseTranslation] [ERROR] OPENAI_API_KEY no está configurada. No se puede traducir.');
     return {
       success: false,
       languages: [],
@@ -52,7 +52,7 @@ export async function translateCourseOnCreate(
   const supabase = supabaseClient || await createClient();
   
   if (!supabase) {
-    console.error('[CourseTranslation] ❌ No se pudo crear o obtener cliente de Supabase');
+    console.error('[CourseTranslation] [ERROR] No se pudo crear o obtener cliente de Supabase');
     return {
       success: false,
       languages: [],
@@ -111,12 +111,12 @@ export async function translateCourseOnCreate(
 
       } else {
         errors[lang] = 'Error al guardar traducción en la base de datos';
-        console.error(`[CourseTranslation] ❌ Error al guardar traducción del curso ${courseId} a ${lang}`);
+        console.error(`[CourseTranslation] [ERROR] Error al guardar traducción del curso ${courseId} a ${lang}`);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       errors[lang] = errorMessage;
-      console.error(`[CourseTranslation] ❌ Error traduciendo curso ${courseId} a ${lang}:`, error);
+      console.error(`[CourseTranslation] [ERROR] Error traduciendo curso ${courseId} a ${lang}:`, error);
       console.error(`[CourseTranslation] Stack trace:`, error instanceof Error ? error.stack : 'No stack trace');
     }
   }
@@ -270,7 +270,7 @@ export async function translateLessonOnCreate(
       } else {
         const errorMsg = `Error al guardar traducción a ${lang}. Revisa los logs del servidor para más detalles.`;
         errors[lang] = errorMsg;
-        console.error(`[CourseTranslation] ❌ ${errorMsg}`, {
+        console.error(`[CourseTranslation] [ERROR] ${errorMsg}`, {
           lessonId,
           language: lang,
           translationKeys: Object.keys(translations),

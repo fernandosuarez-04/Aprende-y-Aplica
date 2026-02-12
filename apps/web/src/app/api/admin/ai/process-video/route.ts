@@ -27,15 +27,15 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    console.log('🤖 Iniciando análisis de video con IA...');
-    console.log('📹 URL:', videoUrl);
+ console.log(' Iniciando análisis de video con IA...');
+ console.log(' URL:', videoUrl);
 
     // 1. Descargar el video temporalmente
     const tempDir = os.tmpdir();
     const fileName = `temp-video-${Date.now()}.mp4`;
     const filePath = join(tempDir, fileName);
 
-    console.log('⬇️ Descargando video a:', filePath);
+ console.log(' Descargando video a:', filePath);
     
     const videoResponse = await fetch(videoUrl);
     if (!videoResponse.ok) {
@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     // 2. Subir a Gemini File API
     const fileManager = new GoogleAIFileManager(googleApiKey);
     
-    console.log('⬆️ Subiendo video a Gemini...');
+ console.log(' Subiendo video a Gemini...');
     const uploadResult = await fileManager.uploadFile(filePath, {
       mimeType: 'video/mp4',
       displayName: 'Lesson Video',
@@ -56,12 +56,12 @@ export async function POST(req: NextRequest) {
 
     const fileUri = uploadResult.file.uri;
     const uploadName = uploadResult.file.name;
-    console.log('✅ Video subido a Gemini:', uploadName, fileUri);
+ console.log(' Video subido a Gemini:', uploadName, fileUri);
 
     // 3. Esperar a que se procese
     let file = await fileManager.getFile(uploadName);
     while (file.state === FileState.PROCESSING) {
-      console.log('⏳ Procesando video en Gemini...');
+ console.log(' Procesando video en Gemini...');
       await new Promise((resolve) => setTimeout(resolve, 2000)); // Esperar 2s
       file = await fileManager.getFile(uploadName);
     }
@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
       throw new Error('El procesamiento del video en Gemini falló.');
     }
 
-    console.log('✅ Video listo para análisis.');
+ console.log(' Video listo para análisis.');
 
     // 4. Generar Transcripción y Resumen
     const genAI = new GoogleGenerativeAI(googleApiKey);
@@ -118,7 +118,7 @@ export async function POST(req: NextRequest) {
     // 5. Limpieza
     await fileManager.deleteFile(uploadName);
     await unlink(filePath);
-    console.log('🧹 Archivos temporales eliminados.');
+ console.log(' Archivos temporales eliminados.');
 
     return NextResponse.json({
       success: true,
@@ -127,7 +127,7 @@ export async function POST(req: NextRequest) {
     });
 
   } catch (error) {
-    console.error('❌ Error processing video:', error);
+ console.error(' Error processing video:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Error interno' },
       { status: 500 }
