@@ -1433,6 +1433,27 @@ CREATE TABLE public.team_course_assignments (
   CONSTRAINT team_course_assignments_hierarchy_assignment_id_fkey FOREIGN KEY (hierarchy_assignment_id) REFERENCES public.hierarchy_course_assignments(id),
   CONSTRAINT team_course_assignments_team_id_fkey FOREIGN KEY (team_id) REFERENCES public.organization_teams(id)
 );
+CREATE TABLE public.tools (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  author_id uuid,
+  name text NOT NULL,
+  description text NOT NULL,
+  icon text DEFAULT '🔧'::text,
+  category USER-DEFINED NOT NULL,
+  system_prompt text NOT NULL,
+  starter_prompts jsonb DEFAULT '[]'::jsonb,
+  status USER-DEFINED DEFAULT 'pending'::tool_status,
+  reviewed_by uuid,
+  reviewed_at timestamp with time zone,
+  rejection_reason text,
+  usage_count integer DEFAULT 0,
+  is_featured boolean DEFAULT false,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT tools_pkey PRIMARY KEY (id),
+  CONSTRAINT tools_author_id_fkey FOREIGN KEY (author_id) REFERENCES auth.users(id),
+  CONSTRAINT tools_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES auth.users(id)
+);
 CREATE TABLE public.transactions (
   transaction_id uuid NOT NULL DEFAULT gen_random_uuid(),
   amount_cents integer NOT NULL CHECK (amount_cents > 0),
@@ -1524,6 +1545,15 @@ CREATE TABLE public.user_course_enrollments (
   CONSTRAINT user_course_enrollments_course_id_fkey FOREIGN KEY (course_id) REFERENCES public.courses(id),
   CONSTRAINT user_course_enrollments_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_course_enrollments_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.user_favorite_tools (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  tool_id uuid NOT NULL,
+  created_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_favorite_tools_pkey PRIMARY KEY (id),
+  CONSTRAINT user_favorite_tools_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id),
+  CONSTRAINT user_favorite_tools_tool_id_fkey FOREIGN KEY (tool_id) REFERENCES public.tools(id)
 );
 CREATE TABLE public.user_invitations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
@@ -1701,6 +1731,22 @@ CREATE TABLE public.user_streaks (
   CONSTRAINT user_streaks_pkey PRIMARY KEY (id),
   CONSTRAINT user_streaks_user_id_fkey FOREIGN KEY (user_id) REFERENCES public.users(id),
   CONSTRAINT user_streaks_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id)
+);
+CREATE TABLE public.user_tools (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  user_id uuid NOT NULL,
+  name text NOT NULL,
+  description text,
+  icon text DEFAULT '⚙️'::text,
+  category USER-DEFINED,
+  system_prompt text NOT NULL,
+  starter_prompts jsonb DEFAULT '[]'::jsonb,
+  is_favorite boolean DEFAULT false,
+  usage_count integer DEFAULT 0,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT user_tools_pkey PRIMARY KEY (id),
+  CONSTRAINT user_tools_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
 CREATE TABLE public.user_tour_progress (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
