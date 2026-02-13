@@ -47,6 +47,17 @@ export interface StudyPlannerState {
   maxSessionMinutes: number;
   breakDurationMinutes: number;
   goalHoursPerWeek: number;
+
+  // Configuración separada de duración/frecuencia (Fase 1.1)
+  sessionDurationMinutes: number; // Duración elegida por sesión: 30, 45, 60, 90
+  weeklyFrequency: number; // Sesiones por semana: 2-5
+  estimatedCompletionDate?: string; // Fecha estimada de finalización (Fase 1.3)
+
+  // Diagnóstico inicial (Fase 2.1)
+  diagnosticAnswers: {
+    availableHoursPerWeek?: number;
+    perceivedLevel?: 'beginner' | 'intermediate' | 'advanced';
+  };
   
   // Configuración de horarios
   preferredDays: number[];
@@ -98,6 +109,10 @@ type StudyPlannerAction =
   | { type: 'SET_LIA_TIME_ANALYSIS'; payload: LIATimeAnalysis }
   | { type: 'SET_GENERATED_PLAN'; payload: { config: StudyPlanConfig; sessions: StudySession[] } }
   | { type: 'SET_SAVED_PLAN_ID'; payload: string }
+  | { type: 'SET_SESSION_DURATION'; payload: number }
+  | { type: 'SET_WEEKLY_FREQUENCY'; payload: number }
+  | { type: 'SET_ESTIMATED_COMPLETION_DATE'; payload: string | undefined }
+  | { type: 'SET_DIAGNOSTIC_ANSWERS'; payload: Partial<StudyPlannerState['diagnosticAnswers']> }
   | { type: 'RESET' };
 
 // ============================================================================
@@ -124,6 +139,9 @@ const initialState: StudyPlannerState = {
   calendarConnected: false,
   calendarEvents: [],
   generatedSessions: [],
+  sessionDurationMinutes: 45,
+  weeklyFrequency: 3,
+  diagnosticAnswers: {},
 };
 
 // ============================================================================
@@ -215,7 +233,19 @@ function studyPlannerReducer(state: StudyPlannerState, action: StudyPlannerActio
     
     case 'SET_SAVED_PLAN_ID':
       return { ...state, savedPlanId: action.payload };
-    
+
+    case 'SET_SESSION_DURATION':
+      return { ...state, sessionDurationMinutes: action.payload };
+
+    case 'SET_WEEKLY_FREQUENCY':
+      return { ...state, weeklyFrequency: action.payload };
+
+    case 'SET_ESTIMATED_COMPLETION_DATE':
+      return { ...state, estimatedCompletionDate: action.payload };
+
+    case 'SET_DIAGNOSTIC_ANSWERS':
+      return { ...state, diagnosticAnswers: { ...state.diagnosticAnswers, ...action.payload } };
+
     case 'RESET':
       return initialState;
     
@@ -255,6 +285,10 @@ interface StudyPlannerContextValue {
     setLIATimeAnalysis: (analysis: LIATimeAnalysis) => void;
     setGeneratedPlan: (config: StudyPlanConfig, sessions: StudySession[]) => void;
     setSavedPlanId: (planId: string) => void;
+    setSessionDuration: (minutes: number) => void;
+    setWeeklyFrequency: (frequency: number) => void;
+    setEstimatedCompletionDate: (date: string | undefined) => void;
+    setDiagnosticAnswers: (answers: Partial<StudyPlannerState['diagnosticAnswers']>) => void;
     reset: () => void;
     // Acciones asíncronas
     loadUserContext: () => Promise<void>;
@@ -371,6 +405,22 @@ export function StudyPlannerProvider({ children }: StudyPlannerProviderProps) {
 
   const setSavedPlanId = useCallback((planId: string) => {
     dispatch({ type: 'SET_SAVED_PLAN_ID', payload: planId });
+  }, []);
+
+  const setSessionDuration = useCallback((minutes: number) => {
+    dispatch({ type: 'SET_SESSION_DURATION', payload: minutes });
+  }, []);
+
+  const setWeeklyFrequency = useCallback((frequency: number) => {
+    dispatch({ type: 'SET_WEEKLY_FREQUENCY', payload: frequency });
+  }, []);
+
+  const setEstimatedCompletionDate = useCallback((date: string | undefined) => {
+    dispatch({ type: 'SET_ESTIMATED_COMPLETION_DATE', payload: date });
+  }, []);
+
+  const setDiagnosticAnswers = useCallback((answers: Partial<StudyPlannerState['diagnosticAnswers']>) => {
+    dispatch({ type: 'SET_DIAGNOSTIC_ANSWERS', payload: answers });
   }, []);
 
   const reset = useCallback(() => {
@@ -501,6 +551,10 @@ export function StudyPlannerProvider({ children }: StudyPlannerProviderProps) {
       setLIATimeAnalysis,
       setGeneratedPlan,
       setSavedPlanId,
+      setSessionDuration,
+      setWeeklyFrequency,
+      setEstimatedCompletionDate,
+      setDiagnosticAnswers,
       reset,
       loadUserContext,
       generatePlan,

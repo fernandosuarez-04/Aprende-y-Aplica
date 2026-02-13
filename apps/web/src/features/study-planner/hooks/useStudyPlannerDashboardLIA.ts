@@ -159,7 +159,7 @@ export function useStudyPlannerDashboardLIA(): StudyPlannerDashboardState & Stud
             messages: [{
               id: `no-plan-${Date.now()}`,
               role: 'assistant',
-              content: `¡Hola! 👋 Soy LIA, tu asistente de estudios.
+              content: `¡Hola! 👋 Soy SofLIA, tu asistente de estudios.
 
 Aún no tienes un plan de estudios activo. ¿Te gustaría crear uno?
 
@@ -188,7 +188,7 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
           messages: prev.messages.length === 0 ? [{
             id: `loading-${Date.now()}`,
             role: 'assistant' as const,
-            content: `¡Hola! Soy LIA. Estoy analizando tu calendario y plan de estudios...`,
+            content: `¡Hola! Soy SofLIA. Estoy analizando tu calendario y plan de estudios...`,
             timestamp: new Date(),
           }] : prev.messages,
         }));
@@ -255,7 +255,7 @@ Puedo ayudarte a organizar tu tiempo de estudio de manera eficiente según tu di
               messages: [{
                 id: `welcome-${Date.now()}`,
                 role: 'assistant' as const,
-                content: `¡Hola! 👋 Soy LIA, tu asistente para gestionar tu plan de estudios "${plan.name}".
+                content: `¡Hola! 👋 Soy SofLIA, tu asistente para gestionar tu plan de estudios "${plan.name}".
 
 Puedo ayudarte a:
 • 📅 **Mover sesiones** a horarios más convenientes

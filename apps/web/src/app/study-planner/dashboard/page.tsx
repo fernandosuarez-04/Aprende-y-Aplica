@@ -998,7 +998,7 @@ export default function StudyPlannerDashboardPage() {
                 
                 <div>
                   <h2 className="text-gray-900 dark:text-white text-base font-semibold m-0 leading-[1.2]">
-                    LIA
+                    SofLIA
                   </h2>
                   <p className="text-[#00D4B3] text-xs font-medium m-0">
                     Asistente de tu plan
@@ -1081,7 +1081,7 @@ export default function StudyPlannerDashboardPage() {
                     transition={{ delay: 0.2, duration: 0.5 }}
                   >
                     <h3 className="text-gray-900 dark:text-white text-lg font-semibold mb-2">
-                      LIA
+                      SofLIA
                     </h3>
                     <p className="text-gray-500 dark:text-[#6b7280] text-sm leading-relaxed max-w-[280px] mx-auto">
                       Puedo ayudarte a reprogramar sesiones, ajustar tu plan o resolver conflictos de horario.
@@ -1201,7 +1201,7 @@ export default function StudyPlannerDashboardPage() {
                       handleSendMessage();
                     }
                   }}
-                  placeholder="Escribe un mensaje a LIA..."
+                  placeholder="Escribe un mensaje a SofLIA..."
                   className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-sm placeholder:text-gray-400"
                 />
                 

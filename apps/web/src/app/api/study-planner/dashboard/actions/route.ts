@@ -165,12 +165,65 @@ export async function POST(request: NextRequest): Promise<NextResponse<ActionRes
 
       case 'delete_session': {
         const { sessionId } = data;
-        
+
         if (!sessionId) {
           return NextResponse.json(
             { success: false, error: 'sessionId es requerido' },
             { status: 400 }
           );
+        }
+
+        // Obtener la sesión antes de borrar para verificar si tiene evento externo
+        const { data: sessionToDelete } = await supabase
+          .from('study_sessions')
+          .select('id, external_event_id, calendar_provider')
+          .eq('id', sessionId)
+          .eq('user_id', user.id)
+          .single();
+
+        if (!sessionToDelete) {
+          return NextResponse.json(
+            { success: false, error: 'Sesión no encontrada' },
+            { status: 404 }
+          );
+        }
+
+        // Si tiene evento en calendario externo, eliminarlo primero
+        if (sessionToDelete.external_event_id && sessionToDelete.calendar_provider) {
+          const { data: integration } = await supabase
+            .from('calendar_integrations')
+            .select('id, access_token, refresh_token, provider, expires_at, metadata')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+
+          if (integration?.access_token) {
+            let accessToken = integration.access_token;
+            const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
+
+            // Refrescar token si expiró
+            if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
+              const refreshResult = await refreshAccessToken(integration);
+              if (refreshResult.success && refreshResult.accessToken) {
+                accessToken = refreshResult.accessToken;
+              }
+            }
+
+            const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+            const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
+            try {
+              if (sessionToDelete.calendar_provider === 'google') {
+                await deleteGoogleCalendarEvent(accessToken, sessionToDelete.external_event_id, secondaryCalendarId);
+              } else if (sessionToDelete.calendar_provider === 'microsoft') {
+                await deleteMicrosoftCalendarEvent(accessToken, sessionToDelete.external_event_id);
+              }
+            } catch (calError) {
+              logger.error(`Error eliminando evento externo de ${sessionToDelete.calendar_provider}:`, calError);
+              // Continuar con la eliminación de la DB aunque falle el calendario externo
+            }
+          }
         }
 
         const { error } = await supabase
@@ -467,11 +520,148 @@ export async function POST(request: NextRequest): Promise<NextResponse<ActionRes
   } catch (error) {
     logger.error('Error ejecutando acción:', error);
     return NextResponse.json(
-      { 
-        success: false, 
-        error: error instanceof Error ? error.message : 'Error interno del servidor' 
+      {
+        success: false,
+        error: error instanceof Error ? error.message : 'Error interno del servidor'
       },
       { status: 500 }
     );
+  }
+}
+
+// ============================================================================
+// HELPER FUNCTIONS - Calendar Sync
+// ============================================================================
+
+async function refreshAccessToken(integration: any): Promise<{ success: boolean; accessToken?: string }> {
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+                           process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
+                           process.env.GOOGLE_CLIENT_ID ||
+                           process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+  const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
+                               process.env.GOOGLE_CLIENT_SECRET ||
+                               process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
+  const MICROSOFT_CLIENT_ID = process.env.MICROSOFT_CALENDAR_CLIENT_ID ||
+                              process.env.NEXT_PUBLIC_MICROSOFT_CALENDAR_CLIENT_ID ||
+                              process.env.MICROSOFT_CLIENT_ID ||
+                              process.env.MICROSOFT_OAUTH_CLIENT_ID || '';
+  const MICROSOFT_CLIENT_SECRET = process.env.MICROSOFT_CALENDAR_CLIENT_SECRET ||
+                                  process.env.MICROSOFT_CLIENT_SECRET ||
+                                  process.env.MICROSOFT_OAUTH_CLIENT_SECRET || '';
+
+  try {
+    if (integration.provider === 'google') {
+      const response = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: GOOGLE_CLIENT_ID,
+          client_secret: GOOGLE_CLIENT_SECRET,
+          refresh_token: integration.refresh_token,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!response.ok) return { success: false };
+
+      const tokens = await response.json();
+      const supabase = createAdminClient();
+      await supabase
+        .from('calendar_integrations')
+        .update({
+          access_token: tokens.access_token,
+          expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+        })
+        .eq('id', integration.id);
+
+      return { success: true, accessToken: tokens.access_token };
+    } else if (integration.provider === 'microsoft') {
+      const response = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          client_id: MICROSOFT_CLIENT_ID,
+          client_secret: MICROSOFT_CLIENT_SECRET,
+          refresh_token: integration.refresh_token,
+          grant_type: 'refresh_token',
+        }),
+      });
+
+      if (!response.ok) return { success: false };
+
+      const tokens = await response.json();
+      const supabase = createAdminClient();
+      await supabase
+        .from('calendar_integrations')
+        .update({
+          access_token: tokens.access_token,
+          refresh_token: tokens.refresh_token || integration.refresh_token,
+          expires_at: new Date(Date.now() + tokens.expires_in * 1000).toISOString(),
+        })
+        .eq('id', integration.id);
+
+      return { success: true, accessToken: tokens.access_token };
+    }
+
+    return { success: false };
+  } catch (error) {
+    logger.error('Error en refreshAccessToken:', error);
+    return { success: false };
+  }
+}
+
+async function deleteGoogleCalendarEvent(
+  accessToken: string,
+  googleEventId: string,
+  calendarId?: string | null
+): Promise<void> {
+  const cleanEventId = googleEventId.split('_')[0];
+  const targetCalendarId = calendarId || 'primary';
+
+  const response = await fetch(
+    `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(targetCalendarId)}/events/${encodeURIComponent(cleanEventId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) return;
+
+    const errorText = await response.text();
+    try {
+      const errorJson = JSON.parse(errorText);
+      if (errorJson.error?.message?.includes('insufficient authentication scopes') ||
+          errorJson.error?.message?.includes('Insufficient Permission') ||
+          response.status === 403) {
+        logger.warn('Permisos insuficientes para eliminar evento de Google Calendar.');
+        return;
+      }
+    } catch {
+      if (errorText.includes('insufficient authentication scopes') ||
+          errorText.includes('Insufficient Permission')) {
+        logger.warn('Permisos insuficientes para eliminar evento de Google Calendar.');
+        return;
+      }
+    }
+
+    throw new Error(`Error eliminando evento de Google Calendar: ${errorText}`);
+  }
+}
+
+async function deleteMicrosoftCalendarEvent(accessToken: string, microsoftEventId: string): Promise<void> {
+  const response = await fetch(
+    `https://graph.microsoft.com/v1.0/me/calendar/events/${encodeURIComponent(microsoftEventId)}`,
+    {
+      method: 'DELETE',
+      headers: { Authorization: `Bearer ${accessToken}` },
+    }
+  );
+
+  if (!response.ok) {
+    if (response.status === 404) return;
+    const errorText = await response.text();
+    throw new Error(`Error eliminando evento de Microsoft Calendar: ${errorText}`);
   }
 }

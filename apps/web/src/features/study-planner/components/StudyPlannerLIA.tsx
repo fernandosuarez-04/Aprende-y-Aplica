@@ -10,6 +10,7 @@ import { useOrganizationStylesContext } from '../../business-panel/contexts/Orga
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
+import { StudyStrategyService } from '../services/study-strategy.service';
 // import Joyride from 'react-joyride';
 // import { useStudyPlannerJoyride } from '../../tours/hooks/useStudyPlannerJoyride';
 
@@ -305,16 +306,23 @@ export function StudyPlannerLIA() {
   };
 
   // Estados para configuración de estudio
-  // ✅ INTERPRETACIÓN A: Los modos controlan VELOCIDAD DE COMPLETACIÓN
-  // - 'corto' = terminar RÁPIDO → sesiones largas (60-90 min), menos días
-  // - 'balance' = equilibrado → sesiones medias (45-60 min)
-  // - 'largo' = sin prisa → sesiones cortas (20-35 min), más días
+  // ✅ FASE 1.1: Dimensiones separadas de duración y frecuencia
+  // Los modos legacy (corto/balance/largo) se derivan automáticamente
   const [studyApproach, setStudyApproach] = useState<'corto' | 'balance' | 'largo' | null>(null);
+  const [selectedSessionDuration, setSelectedSessionDuration] = useState<number | null>(null); // 30, 45, 60, 90
+  const [selectedWeeklyFrequency, setSelectedWeeklyFrequency] = useState<number | null>(null); // 2, 3, 4, 5
+  const [showDurationButtons, setShowDurationButtons] = useState(false); // Paso 1: duración
+  const [showFrequencyButtons, setShowFrequencyButtons] = useState(false); // Paso 2: frecuencia
+  // ✅ FASE 2.1: Estados para diagnóstico inicial
+  const [showHoursButtons, setShowHoursButtons] = useState(false);
+  const [showLevelButtons, setShowLevelButtons] = useState(false);
+  const [diagnosticHours, setDiagnosticHours] = useState<number | null>(null);
+  const [diagnosticLevel, setDiagnosticLevel] = useState<'beginner' | 'intermediate' | 'advanced' | null>(null);
   const [targetDate, setTargetDate] = useState<string | null>(null);
   const [hasAskedApproach, setHasAskedApproach] = useState(false);
   const [hasAskedTargetDate, setHasAskedTargetDate] = useState(false);
   const [showApproachModal, setShowApproachModal] = useState(false);
-  const [showApproachButtons, setShowApproachButtons] = useState(false); // ✅ Botones inline de ritmo de estudio
+  const [showApproachButtons, setShowApproachButtons] = useState(false); // ✅ Botones inline de ritmo de estudio (legacy, se mantiene para compatibilidad)
   const [showDateModal, setShowDateModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   // Inicializar currentMonth con el día 1 del mes actual para evitar problemas
@@ -1251,26 +1259,25 @@ INSTRUCCIONES:
             speakText(audioText);
           }
 
-          // Texto de introducción...
-          // ✅ REFACTOR: Mostrar botones inline inmediatamente en lugar de modal con delay
+          // ✅ FASE 1.1: Mostrar botones de duración (nuevo flujo de 2 pasos)
           if (assignedCourses.length > 0) {
-            setShowApproachButtons(true);
+            setShowDurationButtons(true);
           }
         } else {
-          console.error('Error obteniendo mensaje de bienvenida de LIA');
+          console.error('Error obteniendo mensaje de bienvenida de SofLIA');
           // Fallback: mostrar un mensaje simple
           setConversationHistory([{
             role: 'assistant',
-            content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. Estoy aquí para ayudarte a organizar tu tiempo de estudio. ¿Qué tipo de sesiones prefieres: rápidas, normales o largas?'
+            content: '¡Hola! Soy SofLIA, tu asistente del Planificador de Estudios. Estoy aquí para ayudarte a organizar tu tiempo de estudio.'
           }]);
-          // ✅ REFACTOR: Mostrar botones inline inmediatamente
+          // ✅ FASE 1.1: Mostrar botones de duración
           if (assignedCourses.length > 0) {
-            setShowApproachButtons(true);
+            setShowDurationButtons(true);
           }
         }
       } catch (error: any) {
         if (externalController?.signal.aborted || error.name === 'AbortError') {
-          console.log('ðŸ›‘ [Welcome] Generación cancelada por aborto/tour');
+          console.log('[Welcome] Generacion cancelada por aborto/tour');
           return;
         }
 
@@ -1278,11 +1285,11 @@ INSTRUCCIONES:
         // Fallback en caso de error
         setConversationHistory([{
           role: 'assistant',
-          content: '¡Hola! Soy LIA, tu asistente del Planificador de Estudios. ¿Cómo te gustaría organizar tus sesiones de estudio?'
+          content: '¡Hola! Soy SofLIA, tu asistente del Planificador de Estudios. ¿Cómo te gustaría organizar tus sesiones de estudio?'
         }]);
-        // ✅ REFACTOR: Mostrar botones inline inmediatamente
+        // ✅ FASE 1.1: Mostrar botones de duración
         if (assignedCourses.length > 0) {
-          setShowApproachButtons(true);
+          setShowDurationButtons(true);
         }
       } finally {
         setIsProcessing(false);
@@ -2064,21 +2071,19 @@ INSTRUCCIONES:
 
     setConversationHistory(prev => [...prev, { role: 'user', content: userMsg }]);
 
-    // Respuesta de LIA - preguntar sobre enfoque de estudio primero
-    // ✅ NOTA: El modal se muestra pero la selección NO afecta el multiplicador de duración
+    // ✅ FASE 2.1: Preguntar diagnóstico inicial antes de configurar sesiones
     setTimeout(async () => {
       setIsProcessing(true);
 
       if (selectedCourses.length > 0) {
-        // Mostrar mensaje de confirmación y abrir modal de enfoque
-        const liaResponse = `¡Excelente elección! Has seleccionado ${selectedCourses.length} curso${selectedCourses.length > 1 ? 's' : ''}: ${courseNames}.\n\nAntes de crear tu plan de estudios personalizado, necesito conocer tu preferencia de ritmo de estudio.`;
+        const liaResponse = `¡Excelente elección! Has seleccionado ${selectedCourses.length} curso${selectedCourses.length > 1 ? 's' : ''}: ${courseNames}.\n\nAntes de crear tu plan personalizado, necesito conocer un poco sobre tu disponibilidad.\n\n¿Cuántas horas a la semana puedes dedicar al estudio?`;
 
         setConversationHistory(prev => [...prev, { role: 'assistant', content: liaResponse }]);
         setHasAskedApproach(true);
 
-        // Abrir modal de selección de enfoque después de un breve delay
+        // Mostrar botones de horas disponibles (Diagnóstico paso 1)
         setTimeout(() => {
-          setShowApproachModal(true);
+          setShowHoursButtons(true);
         }, 500);
 
         if (isAudioEnabled) {
@@ -3056,6 +3061,187 @@ INSTRUCCIONES:
   // - corto: terminar RÁPIDO → sesiones largas (60-90 min), menos días
   // - balance: ritmo equilibrado → sesiones de 45-60 min
   // - largo: sin prisa → sesiones cortas (20-35 min), más días distribuidos
+  // ✅ FASE 2.1: Handler para selección de horas disponibles por semana
+  const handleHoursSelection = async (hours: number) => {
+    setShowHoursButtons(false);
+    setDiagnosticHours(hours);
+
+    setConversationHistory(prev => [...prev, {
+      role: 'user',
+      content: `Puedo dedicar ${hours} horas por semana`
+    }]);
+
+    const liaResponse = `${hours} horas semanales, perfecto.\n\n¿Cómo calificarías tu nivel actual en este tema?`;
+    setConversationHistory(prev => [...prev, {
+      role: 'assistant',
+      content: liaResponse
+    }]);
+
+    setTimeout(() => {
+      setShowLevelButtons(true);
+    }, 300);
+
+    if (isAudioEnabled) {
+      await speakText(`${hours} horas semanales. ¿Cómo calificarías tu nivel actual en este tema?`);
+    }
+  };
+
+  // ✅ FASE 2.1: Handler para selección de nivel percibido
+  const handleLevelSelection = async (level: 'beginner' | 'intermediate' | 'advanced') => {
+    setShowLevelButtons(false);
+    setDiagnosticLevel(level);
+
+    const levelLabels = { beginner: 'Principiante', intermediate: 'Intermedio', advanced: 'Avanzado' };
+
+    setConversationHistory(prev => [...prev, {
+      role: 'user',
+      content: `Nivel: ${levelLabels[level]}`
+    }]);
+
+    // Calcular recomendación basada en diagnóstico
+    let recommendedDuration = 45;
+    let recommendedFrequency = 3;
+
+    if (diagnosticHours) {
+      const weeklyMinutes = diagnosticHours * 60;
+      // Buscar la mejor combinación duración × frecuencia que se acerque a las horas disponibles
+      const combinations = [
+        { d: 30, f: 2 }, { d: 30, f: 3 }, { d: 30, f: 4 }, { d: 30, f: 5 },
+        { d: 45, f: 2 }, { d: 45, f: 3 }, { d: 45, f: 4 }, { d: 45, f: 5 },
+        { d: 60, f: 2 }, { d: 60, f: 3 }, { d: 60, f: 4 }, { d: 60, f: 5 },
+        { d: 90, f: 2 }, { d: 90, f: 3 },
+      ];
+      const best = combinations.reduce((prev, curr) => {
+        const prevDiff = Math.abs(prev.d * prev.f - weeklyMinutes);
+        const currDiff = Math.abs(curr.d * curr.f - weeklyMinutes);
+        return currDiff < prevDiff ? curr : prev;
+      });
+      recommendedDuration = best.d;
+      recommendedFrequency = best.f;
+    }
+
+    // Ajustar por nivel
+    if (level === 'beginner') {
+      recommendedDuration = Math.min(recommendedDuration, 45); // Sesiones no muy largas para principiantes
+    }
+
+    const liaResponse = `Nivel **${levelLabels[level]}**, entendido.\n\n` +
+      `Basándome en tu disponibilidad de **${diagnosticHours}h/semana** y nivel **${levelLabels[level].toLowerCase()}**, ` +
+      `te recomiendo sesiones de **${recommendedDuration} min**, **${recommendedFrequency}x/semana**.\n\n` +
+      `Ahora elige la duración de tus sesiones:`;
+
+    setConversationHistory(prev => [...prev, {
+      role: 'assistant',
+      content: liaResponse
+    }]);
+
+    // Mostrar botones de duración con la recomendación
+    setTimeout(() => {
+      setShowDurationButtons(true);
+    }, 300);
+
+    if (isAudioEnabled) {
+      await speakText(`Basándome en tu disponibilidad, te recomiendo sesiones de ${recommendedDuration} minutos, ${recommendedFrequency} veces por semana. Elige la duración de tus sesiones.`);
+    }
+  };
+
+  // ✅ FASE 1.1: Handler para selección de duración de sesión (Paso 1 del nuevo flujo)
+  const handleDurationSelection = async (durationMinutes: number) => {
+    setShowDurationButtons(false);
+    setSelectedSessionDuration(durationMinutes);
+
+    // Calcular equivalencia de lecciones
+    const avgLessonDuration = pendingLessonsWithNames.length > 0
+      ? pendingLessonsWithNames.reduce((sum, l) => sum + (l.durationMinutes || 15), 0) / pendingLessonsWithNames.length
+      : 15;
+    const equivalence = StudyStrategyService.calculateLessonEquivalence(durationMinutes, avgLessonDuration);
+
+    // Agregar mensaje del usuario
+    setConversationHistory(prev => [...prev, {
+      role: 'user',
+      content: `Sesiones de ${durationMinutes} minutos`
+    }]);
+
+    // Respuesta de SofLIA confirmando y preguntando frecuencia
+    const liaResponse = `Sesiones de **${durationMinutes} minutos** (${equivalence.label} por sesión).\n\n¿Cuántas veces por semana quieres estudiar?`;
+
+    setConversationHistory(prev => [...prev, {
+      role: 'assistant',
+      content: liaResponse
+    }]);
+
+    // Mostrar botones de frecuencia
+    setTimeout(() => {
+      setShowFrequencyButtons(true);
+    }, 300);
+
+    if (isAudioEnabled) {
+      await speakText(`Perfecto, sesiones de ${durationMinutes} minutos, aproximadamente ${equivalence.estimatedLessons} lecciones por sesión. ¿Cuántas veces por semana quieres estudiar?`);
+    }
+  };
+
+  // ✅ FASE 1.1: Handler para selección de frecuencia semanal (Paso 2 del nuevo flujo)
+  const handleFrequencySelection = async (frequency: number) => {
+    setShowFrequencyButtons(false);
+    setSelectedWeeklyFrequency(frequency);
+
+    if (!selectedSessionDuration) return;
+
+    // Derivar el approach legacy para compatibilidad con el resto del sistema
+    const weeklyIntensity = selectedSessionDuration * frequency;
+    let derivedApproach: 'corto' | 'balance' | 'largo';
+    if (weeklyIntensity >= 240) {
+      derivedApproach = 'corto';
+    } else if (weeklyIntensity <= 120) {
+      derivedApproach = 'largo';
+    } else {
+      derivedApproach = 'balance';
+    }
+
+    // Calcular fecha estimada de finalización
+    const totalMinutes = pendingLessonsWithNames.reduce((sum, l) => sum + (l.durationMinutes || 15), 0);
+    const completion = StudyStrategyService.calculateEstimatedCompletion(
+      totalMinutes,
+      selectedSessionDuration,
+      frequency
+    );
+    const formattedDate = completion.estimatedEndDate.toLocaleDateString('es-ES', {
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric'
+    });
+
+    // Agregar mensaje del usuario
+    setConversationHistory(prev => [...prev, {
+      role: 'user',
+      content: `${frequency} veces por semana`
+    }]);
+
+    // Respuesta de SofLIA con resumen de configuración
+    const weeklyMin = selectedSessionDuration * frequency;
+    const weeklyHours = (weeklyMin / 60).toFixed(1);
+    const derivedMode = StudyStrategyService.deriveStudyMode(selectedSessionDuration, frequency);
+
+    const liaResponse = `**Configuración de tu plan:**\n` +
+      `- Sesiones de **${selectedSessionDuration} min**, **${frequency}x/semana**\n` +
+      `- Total semanal: **${weeklyHours} horas**\n` +
+      `- ${derivedMode.reason}\n` +
+      `- Fecha estimada de finalización: **${formattedDate}** (${completion.totalWeeks} semanas, ${completion.totalSessions} sesiones)\n\n` +
+      `Ahora necesito saber tus horarios preferidos para programar las sesiones.`;
+
+    setConversationHistory(prev => [...prev, {
+      role: 'assistant',
+      content: liaResponse
+    }]);
+
+    // Configurar el approach derivado y continuar con el flujo existente
+    setStudyApproach(derivedApproach);
+    setHasAskedApproach(true);
+
+    // Llamar al handler existente para continuar con calendario/días/horarios
+    await handleApproachSelection(derivedApproach);
+  };
+
   const handleApproachSelection = async (approach: 'corto' | 'balance' | 'largo') => {
     setShowApproachButtons(false); // ✅ Ocultar botones inline
     setStudyApproach(approach);
@@ -5308,7 +5494,10 @@ INSTRUCCIONES:
             const approachText = effectiveApproach === 'corto' ? 'terminar rápido' : effectiveApproach === 'balance' ? 'ritmo equilibrado' : effectiveApproach === 'largo' ? 'tomarte tu tiempo' : 'sesiones';
             const targetDateText = effectiveTargetDate ? ` y tu objetivo de completar los cursos para ${effectiveTargetDate}` : '';
 
-            recommendationIntro.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''} y tu preferencia por **${approachText}**${targetDateText}, estimo que puedes dedicar aproximadamente ${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''} al día para estudiar.`);
+            const dailyTimeText = profileAvailability.minutesPerDay < 60
+              ? `${Math.round(profileAvailability.minutesPerDay)} minutos`
+              : `${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''}`;
+            recommendationIntro.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''} y tu preferencia por **${approachText}**${targetDateText}, estimo que puedes dedicar aproximadamente ${dailyTimeText} al día para estudiar.`);
 
             if (effectiveTargetDate && effectiveApproach) {
               recommendationIntro.push(`He distribuido las sesiones de estudio hasta ${effectiveTargetDate} para asegurar que completes tus cursos a tiempo.`);
@@ -6423,6 +6612,8 @@ INSTRUCCIONES:
 
           // Guardar distribución en el estado para usar en el resumen final
           // Convertir a formato almacenable con validación estricta de datos
+          // Track next available time per day to avoid overlapping saved sessions
+          const nextAvailableByDay = new Map<string, Date>();
           const distributionToSave: StoredLessonDistribution[] = lessonDistribution
             .map(item => {
               // Validar y filtrar lecciones inválidas
@@ -6463,15 +6654,23 @@ INSTRUCCIONES:
                 return `${hours}:${minutes}`;
               };
 
+              // Calcular horario real evitando solapamientos entre sesiones del mismo dia
+              const dayKey = item.slot.dateStr;
+              const nextAvail = nextAvailableByDay.get(dayKey);
+              const realStart = (nextAvail && nextAvail > item.slot.start) ? nextAvail : item.slot.start;
+              const sessionDur = validLessons.reduce((sum, l) => sum + (l.durationMinutes || 15), 0);
+              const realEnd = new Date(realStart.getTime() + sessionDur * 60000);
+              nextAvailableByDay.set(dayKey, new Date(realEnd.getTime() + 20 * 60000)); // 20 min break
+
               return {
                 dateStr: item.slot.dateStr,
                 dayName: item.slot.dayName,
-                startTime: formatTime24h(item.slot.start),
-                endTime: formatTime24h(item.slot.end),
+                startTime: formatTime24h(realStart),
+                endTime: formatTime24h(realEnd),
                 lessons: validLessons
               };
             })
-            .filter((item): item is StoredLessonDistribution => item !== null); // Filtrar nulos
+            .filter((item): item is StoredLessonDistribution => item !== null);
 
           setSavedLessonDistribution(distributionToSave);
           setSavedTargetDate(targetDate);
@@ -6517,14 +6716,24 @@ INSTRUCCIONES:
 
             calendarMessage += `\n${dayName} ${formattedDate}:\n`;
 
+            // Trackear el siguiente horario disponible para evitar solapamientos entre sesiones
+            // Break de 20 minutos entre sesiones consecutivas del mismo dia
+            const BREAK_BETWEEN_SESSIONS_MS = 20 * 60000;
+            let nextAvailableTime: Date | null = null;
+
             distributions.forEach(dist => {
               // Calcular duración real basada en la suma de las lecciones asignadas
               const realDurationMinutes = dist.lessons.reduce((sum, l) => sum + (l.durationMinutes || 15), 0);
-              console.log(`[StudyPlannerLIA] Slot ${dist.slot.start.toLocaleTimeString()} - Duración real: ${realDurationMinutes} min (Lecciones: ${dist.lessons.map(l => `${l.lessonTitle} (${l.durationMinutes})`).join(', ')})`);
 
-              // Calcular hora de fin ajustada
-              const startTime = dist.slot.start;
+              // Calcular hora de inicio real: usar slot.start o nextAvailableTime (el que sea posterior)
+              const slotStart = dist.slot.start;
+              const startTime = (nextAvailableTime && nextAvailableTime > slotStart)
+                ? nextAvailableTime
+                : slotStart;
               const adjustedEndTime = new Date(startTime.getTime() + realDurationMinutes * 60000);
+
+              // Actualizar nextAvailableTime para la siguiente sesion del dia
+              nextAvailableTime = new Date(adjustedEndTime.getTime() + BREAK_BETWEEN_SESSIONS_MS);
 
               const startTimeStr = startTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
               const endTimeStr = adjustedEndTime.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: false });
@@ -6696,7 +6905,10 @@ INSTRUCCIONES:
           recommendationParts.push(`\n`);
 
           if (profileAvailability) {
-            recommendationParts.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''}, puedes dedicar aproximadamente ${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''} al día.`);
+            const dailyTimeText2 = profileAvailability.minutesPerDay < 60
+              ? `${Math.round(profileAvailability.minutesPerDay)} minutos`
+              : `${Math.round(profileAvailability.minutesPerDay / 60 * 10) / 10} hora${profileAvailability.minutesPerDay >= 120 ? 's' : ''}`;
+            recommendationParts.push(`En base a tu perfil${rol ? ` como ${rol}` : ''}${nivel ? ` (${nivel})` : ''}, puedes dedicar aproximadamente ${dailyTimeText2} al día.`);
             recommendationParts.push(`He analizado tu calendario y estos son los días con más disponibilidad:`);
           } else {
             recommendationParts.push(`Basándome en tu disponibilidad, te sugiero estudiar en estos días:`);
@@ -10605,6 +10817,58 @@ Cuéntame:
             </div>
 
             {/* Ãrea de mensajes */}
+            {/* FASE 3.1: Barra de progreso del flujo */}
+            {(() => {
+              const progressSteps = [
+                { id: 'diagnostic', label: 'Diagnóstico' },
+                { id: 'config', label: 'Configuración' },
+                { id: 'schedule', label: 'Horarios' },
+                { id: 'plan', label: 'Plan' },
+              ];
+              let activeStep = 0;
+              if (diagnosticHours && diagnosticLevel) activeStep = 1;
+              if (selectedSessionDuration && selectedWeeklyFrequency) activeStep = 2;
+              if (studyApproach && (savedLessonDistribution.length > 0 || hasShownFinalSummary)) activeStep = 3;
+
+              return (
+                <div className="flex-shrink-0 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700/30 px-4 py-2">
+                  <div className="max-w-4xl mx-auto">
+                    <div className="flex items-center justify-between gap-1">
+                      {progressSteps.map((step, idx) => (
+                        <div key={step.id} className="flex items-center flex-1">
+                          <div className="flex flex-col items-center flex-1">
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[10px] sm:text-xs font-bold transition-all ${
+                              idx < activeStep
+                                ? 'bg-emerald-500 text-white'
+                                : idx === activeStep
+                                  ? 'bg-gray-900 dark:bg-emerald-400 text-white dark:text-gray-900 ring-2 ring-emerald-400/30'
+                                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                            }`}>
+                              {idx < activeStep ? (
+                                <Check className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                              ) : (
+                                idx + 1
+                              )}
+                            </div>
+                            <span className={`text-[9px] sm:text-[10px] mt-0.5 font-medium truncate max-w-[60px] sm:max-w-none text-center ${
+                              idx <= activeStep ? 'text-gray-900 dark:text-white' : 'text-gray-400 dark:text-gray-500'
+                            }`}>
+                              {step.label}
+                            </span>
+                          </div>
+                          {idx < progressSteps.length - 1 && (
+                            <div className={`h-0.5 flex-1 mx-1 rounded-full transition-all ${
+                              idx < activeStep ? 'bg-emerald-500' : 'bg-gray-200 dark:bg-gray-700'
+                            }`} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
             <div className="flex-1 overflow-y-auto px-3 py-4 sm:px-4 sm:py-6 min-h-0 bg-[#F8F9FA] dark:bg-[#0F1419]/50">
               <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 pb-4">
                 {/* Welcome message removed as per user request */}
@@ -10691,8 +10955,8 @@ Cuéntame:
                   </motion.div>
                 ))}
 
-                {/* ✅ NUEVO: Botones inline de selección de ritmo de estudio (con avatar de LIA) */}
-                {showApproachButtons && !studyApproach && (
+                {/* ✅ FASE 2.1: Botones de horas disponibles por semana (Diagnóstico Paso 1) */}
+                {showHoursButtons && !diagnosticHours && (
                   <motion.div
                     initial={{ opacity: 0, y: 20, scale: 0.95 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
@@ -10700,78 +10964,305 @@ Cuéntame:
                     className="flex justify-start mt-2 group"
                   >
                     <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
-                      {/* Avatar de LIA - Desktop */}
                       <motion.div
                         initial={{ scale: 0, rotate: -180 }}
                         animate={{ scale: 1, rotate: 0 }}
                         transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
                         className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
                       >
-                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="40px" className="object-cover" />
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="40px" className="object-cover" />
                       </motion.div>
-
-                      {/* Avatar de LIA - Mobile */}
                       <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
-                        <Image src="/lia-avatar.png" alt="LIA" fill sizes="24px" className="object-cover" />
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="24px" className="object-cover" />
                       </div>
-
-                      {/* Contenedor de botones estilo mensaje de LIA */}
                       <motion.div
                         initial={{ scale: 0.9, opacity: 0 }}
                         animate={{ scale: 1, opacity: 1 }}
                         transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
-                        className="relative bg-[#FFFFFF] dark:bg-[#1E2329] text-[#0A2540] dark:text-white border border-[#E9ECEF] dark:border-[#6C757D]/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                        className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                          <p className="text-sm font-medium">Horas disponibles por semana</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {[
+                            { hours: 2, label: '1-2 horas', sublabel: 'Poco tiempo' },
+                            { hours: 4, label: '3-4 horas', sublabel: 'Moderado' },
+                            { hours: 6, label: '5-6 horas', sublabel: 'Dedicado' },
+                            { hours: 8, label: '7+ horas', sublabel: 'Intensivo' },
+                          ].map((opt) => (
+                            <motion.button
+                              key={opt.hours}
+                              onClick={() => handleHoursSelection(opt.hours)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="flex-1 min-w-[70px] flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
+                            >
+                              <span className="text-xs font-semibold">{opt.label}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{opt.sublabel}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ✅ FASE 2.1: Botones de nivel percibido (Diagnóstico Paso 2) */}
+                {showLevelButtons && !diagnosticLevel && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.2 }}
+                    className="flex justify-start mt-2 group"
+                  >
+                    <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
+                      >
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="40px" className="object-cover" />
+                      </motion.div>
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="24px" className="object-cover" />
+                      </div>
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
+                        className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <GraduationCap className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                          <p className="text-sm font-medium">Tu nivel en este tema</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {[
+                            { level: 'beginner' as const, label: 'Principiante', sublabel: 'Nuevo en el tema' },
+                            { level: 'intermediate' as const, label: 'Intermedio', sublabel: 'Algo de experiencia' },
+                            { level: 'advanced' as const, label: 'Avanzado', sublabel: 'Experiencia previa' },
+                          ].map((opt) => (
+                            <motion.button
+                              key={opt.level}
+                              onClick={() => handleLevelSelection(opt.level)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className="flex-1 min-w-[85px] flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
+                            >
+                              <span className="text-xs font-semibold">{opt.label}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{opt.sublabel}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ✅ FASE 1.1: Botones de selección de DURACIÓN de sesión (Paso 1) */}
+                {showDurationButtons && !selectedSessionDuration && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.2 }}
+                    className="flex justify-start mt-2 group"
+                  >
+                    <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
+                      >
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="40px" className="object-cover" />
+                      </motion.div>
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="24px" className="object-cover" />
+                      </div>
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
+                        className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Clock className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                          <p className="text-sm font-medium">Paso 1 de 2: ¿Cuánto quieres que dure cada sesión?</p>
+                        </div>
+                        <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:gap-3">
+                          {[
+                            { min: 30, label: '30 min', sublabel: '~2 lecciones', icon: Clock },
+                            { min: 45, label: '45 min', sublabel: '~3 lecciones', icon: Scale, recommended: true },
+                            { min: 60, label: '60 min', sublabel: '~4 lecciones', icon: Zap },
+                            { min: 90, label: '90 min', sublabel: '~6 lecciones', icon: GraduationCap },
+                          ].map((opt) => (
+                            <motion.button
+                              key={opt.min}
+                              onClick={() => handleDurationSelection(opt.min)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 transition-all ${
+                                opt.recommended
+                                  ? 'border-emerald-400/50 dark:border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/10'
+                                  : 'border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                              }`}
+                            >
+                              {opt.recommended && (
+                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Recomendado</span>
+                              )}
+                              <div className="p-2 bg-gray-100 dark:bg-gray-700/40 rounded-lg">
+                                <opt.icon className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                              </div>
+                              <span className="text-xs font-semibold">{opt.label}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center">{opt.sublabel}</span>
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* ✅ FASE 1.1: Botones de selección de FRECUENCIA semanal (Paso 2) */}
+                {showFrequencyButtons && !selectedWeeklyFrequency && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.2 }}
+                    className="flex justify-start mt-2 group"
+                  >
+                    <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
+                      >
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="40px" className="object-cover" />
+                      </motion.div>
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="24px" className="object-cover" />
+                      </div>
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
+                        className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
+                      >
+                        <div className="flex items-center gap-2 mb-2">
+                          <Calendar className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                          <p className="text-sm font-medium">Paso 2 de 2: ¿Cuántas veces por semana?</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2 sm:gap-3">
+                          {[
+                            { freq: 2, label: '2x/semana', sublabel: 'Relajado' },
+                            { freq: 3, label: '3x/semana', sublabel: 'Equilibrado', recommended: true },
+                            { freq: 4, label: '4x/semana', sublabel: 'Constante' },
+                            { freq: 5, label: '5x/semana', sublabel: 'Intenso' },
+                          ].map((opt) => (
+                            <motion.button
+                              key={opt.freq}
+                              onClick={() => handleFrequencySelection(opt.freq)}
+                              whileHover={{ scale: 1.05 }}
+                              whileTap={{ scale: 0.95 }}
+                              className={`flex-1 min-w-[70px] flex flex-col items-center gap-1 p-2.5 rounded-xl border-2 transition-all ${
+                                opt.recommended
+                                  ? 'border-emerald-400/50 dark:border-emerald-400/40 bg-emerald-50 dark:bg-emerald-900/10'
+                                  : 'border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50'
+                              }`}
+                            >
+                              {opt.recommended && (
+                                <span className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Recomendado</span>
+                              )}
+                              <span className="text-xs font-semibold">{opt.label}</span>
+                              <span className="text-[10px] text-gray-500 dark:text-gray-400">{opt.sublabel}</span>
+                              {selectedSessionDuration && (
+                                <span className="text-[9px] text-gray-400 dark:text-gray-500">
+                                  {((selectedSessionDuration * opt.freq) / 60).toFixed(1)}h/sem
+                                </span>
+                              )}
+                            </motion.button>
+                          ))}
+                        </div>
+                      </motion.div>
+                    </div>
+                  </motion.div>
+                )}
+
+                {/* Botones legacy de ritmo de estudio (fallback si se activan directamente) */}
+                {showApproachButtons && !studyApproach && !showDurationButtons && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 25, delay: 0.2 }}
+                    className="flex justify-start mt-2 group"
+                  >
+                    <div className="flex items-end gap-2 sm:gap-2.5 max-w-[85%] sm:max-w-[80%]">
+                      <motion.div
+                        initial={{ scale: 0, rotate: -180 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        transition={{ delay: 0.3, type: 'spring', stiffness: 200, damping: 15 }}
+                        className="relative w-8 h-8 sm:w-10 sm:h-10 rounded-full overflow-hidden border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 shadow-lg shadow-[#0A2540]/20 dark:shadow-[#00D4B3]/20 hidden sm:block"
+                      >
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="40px" className="object-cover" />
+                      </motion.div>
+                      <div className="relative w-6 h-6 rounded-full overflow-hidden border border-[#0A2540]/30 dark:border-[#00D4B3]/40 flex-shrink-0 sm:hidden self-start mt-1">
+                        <Image src="/lia-avatar.png" alt="SofLIA" fill sizes="24px" className="object-cover" />
+                      </div>
+                      <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        transition={{ delay: 0.35, type: 'spring', stiffness: 300, damping: 20 }}
+                        className="relative bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-600/30 px-3.5 py-2.5 sm:px-5 sm:py-3 rounded-[18px] sm:rounded-[22px] shadow-sm rounded-bl-[6px] overflow-hidden"
                       >
                         <div className="flex items-center gap-2 mb-3">
-                          <BookOpen className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
-                          <p className="text-sm font-medium text-[#0A2540] dark:text-white">
+                          <BookOpen className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
+                          <p className="text-sm font-medium">
                             ¿Qué ritmo de estudio prefieres?
                           </p>
                         </div>
                         <div className="flex flex-wrap gap-2 sm:gap-3">
-                          {/* Botón Rápido - Terminar pronto con sesiones largas */}
                           <motion.button
                             onClick={() => handleApproachSelection('corto')}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#0A2540]/5 dark:hover:bg-[#0A2540]/10 transition-all"
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
                           >
-                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
-                              <Zap className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            <div className="p-2 bg-gray-100 dark:bg-gray-700/40 rounded-lg">
+                              <Zap className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
                             </div>
-                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Rápido</span>
-                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">60-90 min</span>
+                            <span className="text-xs font-semibold">Rápido</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center">60-90 min</span>
                           </motion.button>
-
-                          {/* Botón Balance */}
                           <motion.button
                             onClick={() => handleApproachSelection('balance')}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#0A2540]/30 dark:border-[#00D4B3]/30 bg-[#0A2540]/5 dark:bg-[#0A2540]/10 hover:bg-[#0A2540]/10 dark:hover:bg-[#0A2540]/20 transition-all"
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-emerald-400/30 dark:border-emerald-400/30 bg-emerald-50 dark:bg-emerald-900/10 hover:bg-emerald-100/50 dark:hover:bg-emerald-900/20 transition-all"
                           >
-                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
-                              <Scale className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            <div className="p-2 bg-gray-100 dark:bg-gray-700/40 rounded-lg">
+                              <Scale className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
                             </div>
-                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Balance</span>
-                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">45-60 min</span>
+                            <span className="text-xs font-semibold">Balance</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center">45-60 min</span>
                           </motion.button>
-
-                          {/* Botón Relajado - Sin prisa con sesiones cortas */}
                           <motion.button
                             onClick={() => handleApproachSelection('largo')}
                             whileHover={{ scale: 1.05 }}
                             whileTap={{ scale: 0.95 }}
-                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-[#E9ECEF] dark:border-[#6C757D]/30 hover:border-[#0A2540]/50 dark:hover:border-[#00D4B3]/50 hover:bg-[#0A2540]/5 dark:hover:bg-[#0A2540]/10 transition-all"
+                            className="flex-1 min-w-[85px] flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600/30 hover:border-gray-400/50 dark:hover:border-emerald-400/50 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-all"
                           >
-                            <div className="p-2 bg-[#0A2540]/10 dark:bg-[#0A2540]/20 rounded-lg">
-                              <Clock className="w-4 h-4 text-[#0A2540] dark:text-[#00D4B3]" />
+                            <div className="p-2 bg-gray-100 dark:bg-gray-700/40 rounded-lg">
+                              <Clock className="w-4 h-4 text-gray-900 dark:text-emerald-400" />
                             </div>
-                            <span className="text-xs font-semibold text-[#0A2540] dark:text-white">Sin prisa</span>
-                            <span className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center">20-35 min</span>
+                            <span className="text-xs font-semibold">Sin prisa</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400 text-center">20-35 min</span>
                           </motion.button>
                         </div>
-                        <p className="text-[10px] text-[#6C757D] dark:text-gray-400 text-center mt-3">
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 text-center mt-3">
                           Selecciona para continuar
                         </p>
                       </motion.div>
@@ -11664,7 +12155,7 @@ Cuéntame:
                       }
                     }}
                     placeholder={isMobile ? "Escribe un mensaje..." : "Escribe tu mensaje o usa el micrófono..."}
-                    disabled={isProcessing || isListening || (showApproachButtons && !studyApproach)}
+                    disabled={isProcessing || isListening || (showHoursButtons && !diagnosticHours) || (showLevelButtons && !diagnosticLevel) || (showDurationButtons && !selectedSessionDuration) || (showFrequencyButtons && !selectedWeeklyFrequency) || (showApproachButtons && !studyApproach)}
                     style={{ fontSize: '16px' }} // Prevent iOS zoom
                     className="flex-1 min-w-0 px-4 py-3 bg-white dark:bg-[#1E2329] border border-[#E9ECEF] dark:border-[#6C757D]/30 rounded-xl text-[#0A2540] dark:text-white placeholder-[#6C757D] focus:outline-none focus:ring-2 focus:ring-[#00D4B3]/50 focus:border-[#00D4B3]/50 disabled:opacity-50 shadow-sm transition-all"
                   />
@@ -11682,7 +12173,7 @@ Cuéntame:
                         toggleListening();
                       }
                     }}
-                    disabled={isProcessing || (isListening && !!userMessage.trim()) || (showApproachButtons && !studyApproach)}
+                    disabled={isProcessing || (isListening && !!userMessage.trim()) || (showHoursButtons && !diagnosticHours) || (showLevelButtons && !diagnosticLevel) || (showDurationButtons && !selectedSessionDuration) || (showFrequencyButtons && !selectedWeeklyFrequency) || (showApproachButtons && !studyApproach)}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     className={`w-11 h-11 sm:w-12 sm:h-12 flex-shrink-0 rounded-xl flex items-center justify-center transition-all duration-300 shadow-sm ${userMessage.trim()
@@ -11690,7 +12181,7 @@ Cuéntame:
                       : isListening
                         ? 'bg-[#10B981] text-white hover:bg-[#10B981]/90'
                         : 'bg-[#0A2540] dark:bg-[#0A2540] text-white hover:bg-[#0d2f4d] dark:hover:bg-[#0d2f4d]'
-                      } ${(isProcessing || (isListening && userMessage.trim()) || (showApproachButtons && !studyApproach)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+                      } ${(isProcessing || (isListening && userMessage.trim()) || (showHoursButtons && !diagnosticHours) || (showLevelButtons && !diagnosticLevel) || (showDurationButtons && !selectedSessionDuration) || (showFrequencyButtons && !selectedWeeklyFrequency) || (showApproachButtons && !studyApproach)) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     <AnimatePresence mode="wait">
                       {isProcessing && userMessage.trim() ? (

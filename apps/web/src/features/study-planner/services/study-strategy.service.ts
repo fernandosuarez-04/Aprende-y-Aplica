@@ -408,6 +408,112 @@ export class StudyStrategyService {
   }
 
   /**
+   * Deriva el modo de estudio óptimo basado en duración de sesión y frecuencia semanal.
+   * Reemplaza la selección directa de 'corto/balance/largo' con lógica basada en
+   * las dimensiones separadas de duración y frecuencia.
+   */
+  static deriveStudyMode(sessionDurationMinutes: number, weeklyFrequency: number): {
+    mode: StudyMode;
+    breakDurationMinutes: number;
+    reason: string;
+  } {
+    const weeklyIntensity = sessionDurationMinutes * weeklyFrequency;
+
+    if (sessionDurationMinutes >= 60 || weeklyIntensity >= 240) {
+      return {
+        mode: 'intensive',
+        breakDurationMinutes: 15,
+        reason: `Sesiones de ${sessionDurationMinutes} min × ${weeklyFrequency}/semana = ${weeklyIntensity} min semanales. Modo intensivo con descansos de 15 min.`,
+      };
+    }
+
+    if (sessionDurationMinutes <= 30) {
+      return {
+        mode: 'pomodoro',
+        breakDurationMinutes: 5,
+        reason: `Sesiones cortas de ${sessionDurationMinutes} min. Técnica Pomodoro para máxima concentración.`,
+      };
+    }
+
+    return {
+      mode: 'balanced',
+      breakDurationMinutes: 10,
+      reason: `Sesiones de ${sessionDurationMinutes} min × ${weeklyFrequency}/semana. Modo equilibrado con descansos de 10 min.`,
+    };
+  }
+
+  /**
+   * Calcula la equivalencia de lecciones por sesión basado en la duración promedio de lecciones.
+   */
+  static calculateLessonEquivalence(
+    sessionMinutes: number,
+    avgLessonDurationMinutes: number = 15
+  ): {
+    estimatedLessons: number;
+    rangeMin: number;
+    rangeMax: number;
+    label: string;
+  } {
+    const estimated = Math.floor(sessionMinutes / avgLessonDurationMinutes);
+    const rangeMin = Math.max(1, estimated - 1);
+    const rangeMax = estimated + 1;
+
+    return {
+      estimatedLessons: estimated,
+      rangeMin,
+      rangeMax,
+      label: `~${estimated} lecciones`,
+    };
+  }
+
+  /**
+   * Calcula la fecha estimada de finalización basada en configuración del usuario.
+   */
+  static calculateEstimatedCompletion(
+    totalMinutesRemaining: number,
+    sessionDurationMinutes: number,
+    weeklyFrequency: number,
+    startDate: Date = new Date()
+  ): {
+    estimatedEndDate: Date;
+    totalWeeks: number;
+    totalSessions: number;
+  } {
+    const minutesPerWeek = sessionDurationMinutes * weeklyFrequency;
+    const totalWeeks = Math.ceil(totalMinutesRemaining / minutesPerWeek);
+    const totalSessions = Math.ceil(totalMinutesRemaining / sessionDurationMinutes);
+
+    const estimatedEndDate = new Date(startDate);
+    estimatedEndDate.setDate(estimatedEndDate.getDate() + (totalWeeks * 7));
+
+    return {
+      estimatedEndDate,
+      totalWeeks,
+      totalSessions,
+    };
+  }
+
+  /**
+   * Mapea los modos legacy (corto/balance/largo) al nuevo sistema de dimensiones separadas.
+   */
+  static mapLegacyApproach(approach: 'corto' | 'balance' | 'largo'): {
+    sessionDurationMinutes: number;
+    weeklyFrequency: number;
+    minSessionMinutes: number;
+    maxSessionMinutes: number;
+    breakDurationMinutes: number;
+  } {
+    switch (approach) {
+      case 'corto':
+        return { sessionDurationMinutes: 75, weeklyFrequency: 4, minSessionMinutes: 60, maxSessionMinutes: 90, breakDurationMinutes: 15 };
+      case 'balance':
+        return { sessionDurationMinutes: 45, weeklyFrequency: 3, minSessionMinutes: 45, maxSessionMinutes: 60, breakDurationMinutes: 10 };
+      case 'largo':
+        return { sessionDurationMinutes: 30, weeklyFrequency: 2, minSessionMinutes: 20, maxSessionMinutes: 35, breakDurationMinutes: 5 };
+    }
+  }
+
+  /**
    * Formatea los descansos para mostrar al usuario
    */
   static formatBreaksForDisplay(breakdown: SessionBreakdown): string[] {
