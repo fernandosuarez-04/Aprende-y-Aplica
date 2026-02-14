@@ -1312,13 +1312,30 @@ export class CalendarIntegrationService {
         }
       );
 
-      // 404 significa que el evento ya no existe, lo cual es válido
-      if (!response.ok && response.status !== 404) {
-        console.error('[Calendar] Error eliminando evento:', await response.text());
+      if (response.ok) return true;
+
+      // Si es 404 y estamos usando calendario secundario, intentar en primary como fallback
+      if (response.status === 404 && targetCalendarId !== 'primary') {
+        const fallbackResponse = await fetch(
+          `https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`,
+          {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+            },
+          }
+        );
+        if (fallbackResponse.ok || fallbackResponse.status === 404) {
+          return true;
+        }
         return false;
       }
 
-      return true;
+      // 404 en primary = evento ya no existe
+      if (response.status === 404) return true;
+
+      console.error('[Calendar] Error eliminando evento:', await response.text());
+      return false;
     } catch (error) {
       console.error('[Calendar] Error eliminando evento:', error);
       return false;
@@ -1423,6 +1440,33 @@ export class CalendarIntegrationService {
     }
 
     return { calendarId, accessToken, provider: integration.provider };
+  }
+  /**
+   * Elimina un evento de Microsoft Calendar
+   */
+  static async deleteMicrosoftEvent(
+    accessToken: string,
+    eventId: string
+  ): Promise<boolean> {
+    try {
+      const response = await fetch(`https://graph.microsoft.com/v1.0/me/events/${eventId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok && response.status !== 404) {
+        const errorText = await response.text();
+        console.error('[Calendar] Error eliminando evento de Microsoft:', errorText);
+        return false;
+      }
+
+      return true;
+    } catch (error) {
+      console.error('[Calendar] Error eliminando evento de Microsoft:', error);
+      return false;
+    }
   }
 }
 

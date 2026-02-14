@@ -112,7 +112,9 @@ export async function GET(request: NextRequest) {
 
 
     if (integration.provider === 'google') {
-      events = await getGoogleCalendarEvents(accessToken, startDate, endDate);
+      const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+      const secondaryCalendarId = metadata?.secondary_calendar_id;
+      events = await getGoogleCalendarEvents(accessToken, startDate, endDate, secondaryCalendarId);
     } else if (integration.provider === 'microsoft') {
       events = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
     }
@@ -367,7 +369,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 /**
  * Obtiene eventos de Google Calendar desde TODOS los calendarios del usuario
  */
-async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date): Promise<any[]> {
+async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date, secondaryCalendarId?: string): Promise<any[]> {
   try {
 
     // Primero, obtener la lista de calendarios del usuario
@@ -419,11 +421,17 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
     const allEvents: any[] = [];
 
     for (const calendar of calendars) {
-      // CRITERIO ESTRICTO: Solo el calendario principal (primary=true)
-      // Esto excluye calendarios de otros usuarios que el usuario administra
-      if (calendar.primary === true) {
+      // CRITERIO: Calendario principal (primary=true) O calendario secundario de SOFLIA
+      // Esto permite ver eventos creados por la plataforma
+      const isSofliaCalendar = (secondaryCalendarId && calendar.id === secondaryCalendarId) ||
+        calendar.summary?.toLowerCase() === 'soflia - sesiones de estudio';
+
+      if (calendar.primary === true || isSofliaCalendar) {
 
         const events = await getEventsFromCalendar(accessToken, calendar.id, startDate, endDate);
+
+        // Marcar origen para depuración si es necesario
+        // events.forEach(e => e.sourceCalendar = calendar.primary ? 'primary' : 'soflia');
 
         allEvents.push(...events);
       } else {
@@ -538,11 +546,15 @@ async function syncDeletedStudySessions(
       return; // No hay sesiones con eventos externos
     }
 
+    // Obtener el secondaryCalendarId para buscar en AMBOS calendarios
+    const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+    const secondaryCalendarId = metadata?.secondary_calendar_id;
+
     // Obtener eventos actuales del calendario externo
     let externalEvents: any[] = [];
 
     if (integration.provider === 'google') {
-      externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate);
+      externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate, secondaryCalendarId);
     } else if (integration.provider === 'microsoft') {
       externalEvents = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
     }

@@ -89,18 +89,21 @@ export async function DELETE(request: NextRequest): Promise<NextResponse<DeleteP
       // Obtener integración de calendario del usuario (incluyendo metadata con secondary_calendar_id)
       const { data: integration } = await supabase
         .from('calendar_integrations')
-        .select('access_token, refresh_token, provider, expires_at, metadata')
+        .select('id, access_token, refresh_token, provider, expires_at, metadata')
         .eq('user_id', user.id)
         .order('updated_at', { ascending: false })
         .limit(1)
         .single();
-      
+
       if (integration?.access_token) {
         // Verificar si el token ha expirado y refrescarlo si es necesario
         let accessToken = integration.access_token;
         const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
-        
-        if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
+
+        // Refrescar si: no hay fecha de expiración, o el token está expirado
+        const needsRefresh = !tokenExpiry || tokenExpiry <= new Date();
+
+        if (needsRefresh && integration.refresh_token) {
           const refreshResult = await refreshAccessToken(integration);
           if (refreshResult.success && refreshResult.accessToken) {
             accessToken = refreshResult.accessToken;
@@ -299,32 +302,52 @@ async function deleteGoogleCalendarEvent(
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = 'Error eliminando evento de Google Calendar';
-    
+
     try {
       const errorJson = JSON.parse(errorText);
       errorMessage = errorJson.error?.message || errorMessage;
-      
+
       // Detectar error de permisos insuficientes
       if (errorJson.error?.message?.includes('insufficient authentication scopes') ||
           errorJson.error?.message?.includes('Insufficient Permission') ||
           response.status === 403) {
-        console.warn('⚠️ Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
-        return; // No lanzar error, solo loguear
+        console.warn('[Delete Event] Permisos insuficientes para eliminar evento de Google Calendar.');
+        return;
       }
     } catch {
-      // Si no se puede parsear, verificar el texto del error
-      if (errorText.includes('insufficient authentication scopes') || 
+      if (errorText.includes('insufficient authentication scopes') ||
           errorText.includes('Insufficient Permission')) {
-        console.warn('⚠️ Permisos insuficientes para eliminar evento de Google Calendar. El evento puede seguir existiendo en Google Calendar.');
-        return; // No lanzar error, solo loguear
+        console.warn('[Delete Event] Permisos insuficientes para eliminar evento de Google Calendar.');
+        return;
       }
     }
-    
-    // Si es un error 404, el evento ya no existe, así que está bien
+
+    // Si es 404 y estábamos usando un calendario secundario, intentar en primary como fallback
+    if (response.status === 404 && targetCalendarId !== 'primary') {
+      console.log(`[Delete Event] Evento no encontrado en calendario secundario, intentando en primary...`);
+      const fallbackResponse = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(cleanEventId)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      // Si el fallback da 404 también, el evento realmente ya no existe
+      if (fallbackResponse.ok || fallbackResponse.status === 404) {
+        return;
+      }
+      // Otro error en el fallback: loguear pero no interrumpir
+      console.error(`[Delete Event] Fallback en primary también falló: ${fallbackResponse.status}`);
+      return;
+    }
+
+    // Si es 404 en primary, el evento ya no existe
     if (response.status === 404) {
       return;
     }
-    
+
     throw new Error(errorMessage);
   }
 }

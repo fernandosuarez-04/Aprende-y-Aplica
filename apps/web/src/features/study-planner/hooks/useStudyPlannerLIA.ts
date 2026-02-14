@@ -105,7 +105,7 @@ export interface StudyPlannerLIAActions {
 
   // Generación del plan
   generatePlan: () => Promise<void>;
-  savePlan: () => Promise<{ planId: string } | null>;
+  savePlan: () => Promise<{ planId: string; sessionIds: string[] } | null>;
 
   // Utilidades
   clearError: () => void;
@@ -386,7 +386,7 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
   }, [state.phaseData]);
 
   // Guardar plan
-  const savePlan = useCallback(async (): Promise<{ planId: string } | null> => {
+  const savePlan = useCallback(async (): Promise<{ planId: string; sessionIds: string[] } | null> => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
 
     try {
@@ -440,7 +440,10 @@ export function useStudyPlannerLIA(): StudyPlannerLIAState & StudyPlannerLIAActi
           isLoading: false,
         }));
 
-        return { planId: data.data.planId };
+        return {
+          planId: data.data.planId,
+          sessionIds: data.data.sessionIds || []
+        };
       }
 
       return null;

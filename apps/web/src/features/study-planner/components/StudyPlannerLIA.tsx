@@ -8,6 +8,7 @@ import { useRouter, useParams } from 'next/navigation';
 import { HolidayService } from '../../../lib/holidays';
 import { useOrganizationStylesContext } from '../../business-panel/contexts/OrganizationStylesContext';
 import { generateStudyPlannerPrompt } from '../prompts/study-planner.prompt';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 import { useLIAData } from '../hooks/useLIAData';
 import { parseLiaResponseToSchedules } from '../services/plan-parser.service';
 // import Joyride from 'react-joyride';
@@ -124,6 +125,7 @@ function getCalendarErrorMessage(errorType: string, errorMsg: string): string {
 export function StudyPlannerLIA() {
   const router = useRouter();
   const params = useParams();
+  const { user } = useAuth();
 
   // Joyride integration protected (commented out due to webpack error)
   // const { joyrideProps, restartTour, isRunning } = useStudyPlannerJoyride();
@@ -7843,8 +7845,16 @@ Cuéntame:
             console.warn(`âš ï¸ Slot sin lecciones válidas: ${slot.dateStr} ${slot.startTime}`);
             sessionTitle = 'Sesión de estudio';
           } else if (validLessons.length === 1) {
-            // Una sola lección: usar el título completo
-            sessionTitle = validLessons[0].lessonTitle.trim();
+            // Una sola lección: usar el título completo pero limpio de prefijos y emojis
+            const rawTitle = validLessons[0].lessonTitle.trim();
+            // Eliminar prefijos como "Curso:", "Lección X:", emojis, etc.
+            // Regex explicación:
+            // ^                              -> Inicio de línea
+            // (?:...)*                       -> Grupo no captura repetido (emojis o espacios)
+            // [\u{1F300}-\u{1F9FF}]...       -> Rangos Unicode de emojis comunes
+            // (?:Curso|Lección|...)\s*[^:]*: -> Prefijos de texto seguidos de algo y dos puntos
+            // \s*                            -> Espacios finales
+            sessionTitle = rawTitle.replace(/^[\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\s]*(?:Curso|Lección|Tema|Módulo|Clase|Sesión|Capítulo|Taller)\s*[^:]*:\s*/iu, '');
           } else if (validLessons.length === 2) {
             // Dos lecciones: mostrar ambas en el título (limitado a 100 caracteres)
             const title1 = validLessons[0].lessonTitle.trim();
@@ -7919,6 +7929,29 @@ Cuéntame:
 
       // Guardar el plan
 
+      // ✅ (NUEVO) Si ya existe un plan guardado y hay calendario conectado, intentar limpiar eventos anteriores
+      if (savedPlanId && connectedCalendar) {
+        try {
+          console.log(`⏳ Limpiando eventos del plan anterior: ${savedPlanId}`);
+          // Opcional: Notificar al usuario (puede ser muy verboso, mejor solo log o un mensaje sutil)
+          /*
+          setConversationHistory(prev => [...prev, {
+             role: 'assistant',
+             content: '⏳ Actualizando calendario...'
+          }]);
+          */
+
+          await fetch('/api/study-planner/calendar/delete-plan-events', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ planId: savedPlanId })
+          });
+        } catch (cleanupError) {
+          console.error('Error cleaning up old events:', cleanupError);
+          // No interrumpir el guardado si falla la limpieza
+        }
+      }
+
       const saveResponse = await fetch('/api/study-planner/save-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -7991,7 +8024,40 @@ Cuéntame:
       console.log(`📅 [Calendar Insert] connectedCalendar: ${connectedCalendar}`);
       console.log(`📅 [Calendar Insert] savedLessonDistribution.length: ${savedLessonDistribution.length}`);
 
-      if (connectedCalendar && savedLessonDistribution.length > 0) {
+      // Obtener sessionIds
+      const sessionIds = saveData.data?.sessionIds || [];
+
+      // ✅ (NUEVO) Sincronizar usando sync-sessions
+      if (connectedCalendar && sessionIds.length > 0) {
+        try {
+          console.log(`📅 [Sync Sessions] Sincronizando ${sessionIds.length} sesiones...`);
+          const syncResponse = await fetch('/api/study-planner/calendar/sync-sessions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionIds })
+          });
+          const syncResult = await syncResponse.json();
+
+          if (syncResponse.ok && syncResult.success) {
+            calendarInsertSuccess = true;
+            calendarInsertedCount = syncResult.data?.syncedCount || 0;
+            console.log(`✅ [Sync Sessions] Sincronizado: ${calendarInsertedCount}`);
+          } else {
+            console.error(`❌ [Sync Sessions] Error: ${syncResult.error}`);
+            // Manejar error de autenticación
+            if (syncResponse.status === 401) {
+              setConnectedCalendar(null);
+              setConversationHistory(prev => [...prev, {
+                role: 'assistant',
+                content: '⚠️ Tu conexión con el calendario ha expirado. Reconecta tu calendario para sincronizar.'
+              }]);
+            }
+          }
+        } catch (err) { console.error('Error sync:', err); }
+      }
+
+      // (ANTIGUO - DESHABILITADO)
+      if (false && connectedCalendar && savedLessonDistribution.length > 0) {
         try {
           console.log(`📅 [Insert Events] Insertando ${savedLessonDistribution.length} eventos en calendario...`);
 
@@ -8604,8 +8670,8 @@ Cuéntame:
         const moveMessage = `He movido ${movedCount} sesion${movedCount > 1 ? 'es' : ''} (${totalLessons} lecciones) del ${sourceDayName} ${sDateObj.getDate()} al ${formattedTarget}. Los horarios se mantienen igual.\n\n¿Te parece bien o quieres hacer algún otro cambio?`;
 
         setConversationHistory(prev => [...prev,
-          { role: 'user', content: message },
-          { role: 'assistant', content: moveMessage }
+        { role: 'user', content: message },
+        { role: 'assistant', content: moveMessage }
         ]);
 
         if (isAudioEnabled) {
@@ -8619,8 +8685,8 @@ Cuéntame:
         const sDateObj2 = new Date(parseInt(sParts2[0]), parseInt(sParts2[1]) - 1, parseInt(sParts2[2]));
         const noSessionsMsg = `No encontré sesiones programadas para el ${sourceDayName} ${sDateObj2.getDate()}. ¿Podrías verificar la fecha?`;
         setConversationHistory(prev => [...prev,
-          { role: 'user', content: message },
-          { role: 'assistant', content: noSessionsMsg }
+        { role: 'user', content: message },
+        { role: 'assistant', content: noSessionsMsg }
         ]);
         setIsProcessing(false);
         return;
@@ -10437,8 +10503,11 @@ Cuéntame:
                 <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
                   <motion.button
                     onClick={() => {
-                      if (params?.orgSlug) {
-                        router.push(`/${params.orgSlug}/business-user/dashboard`);
+                      // ✅ CORRECCIÓN: Usar slug de la organización del usuario si está disponible
+                      const orgSlug = user?.organization?.slug || params?.orgSlug;
+
+                      if (orgSlug) {
+                        router.push(`/${orgSlug}/business-user/dashboard`);
                       } else {
                         router.back();
                       }
