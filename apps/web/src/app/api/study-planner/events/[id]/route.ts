@@ -288,8 +288,29 @@ export async function DELETE(
           const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
           const secondaryCalendarId = metadata?.secondary_calendar_id || null;
 
-          // Eliminar de Google Calendar usando el calendario secundario
-          await deleteGoogleCalendarEvent(accessToken, id, secondaryCalendarId);
+          // Eliminar de Google Calendar
+          // Estrategia: Intentar primero en el calendario secundario (donde deberían estar los eventos de la plataforma)
+          // Si falla (ej. 404), intentar en el calendario principal (por si el usuario lo movió o se creó ahí)
+          try {
+            await deleteGoogleCalendarEvent(accessToken, id, secondaryCalendarId);
+          } catch (error: any) {
+            console.warn(`[Delete Event] Falló eliminación en calendario secundario (${secondaryCalendarId}): ${error.message}`);
+
+            // Si el error indica que no se encontró, intentar en el primario
+            // Google devuelve 404 Not Found o 410 Gone
+            if (error.message?.includes('404') || error.message?.includes('410') || error.message?.includes('Not Found') || error.message?.includes('Deleted')) {
+              console.log('[Delete Event] Intentando eliminar del calendario principal...');
+              try {
+                await deleteGoogleCalendarEvent(accessToken, id, 'primary');
+              } catch (primaryError: any) {
+                console.error('[Delete Event] Falló también en calendario principal:', primaryError);
+                throw primaryError; // Re-lanzar el error original o el nuevo
+              }
+            } else {
+              throw error; // Re-lanzar si es otro tipo de error (ej. permisos)
+            }
+          }
+
           return NextResponse.json({
             success: true,
             message: 'Evento eliminado exitosamente',
@@ -435,27 +456,27 @@ async function updateGoogleCalendarEvent(
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = 'Error actualizando evento en Google Calendar';
-    
+
     try {
       const errorJson = JSON.parse(errorText);
       errorMessage = errorJson.error?.message || errorMessage;
-      
+
       // Detectar error de permisos insuficientes
       if (errorJson.error?.message?.includes('insufficient authentication scopes') ||
-          errorJson.error?.message?.includes('Insufficient Permission') ||
-          response.status === 403) {
+        errorJson.error?.message?.includes('Insufficient Permission') ||
+        response.status === 403) {
         errorMessage = 'Request had insufficient authentication scopes. Por favor, reconecta tu calendario de Google con permisos de escritura.';
       }
     } catch {
       // Si no se puede parsear, verificar el texto del error
-      if (errorText.includes('insufficient authentication scopes') || 
-          errorText.includes('Insufficient Permission')) {
+      if (errorText.includes('insufficient authentication scopes') ||
+        errorText.includes('Insufficient Permission')) {
         errorMessage = 'Request had insufficient authentication scopes. Por favor, reconecta tu calendario de Google con permisos de escritura.';
       } else {
         errorMessage = errorText || errorMessage;
       }
     }
-    
+
     throw new Error(errorMessage);
   }
 
@@ -466,13 +487,13 @@ async function updateGoogleCalendarEvent(
  * Refresca el access token usando el refresh token
  */
 async function refreshAccessToken(integration: any): Promise<{ success: boolean; accessToken?: string }> {
-  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID || 
-                           process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
-                           process.env.GOOGLE_CLIENT_ID ||
-                           process.env.GOOGLE_OAUTH_CLIENT_ID || '';
+  const GOOGLE_CLIENT_ID = process.env.GOOGLE_CALENDAR_CLIENT_ID ||
+    process.env.NEXT_PUBLIC_GOOGLE_CALENDAR_CLIENT_ID ||
+    process.env.GOOGLE_CLIENT_ID ||
+    process.env.GOOGLE_OAUTH_CLIENT_ID || '';
   const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CALENDAR_CLIENT_SECRET ||
-                               process.env.GOOGLE_CLIENT_SECRET ||
-                               process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
+    process.env.GOOGLE_CLIENT_SECRET ||
+    process.env.GOOGLE_OAUTH_CLIENT_SECRET || '';
 
   try {
     if (integration.provider === 'google') {
@@ -494,7 +515,7 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
       }
 
       const tokens = await response.json();
-      
+
       // Actualizar en base de datos
       const supabase = createAdminClient();
       await supabase
@@ -544,27 +565,52 @@ async function deleteGoogleCalendarEvent(
   if (!response.ok) {
     const errorText = await response.text();
     let errorMessage = 'Error eliminando evento de Google Calendar';
-    
+
     try {
       const errorJson = JSON.parse(errorText);
       errorMessage = errorJson.error?.message || errorMessage;
-      
+
       // Detectar error de permisos insuficientes
       if (errorJson.error?.message?.includes('insufficient authentication scopes') ||
-          errorJson.error?.message?.includes('Insufficient Permission') ||
-          response.status === 403) {
+        errorJson.error?.message?.includes('Insufficient Permission') ||
+        response.status === 403) {
         errorMessage = 'Request had insufficient authentication scopes. Por favor, reconecta tu calendario de Google con permisos de escritura.';
+        throw new Error(errorMessage);
       }
-    } catch {
+    } catch (parseError) {
+      if (parseError instanceof Error && parseError.message.includes('insufficient authentication scopes')) {
+        throw parseError;
+      }
       // Si no se puede parsear, verificar el texto del error
-      if (errorText.includes('insufficient authentication scopes') || 
-          errorText.includes('Insufficient Permission')) {
-        errorMessage = 'Request had insufficient authentication scopes. Por favor, reconecta tu calendario de Google con permisos de escritura.';
-      } else {
-        errorMessage = errorText || errorMessage;
+      if (errorText.includes('insufficient authentication scopes') ||
+        errorText.includes('Insufficient Permission')) {
+        throw new Error('Request had insufficient authentication scopes. Por favor, reconecta tu calendario de Google con permisos de escritura.');
       }
     }
-    
+
+    // Si es 404 y estábamos usando un calendario secundario, intentar en primary como fallback
+    if (response.status === 404 && targetCalendarId !== 'primary') {
+      const fallbackResponse = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/primary/events/${encodeURIComponent(cleanEventId)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+      if (fallbackResponse.ok || fallbackResponse.status === 404) {
+        return;
+      }
+      console.error(`[Delete Event] Fallback en primary tambien fallo: ${fallbackResponse.status}`);
+      return;
+    }
+
+    // Si es 404 en primary, el evento ya no existe
+    if (response.status === 404) {
+      return;
+    }
+
     console.error(`Error eliminando evento de Google Calendar (${response.status}):`, errorMessage);
     throw new Error(errorMessage);
   }

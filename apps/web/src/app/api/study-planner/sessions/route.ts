@@ -137,10 +137,10 @@ async function syncDeletedStudySessions(
   endDate: Date
 ): Promise<void> {
   try {
-    // Obtener integración de calendario
+    // Obtener integración de calendario (incluir metadata para secondaryCalendarId e id para refresh)
     const { data: integration } = await supabase
       .from('calendar_integrations')
-      .select('access_token, provider, refresh_token, expires_at')
+      .select('id, access_token, provider, refresh_token, expires_at, metadata')
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(1)
@@ -153,8 +153,9 @@ async function syncDeletedStudySessions(
     // Verificar si el token ha expirado
     let accessToken = integration.access_token;
     const tokenExpiry = integration.expires_at ? new Date(integration.expires_at) : null;
-    
-    if (tokenExpiry && tokenExpiry <= new Date() && integration.refresh_token) {
+    const needsRefresh = !tokenExpiry || tokenExpiry <= new Date();
+
+    if (needsRefresh && integration.refresh_token) {
       // Refrescar token si es necesario
       const refreshResult = await refreshAccessToken(integration);
       if (refreshResult.success && refreshResult.accessToken) {
@@ -178,11 +179,15 @@ async function syncDeletedStudySessions(
       return; // No hay sesiones con eventos externos
     }
 
+    // Obtener el secondaryCalendarId para buscar en AMBOS calendarios (primary + SOFLIA)
+    const metadata = integration.metadata as { secondary_calendar_id?: string } | null;
+    const secondaryCalendarId = metadata?.secondary_calendar_id || null;
+
     // Obtener eventos actuales del calendario externo
     let externalEvents: any[] = [];
-    
+
     if (integration.provider === 'google') {
-      externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate);
+      externalEvents = await getGoogleCalendarEvents(accessToken, startDate, endDate, secondaryCalendarId);
     } else if (integration.provider === 'microsoft') {
       externalEvents = await getMicrosoftCalendarEvents(accessToken, startDate, endDate);
     }
@@ -358,9 +363,12 @@ async function refreshAccessToken(integration: any): Promise<{ success: boolean;
 /**
  * Obtiene eventos de Google Calendar
  */
-async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date): Promise<any[]> {
+async function getGoogleCalendarEvents(accessToken: string, startDate: Date, endDate: Date, secondaryCalendarId?: string | null): Promise<any[]> {
   try {
-    const response = await fetch(
+    // Buscar en el calendario primary
+    const allEvents: any[] = [];
+
+    const primaryResponse = await fetch(
       `https://www.googleapis.com/calendar/v3/calendars/primary/events?` +
       `timeMin=${startDate.toISOString()}&` +
       `timeMax=${endDate.toISOString()}&` +
@@ -374,12 +382,34 @@ async function getGoogleCalendarEvents(accessToken: string, startDate: Date, end
       }
     );
 
-    if (!response.ok) {
-      return [];
+    if (primaryResponse.ok) {
+      const data = await primaryResponse.json();
+      allEvents.push(...(data.items || []));
     }
 
-    const data = await response.json();
-    return data.items || [];
+    // Buscar en el calendario secundario SOFLIA si existe
+    if (secondaryCalendarId && secondaryCalendarId !== 'primary') {
+      const secondaryResponse = await fetch(
+        `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(secondaryCalendarId)}/events?` +
+        `timeMin=${startDate.toISOString()}&` +
+        `timeMax=${endDate.toISOString()}&` +
+        `singleEvents=true&` +
+        `orderBy=startTime&` +
+        `maxResults=250`,
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (secondaryResponse.ok) {
+        const data = await secondaryResponse.json();
+        allEvents.push(...(data.items || []));
+      }
+    }
+
+    return allEvents;
   } catch (error) {
     console.error('Error obteniendo eventos de Google Calendar:', error);
     return [];
